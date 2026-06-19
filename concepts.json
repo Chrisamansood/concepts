@@ -1,0 +1,12 @@
+[
+  {
+    "id": "agentic-crm",
+    "title": "Agentic CRM",
+    "subtitle": "AI-Orchestrated Customer Intelligence",
+    "description": "A fully interactive prototype showing how autonomous AI agents can orchestrate churn prevention, pipeline optimization, and revenue protection — with human-in-the-loop approvals.",
+    "tags": ["Multi-Agent", "Orchestration", "Customer 360", "Human-in-the-Loop"],
+    "status": "Live",
+    "path": "agentic-crm/",
+    "color": "#F97316"
+  }
+]
