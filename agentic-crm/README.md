@@ -2,7 +2,7 @@
 
 > What happens when AI agents run your CRM instead of just assisting? This interactive prototype lets you experience it.
 
-**[Live Demo](https://chrisamansood.github.io/agentic-crm/)** · Built by [Chris Sood](https://linkedin.com/in/chrisamansood)
+**[Live Demo](https://chrisamansood.github.io/concepts/agentic-crm/)** · Built by [Chris Sood](https://linkedin.com/in/chrisamansood)
 
 ---
 
