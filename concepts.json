@@ -4,9 +4,28 @@
     "title": "Agentic CRM",
     "subtitle": "AI-Orchestrated Customer Intelligence",
     "description": "A fully interactive prototype showing how autonomous AI agents can orchestrate churn prevention, pipeline optimization, and revenue protection — with human-in-the-loop approvals.",
-    "tags": ["Multi-Agent", "Orchestration", "Customer 360", "Human-in-the-Loop"],
+    "tags": [
+      "Multi-Agent",
+      "Orchestration",
+      "Customer 360",
+      "Human-in-the-Loop"
+    ],
     "status": "Live",
     "path": "agentic-crm/",
     "color": "#F97316"
+  },
+  {
+    "id": "jarvis-presenter",
+    "title": "Jarvis Presenter",
+    "subtitle": "AI-Powered Presentation Intelligence",
+    "description": "An interactive AI prototype that transforms how presentations are built, delivered, and adapted in real time — powered by intelligent agents that understand context, audience, and narrative flow.",
+    "tags": [
+      "AI",
+      "Generative",
+      "Presentations"
+    ],
+    "status": "Live",
+    "path": "jarvis-presenter/",
+    "color": "#D97706"
   }
 ]

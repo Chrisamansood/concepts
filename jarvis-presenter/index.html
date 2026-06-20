@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Chris's Jarvis</title>
+    <link rel="stylesheet" href="./styles.css">
+  </head>
+  <body>
+    <main class="shell">
+      <aside class="rail" aria-label="Presenter controls">
+        <div class="brand">
+          <span class="brand-mark"></span>
+          <div>
+            <strong>Chris's Jarvis</strong>
+            <span id="systemState">Standby</span>
+          </div>
+          <button id="collapseBtn" class="icon-button" title="Collapse panel" aria-label="Collapse panel">‹</button>
+        </div>
+
+        <section class="control-group">
+          <button id="captureBtn" class="primary">Share Source</button>
+          <button id="handBtn">Start Hand Control</button>
+          <button id="voiceBtn">Start Voice</button>
+        </section>
+
+        <section class="control-group command-line" aria-label="Command test">
+          <input id="commandInput" type="text" placeholder='Try "blue arrow"'>
+          <button id="commandBtn">Run Command</button>
+        </section>
+
+        <section class="control-group tool-grid" aria-label="Drawing tools">
+          <button class="tool active" data-tool="pen" title="Pen">Pen</button>
+          <button class="tool" data-tool="arrow" title="Arrow">Arrow</button>
+          <button class="tool" data-tool="circle" title="Circle">Circle</button>
+          <button class="tool" data-tool="spotlight" title="Spotlight">Spot</button>
+          <button class="tool" data-tool="eraser" title="Eraser">Erase</button>
+          <button id="clearBtn" title="Clear overlay">Clear</button>
+        </section>
+
+        <section class="control-group swatches" aria-label="Color">
+          <button class="swatch active" data-color="#00e5ff" style="--swatch:#00e5ff" title="Cyan"></button>
+          <button class="swatch" data-color="#ff3b6b" style="--swatch:#ff3b6b" title="Red"></button>
+          <button class="swatch" data-color="#ffd166" style="--swatch:#ffd166" title="Yellow"></button>
+          <button class="swatch" data-color="#7cff6b" style="--swatch:#7cff6b" title="Green"></button>
+          <button class="swatch" data-color="#ffffff" style="--swatch:#ffffff" title="White"></button>
+        </section>
+
+        <section class="control-group gesture-guide" aria-label="Gesture guide">
+          <h2>Gesture Guide</h2>
+          <div class="gesture-row">
+            <span>Index finger</span>
+            <b>Move pointer</b>
+          </div>
+          <div class="gesture-row">
+            <span>Pinch + hold</span>
+            <b>Draw / shape</b>
+          </div>
+          <div class="gesture-row">
+            <span>Release pinch</span>
+            <b>Stop / commit</b>
+          </div>
+          <div class="gesture-row">
+            <span>Open palm</span>
+            <b>Pause safe</b>
+          </div>
+          <div class="gesture-row">
+            <span>Two-hand clap</span>
+            <b>Lock / resume</b>
+          </div>
+          <div class="gesture-row">
+            <span>Two open hands</span>
+            <b>Hold to clear</b>
+          </div>
+        </section>
+
+        <section class="control-group sliders">
+          <label class="toggle-row">
+            <span>Mirror movement</span>
+            <input id="mirrorInput" type="checkbox" checked>
+          </label>
+          <label>
+            <span>Pinch sensitivity <b id="pinchReadout">Medium</b></span>
+            <input id="pinchInput" type="range" min="35" max="95" value="65">
+          </label>
+          <label>
+            <span>Smoothing <b id="smoothingReadout">Medium</b></span>
+            <input id="smoothingInput" type="range" min="10" max="85" value="35">
+          </label>
+          <label>
+            <span>Draw delay <b id="delayReadout">180 ms</b></span>
+            <input id="drawDelayInput" type="range" min="0" max="500" step="10" value="180">
+          </label>
+          <label>
+            <span>Dead zone <b id="deadZoneReadout">3 px</b></span>
+            <input id="deadZoneInput" type="range" min="0" max="18" value="3">
+          </label>
+          <label>
+            Size
+            <input id="sizeInput" type="range" min="2" max="28" value="7">
+          </label>
+          <label>
+            Glow
+            <input id="glowInput" type="range" min="0" max="28" value="14">
+          </label>
+        </section>
+
+        <section class="telemetry" aria-live="polite">
+          <span>Tool <b id="toolReadout">Pen</b></span>
+          <span>Hand <b id="handReadout">Off</b></span>
+          <span>Gesture <b id="gestureReadout">Standby</b></span>
+          <span>Lock <b id="lockReadout">Open</b></span>
+          <span>Mirror <b id="mirrorReadout">On</b></span>
+          <span>Voice <b id="voiceReadout">Off</b></span>
+          <span id="heardText">Awaiting command</span>
+        </section>
+      </aside>
+
+      <section class="stage-wrap">
+        <button id="expandBtn" class="expand-button" title="Show panel" aria-label="Show panel">☰</button>
+        <div class="stage" id="stage">
+          <video id="sourceVideo" autoplay muted playsinline></video>
+          <canvas id="drawCanvas"></canvas>
+          <canvas id="previewCanvas"></canvas>
+          <div class="gesture-cursor" id="gestureCursor"></div>
+          <video id="cameraVideo" autoplay muted playsinline></video>
+          <div class="hud">
+            <span class="pulse"></span>
+            <span id="hudText">Select a source, then share this window in Teams.</span>
+          </div>
+          <div class="empty" id="emptyState">
+            <div class="scanner"></div>
+            <h1>Chris's Jarvis</h1>
+            <p>Share any screen, app window, document, browser tab, or deck.</p>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <script src="./vendor/hands/hands.js"></script>
+    <script src="./app.js"></script>
+  </body>
+</html>
