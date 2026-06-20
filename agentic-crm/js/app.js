@@ -453,7 +453,8 @@ const VIEW_TITLES = {
   pipeline: 'Deal Pipeline',
   account: 'Account Intelligence',
   tickets: 'Ticket Queue',
-  inbox: 'Agent Inbox'
+  inbox: 'Agent Inbox',
+  chat: 'Agent Chat'
 };
 
 var _activeView = 'dashboard';
@@ -487,6 +488,7 @@ function navigateTo(viewName, opts) {
     case 'account': renderAccount(); break;
     case 'tickets': renderTickets(); break;
     case 'inbox': renderInbox(); break;
+    case 'chat': renderChat(); break;
   }
 }
 
@@ -1438,10 +1440,646 @@ function renderAll() {
   renderAccount();
   renderTickets();
   renderInbox();
+  if (_activeView === 'chat') renderChat();
 }
 
 /* ----------------------------------------------------------
-   13. INITIALIZATION
+   13. AGENT CHAT — DATA
+   ---------------------------------------------------------- */
+var _chatScenarioIdx = 0;
+var _chatStep = -1;
+var _chatStreaming = false;
+var _chatActiveTypewriter = null;
+
+var CHAT_SCENARIOS_SAAS = [
+  {
+    id: 'briefing', label: 'Morning Briefing',
+    steps: [
+      { userPrompt: null, agent: 'Pipeline Optimizer', av: 'PO', avGrad: 'linear-gradient(135deg,#1E293B,#0EA5E9)', handoffFrom: null,
+        lines: ['Good morning. I\'ve scanned your pipeline and flagged what needs attention today.', '▸ 3 deals showing elevated churn signals — $7.7M ARR at risk', '▸ Acme Corp is the most critical: renewal in 120 days, churn at 81%', '▸ 1 billing dispute escalated overnight'],
+        richCard: { type: 'pipeline-health' }, prompts: ['Show me the deals at risk', 'What\'s the biggest risk today?', 'Show Acme Corp'], ctxTab: 'pipeline' },
+      { userPrompt: 'Show me the deals at risk', agent: 'Churn Sentinel', av: 'CH', avGrad: 'linear-gradient(135deg,#E11D48,#F97316)', handoffFrom: 'Pipeline Optimizer',
+        lines: ['I\'ve isolated 3 deals with compounding churn signals:', '1. Acme Corp — 81% risk, $2.4M ARR, 120 days to renewal', '2. DataVault Pro — 64% confidence, $3.1M ARR', '3. SignalWire — 78% confidence, $1.2M ARR'],
+        richCard: { type: 'kanban-strip' }, prompts: ['Tell me more about Acme Corp', 'What\'s DataVault\'s issue?', 'Prioritise the highest ARR'], ctxTab: 'pipeline' },
+      { userPrompt: 'Tell me more about Acme Corp', agent: 'Churn Sentinel', av: 'CH', avGrad: 'linear-gradient(135deg,#E11D48,#F97316)', handoffFrom: null,
+        lines: ['Acme Corp is your highest-priority account right now.', 'Churn score jumped from 52% → 81% in 21 days — that\'s the fastest escalation I\'ve seen this quarter.', 'Primary drivers: open billing dispute + 14-day platform login gap.'],
+        richCard: { type: 'hero-card' }, prompts: ['What\'s driving their risk?', 'What actions are available?', 'Draft a recovery plan'], ctxTab: 'account' },
+      { userPrompt: 'What\'s driving their risk?', agent: 'Churn Sentinel', av: 'CH', avGrad: 'linear-gradient(135deg,#E11D48,#F97316)', handoffFrom: null,
+        lines: ['Three signals are compounding the score:'],
+        richCard: { type: 'risk-signals' }, prompts: ['What do you recommend?', 'Resolve the billing dispute', 'Who should I contact at Acme?'], ctxTab: 'account' },
+      { userPrompt: 'What do you recommend?', agent: 'Outreach Agent', av: 'OR', avGrad: 'linear-gradient(135deg,#F97316,#FBBF24)', handoffFrom: 'Churn Sentinel',
+        lines: ['Based on the risk profile, immediate escalation is the right move.', 'I\'ve drafted an action for your approval:'],
+        richCard: { type: 'approval', data: { title: 'Escalate Acme Corp to Senior Account Manager', conf: 81, reason: 'Churn score at 81%, billing dispute open 6 days, 14-day login gap. Accounts with this signature have a 68% churn rate within 90 days unless escalated.' } },
+        prompts: [], ctxTab: 'account' },
+      { userPrompt: null, agent: 'Pipeline Optimizer', av: 'PO', avGrad: 'linear-gradient(135deg,#1E293B,#0EA5E9)', handoffFrom: null,
+        lines: ['Action confirmed. Escalation triggered for Acme Corp.', 'Senior AM has been notified and a meeting slot suggested for tomorrow.', 'I\'ll monitor the account and surface any changes.'],
+        richCard: null, prompts: ['Check DataVault Pro next', 'Show full pipeline', 'That\'s all for now'], ctxTab: 'account' }
+    ]
+  },
+  {
+    id: 'rescue', label: 'Deal Rescue',
+    steps: [
+      { userPrompt: null, agent: 'Churn Sentinel', av: 'CH', avGrad: 'linear-gradient(135deg,#E11D48,#F97316)', handoffFrom: null,
+        lines: ['On it. I\'ve pulled the full account profile for Acme Corp.', '34 days to renewal — this is a critical window.', 'Here\'s what I\'m seeing:'],
+        richCard: { type: 'hero-card' }, prompts: ['Run a deep research on their account', 'Show risk signals', 'What\'s the churn driver?'], ctxTab: 'account' },
+      { userPrompt: 'Run a deep research on their account', agent: 'Churn Sentinel', av: 'CH', avGrad: 'linear-gradient(135deg,#E11D48,#F97316)', handoffFrom: null,
+        lines: [],
+        richCard: { type: 'research-stream', data: { lines: ['▸ Scanning account activity logs...', '▸ Login frequency: 0 sessions in last 14 days (prev: 12/week)', '▸ Feature adoption: core product high — new modules abandoned', '▸ Billing: dispute #4421 open, $14.2K overcharge pending', '▸ Support tickets: 3 critical this month vs. 0.8 avg', '▸ NPS trend: 52 → 41 → 32 across 3 surveys', '▸ Exec sponsor inactive for 18 days', '▸ Competitor signals: DataVault pricing page viewed 3× this week', '▸ Similar accounts: 68% churned within 90 days at this signature', '▸ Recommendation: executive outreach + billing resolution this week'] } },
+        prompts: ['Draft an outreach email', 'Resolve the billing dispute first', 'Show me similar churned accounts'], ctxTab: 'account' },
+      { userPrompt: 'Draft an outreach email', agent: 'Outreach Agent', av: 'OR', avGrad: 'linear-gradient(135deg,#F97316,#FBBF24)', handoffFrom: 'Churn Sentinel',
+        lines: ['Personalised email drafted. Tone: empathetic and solution-focused.'],
+        richCard: { type: 'email', data: { subject: 'Strengthening our partnership — let\'s connect', body: 'Hi Sarah,\n\nI wanted to reach out personally. I know you\'ve had friction with a recent billing issue, and I want to resolve it quickly.\n\nMore importantly, I\'d love to walk you through what\'s coming in Q3 — features directly relevant to your team\'s goals. Would Thursday or Friday work for a 30-minute call?\n\nBest,\nChris Sood', tone: 'Empathetic', sender: 'CS' } },
+        prompts: ['Adjust the tone to be more direct', 'Add a specific offer', 'This looks good — send it'], ctxTab: 'account' },
+      { userPrompt: 'Adjust the tone to be more direct', agent: 'Outreach Agent', av: 'OR', avGrad: 'linear-gradient(135deg,#F97316,#FBBF24)', handoffFrom: null,
+        lines: ['Updated — tighter and action-oriented:'],
+        richCard: { type: 'email-v2', data: { subject: 'Acme Corp renewal — action needed this week', body: 'Hi Sarah,\n\nThe billing dispute is being resolved today — credit by Wednesday.\n\nI need 20 minutes this week to walk through Q3 items that address the platform gaps your team flagged. Time-sensitive given your renewal window.\n\nThursday 2pm or Friday 10am — which works?\n\nChris Sood', tone: 'Direct', sender: 'CS' } },
+        prompts: ['Send it and schedule a follow-up', 'One more revision', 'Approve and send'], ctxTab: 'account' },
+      { userPrompt: 'Send it — and schedule a follow-up', agent: 'Outreach Agent', av: 'OR', avGrad: 'linear-gradient(135deg,#F97316,#FBBF24)', handoffFrom: null,
+        lines: ['Ready to send. Pending your approval:'],
+        richCard: { type: 'approval', data: { title: 'Send email to Sarah Chen + schedule follow-up in 7 days', conf: 92, reason: 'Email addresses the billing dispute and proposes a specific meeting. Follow-up ensures continuity if no response within 7 days. Historical open rate for this template: 71%.' } },
+        prompts: [], ctxTab: 'account' },
+      { userPrompt: null, agent: 'Outreach Agent', av: 'OR', avGrad: 'linear-gradient(135deg,#F97316,#FBBF24)', handoffFrom: null,
+        lines: ['Email sent to sarah.chen@acme.com at 9:14 AM.', 'Follow-up call scheduled for Jun 27 at 2:00 PM.', 'Billing dispute #4421 escalated for same-day resolution.', 'Account is in active rescue mode — I\'ll monitor and update you.'],
+        richCard: null, prompts: ['View Acme timeline', 'Check other at-risk accounts', 'Back to dashboard'], ctxTab: 'account' }
+    ]
+  },
+  {
+    id: 'campaign', label: 'Win-back Campaign',
+    steps: [
+      { userPrompt: null, agent: 'Deal Analyst', av: 'DA', avGrad: 'linear-gradient(135deg,#1E293B,#475569)', handoffFrom: null,
+        lines: ['Running win-back analysis across churned accounts from the last 6 months.', 'Found 5 accounts with recovery potential:'],
+        richCard: { type: 'campaign-summary', data: { count: 5, arr: '$4.2M', approach: 'Personalised outreach + early-renewal discount' } },
+        prompts: ['Show me the target accounts', 'What\'s the recovery potential?', 'Prioritise by ARR'], ctxTab: 'agents' },
+      { userPrompt: 'Show me the target accounts', agent: 'Deal Analyst', av: 'DA', avGrad: 'linear-gradient(135deg,#1E293B,#475569)', handoffFrom: null,
+        lines: ['Here are the 5 accounts ranked by win-back score:'],
+        richCard: { type: 'acct-list' }, prompts: ['Research the top 2 targets', 'Filter by churn reason', 'Start with Brightfield Tech'], ctxTab: 'agents' },
+      { userPrompt: 'Research the top 2 targets', agent: 'Churn Sentinel', av: 'CH', avGrad: 'linear-gradient(135deg,#E11D48,#F97316)', handoffFrom: 'Deal Analyst',
+        lines: ['Researching Brightfield Tech and Cascade Analytics now.', 'Key findings:'],
+        richCard: { type: 'dual-research' }, prompts: ['Draft personalised emails for both', 'Deep dive on Brightfield', 'What discounts can I offer?'], ctxTab: 'agents' },
+      { userPrompt: 'Draft personalised emails for both', agent: 'Outreach Agent', av: 'OR', avGrad: 'linear-gradient(135deg,#F97316,#FBBF24)', handoffFrom: 'Churn Sentinel',
+        lines: ['Two personalised emails drafted based on their individual churn reasons:'],
+        richCard: { type: 'dual-emails' }, prompts: ['Approve both and track in pipeline', 'Revise Brightfield\'s email', 'Adjust tone for Cascade'], ctxTab: 'agents' },
+      { userPrompt: 'Approve both and track in pipeline', agent: 'Outreach Agent', av: 'OR', avGrad: 'linear-gradient(135deg,#F97316,#FBBF24)', handoffFrom: null,
+        lines: ['Batch action ready for your approval:'],
+        richCard: { type: 'batch-approval', data: { items: ['Send win-back email to Brightfield Tech ($880K)', 'Send win-back email to Cascade Analytics ($1.2M)', 'Create pipeline entries for both accounts'] } },
+        prompts: [], ctxTab: 'agents' },
+      { userPrompt: null, agent: 'Pipeline Optimizer', av: 'PO', avGrad: 'linear-gradient(135deg,#1E293B,#0EA5E9)', handoffFrom: null,
+        lines: ['Approved. Both emails sent and pipeline entries created.', 'Brightfield Tech → Discovery stage, $880K.', 'Cascade Analytics → Discovery stage, $1.2M.', 'Campaign tracking enabled — I\'ll update win-back scores weekly.'],
+        richCard: null, prompts: ['View the updated pipeline', 'Set tracking alerts', 'Launch another campaign'], ctxTab: 'pipeline' }
+    ]
+  }
+];
+
+var CHAT_SCENARIOS_TELECOM = [
+  {
+    id: 'briefing', label: 'Morning Briefing',
+    steps: [
+      { userPrompt: null, agent: 'Renewal Pilot', av: 'RP', avGrad: 'linear-gradient(135deg,#1E293B,#0EA5E9)', handoffFrom: null,
+        lines: ['Good morning. I\'ve reviewed your subscriber base and flagged priority cases.', '▸ 3 subscribers showing port-out signals — €5.1M ARPU at risk', '▸ James Whitfield is most critical: renewal in 150 days, churn at 76%', '▸ 2 billing disputes escalated overnight'],
+        richCard: { type: 'pipeline-health' }, prompts: ['Show me the subscribers at risk', 'What\'s the biggest risk today?', 'Show James Whitfield'], ctxTab: 'pipeline' },
+      { userPrompt: 'Show me the subscribers at risk', agent: 'Churn Sentinel', av: 'CH', avGrad: 'linear-gradient(135deg,#E11D48,#F97316)', handoffFrom: 'Renewal Pilot',
+        lines: ['Identified 3 subscribers with elevated port-out risk:', '1. James Whitfield — 76% risk, €1,788/yr ARPU, 150 days to renewal', '2. Maria Santos — 68% confidence, €2,100/yr', '3. TeleCo Nordic — 71% confidence, €1.2M deal'],
+        richCard: { type: 'kanban-strip' }, prompts: ['Tell me more about James Whitfield', 'What\'s Maria\'s issue?', 'Show the highest ARPU first'], ctxTab: 'pipeline' },
+      { userPrompt: 'Tell me more about James Whitfield', agent: 'Churn Sentinel', av: 'CH', avGrad: 'linear-gradient(135deg,#E11D48,#F97316)', handoffFrom: null,
+        lines: ['James Whitfield is a 3-year premium subscriber on 5G Unlimited Pro.', 'Port-out risk jumped from 48% → 76% in 18 days.', 'Primary drivers: billing dispute + data usage drop of 60%.'],
+        richCard: { type: 'hero-card' }, prompts: ['What\'s driving the risk?', 'What actions are available?', 'Draft a retention offer'], ctxTab: 'account' },
+      { userPrompt: 'What\'s driving the risk?', agent: 'Churn Sentinel', av: 'CH', avGrad: 'linear-gradient(135deg,#E11D48,#F97316)', handoffFrom: null,
+        lines: ['Three signals are compounding the port-out risk:'],
+        richCard: { type: 'risk-signals' }, prompts: ['What do you recommend?', 'Resolve the billing dispute', 'Who should I contact?'], ctxTab: 'account' },
+      { userPrompt: 'What do you recommend?', agent: 'Reach Agent', av: 'RA', avGrad: 'linear-gradient(135deg,#F97316,#FBBF24)', handoffFrom: 'Churn Sentinel',
+        lines: ['Based on the port-out risk profile, I recommend an immediate retention offer.'],
+        richCard: { type: 'approval', data: { title: 'Deploy 5G bundle upgrade offer + €214 billing credit to James Whitfield', conf: 84, reason: 'Addresses both churn drivers simultaneously. 5G upgrade meets his data needs; billing credit removes friction. Similar offers converted at 67% for comparable subscribers.' } },
+        prompts: [], ctxTab: 'account' },
+      { userPrompt: null, agent: 'Renewal Pilot', av: 'RP', avGrad: 'linear-gradient(135deg,#1E293B,#0EA5E9)', handoffFrom: null,
+        lines: ['Offer deployed. James Whitfield notified via SMS and app notification.', 'Billing credit of €214 applied — effective immediately.', 'Retention call scheduled for tomorrow at 10am if no response.'],
+        richCard: null, prompts: ['Check Maria Santos next', 'Show all at-risk subscribers', 'That\'s all for now'], ctxTab: 'account' }
+    ]
+  },
+  {
+    id: 'rescue', label: 'Subscriber Retention',
+    steps: [
+      { userPrompt: null, agent: 'Churn Sentinel', av: 'CH', avGrad: 'linear-gradient(135deg,#E11D48,#F97316)', handoffFrom: null,
+        lines: ['On it. James Whitfield — 34 days to renewal window, port-out risk at 76%.', 'Here\'s the full subscriber profile:'],
+        richCard: { type: 'hero-card' }, prompts: ['Run a deep research on this subscriber', 'Show risk signals', 'What\'s the port-out driver?'], ctxTab: 'account' },
+      { userPrompt: 'Run a deep research on this subscriber', agent: 'Churn Sentinel', av: 'CH', avGrad: 'linear-gradient(135deg,#E11D48,#F97316)', handoffFrom: null,
+        lines: [],
+        richCard: { type: 'research-stream', data: { lines: ['▸ Scanning subscriber usage and activity data...', '▸ Data usage: down 60% over last 14 days (possible SIM swap)', '▸ App logins: 0 in last 12 days (prev: daily)', '▸ Billing dispute: €214 overcharge, pending 8 days', '▸ NPS trend: 45 → 34 → 28 across 3 surveys', '▸ Competitor signal: 3 store visits to rival carrier detected', '▸ Network quality: no outages in subscriber area', '▸ Plan fit: current 5G plan is underutilised — bundle mismatch', '▸ Peer analysis: 71% of similar subscribers ported out within 30 days', '▸ Recommendation: billing credit + plan right-sizing + retention call'] } },
+        prompts: ['Draft an outreach message', 'Resolve the billing dispute first', 'What plan should I offer?'], ctxTab: 'account' },
+      { userPrompt: 'Draft an outreach message', agent: 'Reach Agent', av: 'RA', avGrad: 'linear-gradient(135deg,#F97316,#FBBF24)', handoffFrom: 'Churn Sentinel',
+        lines: ['Personalised retention email drafted for James Whitfield:'],
+        richCard: { type: 'email', data: { subject: 'We\'ve sorted your billing — and have something for you', body: 'Hi James,\n\nI wanted to let you know personally that your billing dispute has been resolved — a €214 credit will appear on your next statement.\n\nAs a valued 3-year subscriber, I\'d love to walk you through our new 5G Ultra bundle — I think it\'s a much better fit for how you use your plan. Available for a quick call this week?\n\nBest,\nAccount Care Team', tone: 'Warm', sender: 'AC' } },
+        prompts: ['Make it more direct', 'Add a specific discount offer', 'This looks good — send it'], ctxTab: 'account' },
+      { userPrompt: 'Make it more direct', agent: 'Reach Agent', av: 'RA', avGrad: 'linear-gradient(135deg,#F97316,#FBBF24)', handoffFrom: null,
+        lines: ['Updated — more direct and action-oriented:'],
+        richCard: { type: 'email-v2', data: { subject: 'Your €214 credit is confirmed + an offer for you', body: 'Hi James,\n\nYour billing dispute is resolved — €214 credit applied today.\n\nI also want to offer you our 5G Ultra bundle at your current price for 12 months. It\'s a better fit for your usage. This offer is open until Friday.\n\nReply YES to accept, or call 0800-123-456 to discuss.\n\nAccount Care', tone: 'Direct', sender: 'AC' } },
+        prompts: ['Send it and schedule a follow-up', 'Add a call booking link', 'Approve and send'], ctxTab: 'account' },
+      { userPrompt: 'Send it — and schedule a follow-up', agent: 'Reach Agent', av: 'RA', avGrad: 'linear-gradient(135deg,#F97316,#FBBF24)', handoffFrom: null,
+        lines: ['Ready to send. Pending your approval:'],
+        richCard: { type: 'approval', data: { title: 'Send retention email + schedule follow-up call in 7 days', conf: 89, reason: 'Message addresses billing friction and offers a plan upgrade at no extra cost. Follow-up ensures we catch non-responders before the renewal window closes. Similar messages achieved 73% open rate.' } },
+        prompts: [], ctxTab: 'account' },
+      { userPrompt: null, agent: 'Reach Agent', av: 'RA', avGrad: 'linear-gradient(135deg,#F97316,#FBBF24)', handoffFrom: null,
+        lines: ['Email sent to james.whitfield@email.com at 9:22 AM.', 'Billing credit of €214 applied — effective immediately.', 'Follow-up call scheduled for Jun 27 at 10:00 AM.', 'Subscriber is now in active retention mode.'],
+        richCard: null, prompts: ['View James\'s timeline', 'Check other at-risk subscribers', 'Back to dashboard'], ctxTab: 'account' }
+    ]
+  },
+  {
+    id: 'campaign', label: 'Reconnect Campaign',
+    steps: [
+      { userPrompt: null, agent: 'Fraud Shield', av: 'FS', avGrad: 'linear-gradient(135deg,#1E293B,#475569)', handoffFrom: null,
+        lines: ['Running reconnect analysis across churned subscribers from last 6 months.', 'Found 5 subscribers with win-back potential:'],
+        richCard: { type: 'campaign-summary', data: { count: 5, arr: '€3.8M', approach: 'Personalised SMS + email + plan offer' } },
+        prompts: ['Show me the target subscribers', 'What\'s the recovery ARPU?', 'Prioritise by churn value'], ctxTab: 'agents' },
+      { userPrompt: 'Show me the target subscribers', agent: 'Fraud Shield', av: 'FS', avGrad: 'linear-gradient(135deg,#1E293B,#475569)', handoffFrom: null,
+        lines: ['5 subscribers ranked by win-back score:'],
+        richCard: { type: 'acct-list' }, prompts: ['Research the top 2 targets', 'Filter by churn reason', 'Start with top subscriber'], ctxTab: 'agents' },
+      { userPrompt: 'Research the top 2 targets', agent: 'Churn Sentinel', av: 'CH', avGrad: 'linear-gradient(135deg,#E11D48,#F97316)', handoffFrom: 'Fraud Shield',
+        lines: ['Researching the top 2 churned subscribers now.', 'Key findings:'],
+        richCard: { type: 'dual-research' }, prompts: ['Draft personalised messages for both', 'Deep dive on subscriber 1', 'What offers can I use?'], ctxTab: 'agents' },
+      { userPrompt: 'Draft personalised messages for both', agent: 'Reach Agent', av: 'RA', avGrad: 'linear-gradient(135deg,#F97316,#FBBF24)', handoffFrom: 'Churn Sentinel',
+        lines: ['Two personalised win-back emails drafted:'],
+        richCard: { type: 'dual-emails' }, prompts: ['Approve both and track', 'Revise the first message', 'Adjust tone for second'], ctxTab: 'agents' },
+      { userPrompt: 'Approve both and track in pipeline', agent: 'Reach Agent', av: 'RA', avGrad: 'linear-gradient(135deg,#F97316,#FBBF24)', handoffFrom: null,
+        lines: ['Batch action ready for your approval:'],
+        richCard: { type: 'batch-approval', data: { items: ['Send reconnect email to Subscriber A (€149/mo)', 'Send reconnect email to Subscriber B (€189/mo)', 'Create retention pipeline entries for both'] } },
+        prompts: [], ctxTab: 'agents' },
+      { userPrompt: null, agent: 'Renewal Pilot', av: 'RP', avGrad: 'linear-gradient(135deg,#1E293B,#0EA5E9)', handoffFrom: null,
+        lines: ['Approved. Both emails sent and pipeline entries created.', 'Subscriber A → Reconnect Discovery, €149/mo ARPU.', 'Subscriber B → Reconnect Discovery, €189/mo ARPU.', 'Win-back tracking enabled — I\'ll update scores weekly.'],
+        richCard: null, prompts: ['View pipeline', 'Set tracking alerts', 'Launch another campaign'], ctxTab: 'pipeline' }
+    ]
+  }
+];
+
+/* ----------------------------------------------------------
+   14. AGENT CHAT — RENDER
+   ---------------------------------------------------------- */
+function renderChat() {
+  var el = document.getElementById('view-chat');
+  if (!el) return;
+  if (_chatActiveTypewriter) { _chatActiveTypewriter.stop(); _chatActiveTypewriter = null; }
+  _chatStep = -1;
+  _chatStreaming = false;
+
+  var scenarios = getPersonaData(CHAT_SCENARIOS_SAAS, CHAT_SCENARIOS_TELECOM);
+  var sc = scenarios[_chatScenarioIdx] || scenarios[0];
+
+  el.innerHTML =
+    '<div class="chat-topbar">' +
+      '<div class="chat-scenario-tabs">' +
+        scenarios.map(function(s, i) {
+          return '<button class="chat-scenario-tab' + (i === _chatScenarioIdx ? ' on' : '') + '" data-scidx="' + i + '">' + s.label + '</button>';
+        }).join('') +
+      '</div>' +
+    '</div>' +
+    '<div class="chat-split">' +
+      '<div class="chat-left">' +
+        '<div class="chat-messages" id="chat-messages"></div>' +
+        '<div class="chat-prompts-row" id="chat-prompts"></div>' +
+        '<div class="chat-input-row">' +
+          '<input class="chat-input" type="text" placeholder="Type a message or click a prompt above…" readonly/>' +
+          '<button class="chat-send-btn">' +
+            '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>' +
+          '</button>' +
+        '</div>' +
+      '</div>' +
+      '<div class="chat-right" id="chat-ctx-panel">' +
+        '<div class="ctx-panel-header">' +
+          '<div class="ctx-panel-title">Context</div>' +
+          '<div class="ctx-tabs">' +
+            '<button class="ctx-tab on" data-tab="pipeline">Pipeline</button>' +
+            '<button class="ctx-tab" data-tab="account">Account</button>' +
+            '<button class="ctx-tab" data-tab="agents">Agents</button>' +
+          '</div>' +
+        '</div>' +
+        '<div class="ctx-body" id="ctx-body"></div>' +
+      '</div>' +
+    '</div>';
+
+  // Scenario tab clicks
+  el.querySelectorAll('.chat-scenario-tab').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      _chatScenarioIdx = parseInt(btn.dataset.scidx);
+      renderChat();
+    });
+  });
+
+  // Ctx tab clicks
+  el.querySelectorAll('.ctx-tab').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      el.querySelectorAll('.ctx-tab').forEach(function(b) { b.classList.remove('on'); });
+      btn.classList.add('on');
+      renderCtxBody(btn.dataset.tab, null);
+    });
+  });
+
+  // Render initial context panel
+  renderCtxBody('pipeline', null);
+
+  // Auto-start step 0
+  setTimeout(function() { renderChatStep(0); }, 300);
+}
+
+function renderChatStep(stepIdx) {
+  var scenarios = getPersonaData(CHAT_SCENARIOS_SAAS, CHAT_SCENARIOS_TELECOM);
+  var sc = scenarios[_chatScenarioIdx] || scenarios[0];
+  if (stepIdx >= sc.steps.length) return;
+
+  _chatStep = stepIdx;
+  var step = sc.steps[stepIdx];
+  var msgs = document.getElementById('chat-messages');
+  if (!msgs) return;
+
+  // Handoff divider
+  if (step.handoffFrom) {
+    var divider = document.createElement('div');
+    divider.className = 'chat-handoff';
+    divider.innerHTML = '<div class="chat-handoff-line"></div><div class="chat-handoff-label">→ Handing off to ' + step.agent + '</div><div class="chat-handoff-line"></div>';
+    msgs.appendChild(divider);
+  }
+
+  // Agent message row
+  var row = document.createElement('div');
+  row.className = 'chat-message';
+  var twId = 'chat-tw-' + stepIdx;
+  row.innerHTML =
+    '<div class="chat-avatar" style="background:' + step.avGrad + '">' + step.av + '</div>' +
+    '<div class="chat-msg-body">' +
+      '<div class="chat-msg-meta"><span class="chat-agent-name">' + step.agent + '</span> · just now <span class="chat-streaming-dot" id="dot-' + stepIdx + '"></span></div>' +
+      '<div class="chat-bubble"><div class="chat-tw-container" id="' + twId + '"></div></div>' +
+    '</div>';
+  msgs.appendChild(row);
+  msgs.scrollTop = msgs.scrollHeight;
+
+  // Clear prompts during streaming
+  var promptsEl = document.getElementById('chat-prompts');
+  if (promptsEl) promptsEl.innerHTML = '';
+
+  // Stream text lines
+  var twEl = document.getElementById(twId);
+  _chatStreaming = true;
+
+  function afterStream() {
+    _chatStreaming = false;
+    var dot = document.getElementById('dot-' + stepIdx);
+    if (dot) dot.style.display = 'none';
+
+    // Append rich card
+    if (step.richCard) {
+      var bubble = row.querySelector('.chat-bubble');
+      var cardEl = buildChatCard(step.richCard, stepIdx);
+      if (cardEl) bubble.appendChild(cardEl);
+    }
+
+    msgs.scrollTop = msgs.scrollHeight;
+
+    // Update context panel
+    var ctxTab = step.ctxTab || 'pipeline';
+    setCtxTab(ctxTab);
+    renderCtxBody(ctxTab, step);
+
+    // Show suggested prompts
+    if (step.prompts && step.prompts.length > 0) {
+      renderChatPrompts(step.prompts, stepIdx);
+    }
+  }
+
+  if (step.richCard && step.richCard.type === 'research-stream') {
+    // Research stream goes inside the bubble via typewriter
+    var tw = new Typewriter(twEl, { speed: 18, lineDelay: 200 });
+    _chatActiveTypewriter = tw;
+    var resWrap = document.createElement('div');
+    resWrap.className = 'chat-research-wrap';
+    row.querySelector('.chat-bubble').innerHTML = '';
+    row.querySelector('.chat-bubble').appendChild(resWrap);
+    var resTw = new Typewriter(resWrap, { speed: 14, lineDelay: 180 });
+    _chatActiveTypewriter = resTw;
+    resTw.stream(step.richCard.data.lines).then(afterStream);
+    return;
+  }
+
+  if (step.lines && step.lines.length > 0) {
+    var tw = new Typewriter(twEl, { speed: 20, lineDelay: 350 });
+    _chatActiveTypewriter = tw;
+    tw.stream(step.lines).then(afterStream);
+  } else {
+    twEl.innerHTML = '';
+    afterStream();
+  }
+}
+
+function renderChatPrompts(prompts, currentStepIdx) {
+  var promptsEl = document.getElementById('chat-prompts');
+  if (!promptsEl) return;
+  var scenarios = getPersonaData(CHAT_SCENARIOS_SAAS, CHAT_SCENARIOS_TELECOM);
+  var sc = scenarios[_chatScenarioIdx] || scenarios[0];
+  var nextStepIdx = currentStepIdx + 1;
+
+  promptsEl.innerHTML = prompts.map(function(p) {
+    return '<button class="chat-prompt-pill" data-prompt="' + p.replace(/"/g, '&quot;') + '" data-next="' + nextStepIdx + '">' + p + '</button>';
+  }).join('');
+
+  promptsEl.querySelectorAll('.chat-prompt-pill').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      if (_chatStreaming) return;
+      var promptText = btn.dataset.prompt;
+      var nextIdx = parseInt(btn.dataset.next);
+
+      // Disable all pills
+      promptsEl.querySelectorAll('.chat-prompt-pill').forEach(function(b) { b.disabled = true; });
+
+      // Append user bubble
+      var msgs = document.getElementById('chat-messages');
+      if (msgs) {
+        var userRow = document.createElement('div');
+        userRow.className = 'chat-message user-msg';
+        userRow.innerHTML =
+          '<div class="chat-avatar user-av">You</div>' +
+          '<div class="chat-msg-body">' +
+            '<div class="chat-msg-meta" style="justify-content:flex-end">just now</div>' +
+            '<div class="chat-bubble user-bubble">' + promptText + '</div>' +
+          '</div>';
+        msgs.appendChild(userRow);
+        msgs.scrollTop = msgs.scrollHeight;
+      }
+
+      // Check if next step exists and has a matching userPrompt, or it's a post-approve step
+      if (nextIdx < sc.steps.length) {
+        setTimeout(function() { renderChatStep(nextIdx); }, 500);
+      }
+    });
+  });
+}
+
+function buildChatCard(card, stepIdx) {
+  var el = document.createElement('div');
+  el.className = 'chat-rich-card';
+  var acct = getPersonaData(ACCOUNT_SAAS, ACCOUNT_TELECOM);
+  var pipeline = getPersonaData(PIPELINE_SAAS, PIPELINE_TELECOM);
+
+  switch (card.type) {
+    case 'pipeline-health':
+      var atRisk = pipeline.filter(function(d) { return d.risk === 'high'; });
+      var totalArr = getPersonaData('$7.7M', '€5.1M');
+      var topOpp = pipeline.filter(function(d) { return d.confidence > 80; })[0] || pipeline[0];
+      el.innerHTML = '<div class="chat-pipeline-card">' +
+        '<div class="chat-pipeline-kpis">' +
+          '<div class="chat-kpi"><div class="chat-kpi-val red">' + atRisk.length + '</div><div class="chat-kpi-lbl">Deals at Risk</div></div>' +
+          '<div class="chat-kpi"><div class="chat-kpi-val amber">' + totalArr + '</div><div class="chat-kpi-lbl">ARR at Risk</div></div>' +
+          '<div class="chat-kpi"><div class="chat-kpi-val">' + topOpp.company + '</div><div class="chat-kpi-lbl">Top Opportunity</div></div>' +
+        '</div>' +
+        '<div class="chat-pipe-bar-wrap"><div class="chat-pipe-bar-label">Pipeline stage distribution</div>' +
+          '<div class="chat-pipe-bar-track">' +
+            '<div class="chat-pipe-bar-seg" style="width:15%;background:#0EA5E9"></div>' +
+            '<div class="chat-pipe-bar-seg" style="width:20%;background:#10B981"></div>' +
+            '<div class="chat-pipe-bar-seg" style="width:25%;background:#F59E0B"></div>' +
+            '<div class="chat-pipe-bar-seg" style="width:25%;background:#F43F5E"></div>' +
+            '<div class="chat-pipe-bar-seg" style="width:15%;background:#1E293B"></div>' +
+          '</div>' +
+        '</div>' +
+        '<button class="chat-card-link" onclick="navigateTo(\'pipeline\')">View Pipeline →</button>' +
+      '</div>';
+      break;
+
+    case 'kanban-strip':
+      var atRiskDeals = pipeline.filter(function(d) { return d.risk === 'high' || d.risk === 'medium'; }).slice(0, 3);
+      el.innerHTML = '<div class="chat-kanban-strip">' +
+        atRiskDeals.map(function(d) {
+          return '<div class="chat-kanban-card">' +
+            '<div class="chat-kk-company">' + d.company + '</div>' +
+            '<div class="chat-kk-val">' + d.value + '</div>' +
+            '<div class="chat-conf-bar"><div class="chat-conf-fill" style="width:' + d.confidence + '%"></div></div>' +
+            '<span class="chat-kk-risk ' + d.risk + '"></span>' +
+          '</div>';
+        }).join('') +
+      '</div>';
+      break;
+
+    case 'hero-card':
+      el.innerHTML = '<div class="chat-hero-card">' +
+        '<div class="chat-hero-risk-badge">⚠ ' + acct.stats.churn + ' risk</div>' +
+        '<div class="chat-hero-name">' + acct.name + '</div>' +
+        '<div class="chat-hero-stats">' +
+          '<div class="chat-hero-stat"><div class="chat-hero-val">' + acct.stats.arr + '</div><div class="chat-hero-lbl">' + (currentPersona === 'saas' ? 'ARR' : 'ARPU') + '</div></div>' +
+          '<div class="chat-hero-stat"><div class="chat-hero-val">' + acct.stats.churn + '</div><div class="chat-hero-lbl">Churn Risk</div></div>' +
+          '<div class="chat-hero-stat"><div class="chat-hero-val">' + acct.stats.contract + '</div><div class="chat-hero-lbl">Contract End</div></div>' +
+          '<div class="chat-hero-stat"><div class="chat-hero-val">' + acct.stats.nps + '</div><div class="chat-hero-lbl">NPS</div></div>' +
+        '</div>' +
+      '</div>';
+      break;
+
+    case 'risk-signals':
+      el.innerHTML = '<div class="chat-signals-card">' +
+        acct.signals.map(function(s) {
+          return '<div class="chat-signal-row">' +
+            '<div class="chat-signal-dot ' + s.severity + '"></div>' +
+            '<div><div class="chat-signal-title">' + s.title + '</div><div class="chat-signal-sub">' + s.sub + '</div></div>' +
+          '</div>';
+        }).join('') +
+      '</div>';
+      break;
+
+    case 'campaign-summary':
+      var sym = currentPersona === 'saas' ? '$' : '€';
+      el.innerHTML = '<div class="chat-pipeline-card">' +
+        '<div class="chat-pipeline-kpis">' +
+          '<div class="chat-kpi"><div class="chat-kpi-val">' + card.data.count + '</div><div class="chat-kpi-lbl">Accounts Found</div></div>' +
+          '<div class="chat-kpi"><div class="chat-kpi-val amber">' + card.data.arr + '</div><div class="chat-kpi-lbl">Recovery ARR</div></div>' +
+          '<div class="chat-kpi"><div class="chat-kpi-val" style="font-size:13px;line-height:1.3">' + card.data.approach + '</div><div class="chat-kpi-lbl">Approach</div></div>' +
+        '</div>' +
+      '</div>';
+      break;
+
+    case 'acct-list':
+      var churned = getPersonaData([
+        { name: 'Brightfield Tech', arr: '$880K', date: 'Feb 2026', score: 74 },
+        { name: 'Cascade Analytics', arr: '$1.2M', date: 'Jan 2026', score: 68 },
+        { name: 'Vertex Cloud', arr: '$640K', date: 'Mar 2026', score: 61 },
+        { name: 'NovaSpark Inc', arr: '$420K', date: 'Dec 2025', score: 55 },
+        { name: 'Synapse Data', arr: '$380K', date: 'Nov 2025', score: 49 }
+      ], [
+        { name: 'BlueStar Mobile', arr: '€149/mo', date: 'Feb 2026', score: 78 },
+        { name: 'Apex Wireless', arr: '€189/mo', date: 'Jan 2026', score: 71 },
+        { name: 'Vertex Telecom', arr: '€99/mo', date: 'Mar 2026', score: 63 },
+        { name: 'Signal Plus', arr: '€129/mo', date: 'Dec 2025', score: 57 },
+        { name: 'Nordic Connect', arr: '€79/mo', date: 'Nov 2025', score: 48 }
+      ]);
+      el.innerHTML = '<div class="chat-acct-list">' +
+        churned.map(function(a) {
+          var init = a.name.split(' ').map(function(w) { return w[0]; }).join('').substring(0,2);
+          return '<div class="chat-acct-mini">' +
+            '<div class="chat-acct-mini-head"><div class="chat-acct-mini-av">' + init + '</div><div class="chat-acct-mini-name">' + a.name + '</div></div>' +
+            '<div class="chat-acct-mini-arr">' + a.arr + ' · Churned ' + a.date + '</div>' +
+            '<div class="chat-acct-mini-score-bar"><div class="chat-acct-mini-score-fill" style="width:' + a.score + '%"></div></div>' +
+          '</div>';
+        }).join('') +
+      '</div>';
+      break;
+
+    case 'dual-research':
+      var t1 = getPersonaData('Brightfield Tech', 'BlueStar Mobile');
+      var t2 = getPersonaData('Cascade Analytics', 'Apex Wireless');
+      el.innerHTML = '<div style="display:flex;flex-direction:column;gap:8px;margin-top:8px">' +
+        '<div class="chat-pipeline-card"><strong>' + t1 + '</strong><br><span style="font-size:12px;color:var(--t2)">Primary churn driver: pricing objection after competitor demo. Win-back score: 74%. Recommended hook: product roadmap preview + 15% discount.</span></div>' +
+        '<div class="chat-pipeline-card"><strong>' + t2 + '</strong><br><span style="font-size:12px;color:var(--t2)">Primary churn driver: poor onboarding experience. Win-back score: 68%. Recommended hook: dedicated success manager + free migration support.</span></div>' +
+      '</div>';
+      break;
+
+    case 'email':
+    case 'email-v2':
+      var isV2 = card.type === 'email-v2';
+      var bodyLines = card.data.body.split('\n').map(function(line) {
+        if (!line.trim()) return '<br>';
+        return '<p style="margin:0 0 6px">' + (isV2 ? line.replace(/(billing dispute|€214|€214 credit|0800-123-456|YES)/g, '<span class="changed">$1</span>') : line) + '</p>';
+      }).join('');
+      el.innerHTML = '<div class="chat-email-card">' +
+        '<div class="chat-email-head"><div class="chat-email-subject">' + card.data.subject + '</div><div class="chat-email-tone">' + card.data.tone + '</div></div>' +
+        '<div class="chat-email-body">' + bodyLines + '</div>' +
+        '<div class="chat-email-footer"><div class="chat-email-sender">From: ' + card.data.sender + '</div><button class="chat-copy-btn">Copy ↗</button></div>' +
+      '</div>';
+      break;
+
+    case 'dual-emails':
+      var e1name = getPersonaData('Brightfield Tech', 'BlueStar Mobile');
+      var e2name = getPersonaData('Cascade Analytics', 'Apex Wireless');
+      el.innerHTML = '<div class="chat-dual-emails">' +
+        '<div class="chat-email-card"><div class="chat-email-head"><div class="chat-email-subject">Win-back: ' + e1name + '</div><div class="chat-email-tone">Competitive</div></div><div class="chat-email-body"><p style="margin:0 0 6px">Hi team,</p><p style="margin:0 0 6px">We\'ve been tracking your growth since you left and have significant new capabilities to show you.</p><p style="margin:0">Open to a 20-minute demo? We\'ll waive the migration cost if you return this quarter.</p></div><div class="chat-email-footer"><div class="chat-email-sender">From: CS</div><button class="chat-copy-btn">Copy ↗</button></div></div>' +
+        '<div class="chat-email-card"><div class="chat-email-head"><div class="chat-email-subject">Re-engaging: ' + e2name + '</div><div class="chat-email-tone">Empathetic</div></div><div class="chat-email-body"><p style="margin:0 0 6px">Hi team,</p><p style="margin:0 0 6px">We know your onboarding experience wasn\'t smooth. We\'ve rebuilt that process entirely.</p><p style="margin:0">A dedicated success manager is now standard. Would you give us another look?</p></div><div class="chat-email-footer"><div class="chat-email-sender">From: CS</div><button class="chat-copy-btn">Copy ↗</button></div></div>' +
+      '</div>';
+      break;
+
+    case 'approval':
+      var approvalId = 'chat-appr-' + stepIdx;
+      el.innerHTML = '<div class="chat-approval-card" id="' + approvalId + '">' +
+        '<div class="chat-approval-head">' +
+          '<div class="chat-approval-av">AI</div>' +
+          '<div class="chat-approval-title">' + card.data.title + '</div>' +
+          '<div class="chat-approval-conf">' + card.data.conf + '% confident</div>' +
+        '</div>' +
+        '<div class="chat-approval-reason">' + card.data.reason + '</div>' +
+        '<div class="chat-approval-actions">' +
+          '<button class="chat-approve-btn" id="' + approvalId + '-btn">Approve</button>' +
+          '<button class="chat-modify-btn">Modify</button>' +
+          '<button class="chat-decline-btn">Decline</button>' +
+        '</div>' +
+      '</div>';
+      // Wire approve button
+      setTimeout(function() {
+        var apprBtn = document.getElementById(approvalId + '-btn');
+        var apprCard = document.getElementById(approvalId);
+        if (apprBtn) {
+          apprBtn.addEventListener('click', function() {
+            apprBtn.textContent = '✓ Approved';
+            apprBtn.className = 'chat-approve-btn done';
+            setTimeout(function() {
+              if (apprCard) apprCard.classList.add('approved');
+              var nextIdx = stepIdx + 1;
+              var scenarios = getPersonaData(CHAT_SCENARIOS_SAAS, CHAT_SCENARIOS_TELECOM);
+              var sc = scenarios[_chatScenarioIdx] || scenarios[0];
+              if (nextIdx < sc.steps.length) renderChatStep(nextIdx);
+            }, 1200);
+          });
+        }
+      }, 100);
+      break;
+
+    case 'batch-approval':
+      var batchId = 'chat-batch-' + stepIdx;
+      el.innerHTML = '<div class="chat-approval-card" id="' + batchId + '">' +
+        '<div class="chat-approval-head"><div class="chat-approval-av">AI</div><div class="chat-approval-title">Batch Action — ' + card.data.items.length + ' items</div><div class="chat-approval-conf">Ready</div></div>' +
+        '<div class="chat-batch-items">' + card.data.items.map(function(item) { return '<div class="chat-batch-item">' + item + '</div>'; }).join('') + '</div>' +
+        '<div class="chat-approval-actions"><button class="chat-approve-btn" id="' + batchId + '-btn">Approve All</button><button class="chat-decline-btn">Decline</button></div>' +
+      '</div>';
+      setTimeout(function() {
+        var batchBtn = document.getElementById(batchId + '-btn');
+        var batchCard = document.getElementById(batchId);
+        if (batchBtn) {
+          batchBtn.addEventListener('click', function() {
+            batchBtn.textContent = '✓ Approved';
+            batchBtn.className = 'chat-approve-btn done';
+            setTimeout(function() {
+              if (batchCard) batchCard.classList.add('approved');
+              var nextIdx = stepIdx + 1;
+              var scenarios = getPersonaData(CHAT_SCENARIOS_SAAS, CHAT_SCENARIOS_TELECOM);
+              var sc = scenarios[_chatScenarioIdx] || scenarios[0];
+              if (nextIdx < sc.steps.length) renderChatStep(nextIdx);
+            }, 1200);
+          });
+        }
+      }, 100);
+      break;
+
+    default:
+      return null;
+  }
+  return el;
+}
+
+function setCtxTab(tab) {
+  var ctxPanel = document.getElementById('chat-ctx-panel');
+  if (!ctxPanel) return;
+  ctxPanel.querySelectorAll('.ctx-tab').forEach(function(btn) {
+    btn.classList.toggle('on', btn.dataset.tab === tab);
+  });
+}
+
+function renderCtxBody(tab, step) {
+  var body = document.getElementById('ctx-body');
+  if (!body) return;
+  var acct = getPersonaData(ACCOUNT_SAAS, ACCOUNT_TELECOM);
+  var pipeline = getPersonaData(PIPELINE_SAAS, PIPELINE_TELECOM);
+  var agents = getPersonaData(AGENTS_SAAS, AGENTS_TELECOM);
+  var arrLabel = currentPersona === 'saas' ? 'ARR' : 'ARPU';
+
+  if (tab === 'account') {
+    body.innerHTML =
+      '<div class="ctx-card">' +
+        '<div class="ctx-card-title">Account Profile</div>' +
+        '<div class="ctx-stat-grid">' +
+          '<div class="ctx-stat"><div class="ctx-stat-val red">' + acct.stats.churn + '</div><div class="ctx-stat-lbl">Churn Risk</div></div>' +
+          '<div class="ctx-stat"><div class="ctx-stat-val">' + acct.stats.arr + '</div><div class="ctx-stat-lbl">' + arrLabel + '</div></div>' +
+          '<div class="ctx-stat"><div class="ctx-stat-val amber">' + acct.stats.contract + '</div><div class="ctx-stat-lbl">Contract End</div></div>' +
+          '<div class="ctx-stat"><div class="ctx-stat-val red">' + acct.stats.nps + '</div><div class="ctx-stat-lbl">NPS Score</div></div>' +
+        '</div>' +
+      '</div>' +
+      '<div class="ctx-card">' +
+        '<div class="ctx-card-title">Risk Signals</div>' +
+        acct.signals.map(function(s) {
+          return '<div class="chat-signal-row"><div class="chat-signal-dot ' + s.severity + '"></div><div><div class="chat-signal-title">' + s.title + '</div><div class="chat-signal-sub">' + s.sub + '</div></div></div>';
+        }).join('') +
+      '</div>';
+  } else if (tab === 'pipeline') {
+    body.innerHTML =
+      '<div class="ctx-card">' +
+        '<div class="ctx-card-title">Active Deals</div>' +
+        pipeline.slice(0, 5).map(function(d) {
+          var init = d.company.split(' ').map(function(w) { return w[0]; }).join('').substring(0,2);
+          var highlight = d.risk === 'high';
+          return '<div class="ctx-deal-row">' +
+            '<div class="ctx-deal-av' + (highlight ? ' highlighted' : '') + '">' + init + '</div>' +
+            '<div class="ctx-deal-info"><div class="ctx-deal-name">' + d.company + '</div><div class="ctx-deal-val">' + d.value + ' · ' + d.stage + '</div></div>' +
+            '<div class="ctx-deal-conf">' + d.confidence + '%</div>' +
+          '</div>';
+        }).join('') +
+      '</div>';
+  } else {
+    body.innerHTML =
+      '<div class="ctx-card">' +
+        '<div class="ctx-card-title">Active Agents</div>' +
+        agents.map(function(ag) {
+          var colors = { 'ag-churn': '#E11D48', 'ag-pipeline': '#0EA5E9', 'ag-outreach': '#F97316', 'ag-revenue': '#10B981', 'ag-analyst': '#1E293B', 'ag-billing': '#10B981', 'ag-renewal': '#0EA5E9', 'ag-reach': '#F97316', 'ag-fraud': '#1E293B' };
+          var bg = colors[ag.id] || '#F43F5E';
+          var init = ag.name.split(' ').map(function(w) { return w[0]; }).join('').substring(0,2);
+          return '<div class="ctx-agent-row">' +
+            '<div class="ctx-agent-av" style="background:' + bg + '">' + init + '</div>' +
+            '<div class="ctx-agent-info"><div class="ctx-agent-name">' + ag.name + '</div><div class="ctx-agent-task">' + ag.desc.substring(0, 45) + '…</div></div>' +
+            '<div class="ctx-agent-dot ' + ag.status + '"></div>' +
+          '</div>';
+        }).join('') +
+      '</div>';
+  }
+}
+
+/* ----------------------------------------------------------
+   15. INITIALIZATION
    ---------------------------------------------------------- */
 document.addEventListener('DOMContentLoaded', function() {
   initRouter();
