@@ -1,0 +1,1299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>6G B2B &amp; B2A Offer Catalogue | 6G BSS Monetization Cockpit</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --green:      #00FF41;
+      --green-dim:  #00CC33;
+      --green-fade: rgba(0,255,65,0.12);
+      --green-glow: rgba(0,255,65,0.35);
+      --black:      #000000;
+      --dark:       #050505;
+      --panel:      rgba(0,15,5,0.82);
+      --border:     rgba(0,255,65,0.25);
+      --amber:      #FFB800;
+      --amber-dim:  rgba(255,184,0,0.55);
+      --amber-fade: rgba(255,184,0,0.08);
+      --danger:     #FF4444;
+      --b2a-tint:   rgba(0,255,65,0.05);
+      --text-dim:   rgba(0,255,65,0.55);
+      --text-faint: rgba(0,255,65,0.32);
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--black);
+      color: var(--green);
+      font-family: 'Share Tech Mono', 'Courier New', monospace;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ── MATRIX RAIN ── */
+    #matrix-canvas {
+      position: fixed; top: 0; left: 0;
+      width: 100%; height: 100%;
+      z-index: 0; opacity: 0.18;
+      pointer-events: none;
+    }
+
+    /* ── SCAN LINE OVERLAY ── */
+    body::after {
+      content: '';
+      position: fixed; top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: repeating-linear-gradient(
+        0deg, transparent, transparent 2px,
+        rgba(0,0,0,0.08) 2px, rgba(0,0,0,0.08) 4px
+      );
+      z-index: 1; pointer-events: none;
+    }
+
+    /* ── WRAPPER ── */
+    .wrapper {
+      position: relative; z-index: 2;
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 28px 24px 60px;
+    }
+
+    /* ── NAV BAR ── */
+    .nav-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border: 1px solid var(--border);
+      background: var(--panel);
+      padding: 10px 20px;
+      margin-bottom: 18px;
+    }
+    .nav-logo {
+      font-family: 'Orbitron', monospace;
+      font-size: 11px; font-weight: 700;
+      color: var(--green);
+      text-shadow: 0 0 10px var(--green-glow);
+      letter-spacing: 2px;
+    }
+    .nav-links { display: flex; gap: 20px; align-items: center; }
+    .nav-link {
+      font-size: 10px; color: var(--text-dim);
+      text-decoration: none; letter-spacing: 1px;
+      text-transform: uppercase;
+      transition: color 0.2s, text-shadow 0.2s;
+    }
+    .nav-link::before { content: '// '; color: rgba(0,255,65,0.25); }
+    .nav-link:hover { color: var(--green); text-shadow: 0 0 8px var(--green-glow); }
+    .nav-link.active { color: var(--green); }
+    .nav-link.cta {
+      border: 1px solid var(--green);
+      padding: 5px 12px; color: var(--green);
+    }
+    .nav-link.cta::before { display: none; }
+    .nav-link.cta:hover { background: var(--green); color: var(--black); text-shadow: none; }
+
+    /* ── BOOT SEQUENCE ── */
+    .boot {
+      font-size: 11px; color: var(--green-dim);
+      letter-spacing: 1px; margin-bottom: 24px;
+      line-height: 1.9; opacity: 0.7;
+    }
+    .boot .b-line { min-height: 1.9em; }
+    .boot span { color: var(--green); }
+
+    /* ── HERO ── */
+    .hero {
+      border: 1px solid var(--border);
+      border-top: 3px solid var(--green);
+      background: var(--panel);
+      padding: 32px 40px 28px;
+      margin-bottom: 20px;
+      box-shadow: 0 0 40px var(--green-glow), inset 0 0 60px rgba(0,255,65,0.03);
+      position: relative; overflow: hidden;
+    }
+    .hero::before {
+      content: '';
+      position: absolute; top: 0; left: 0; right: 0; height: 3px;
+      background: linear-gradient(90deg, transparent, var(--green), transparent);
+      animation: scan-h 3s linear infinite;
+    }
+    @keyframes scan-h { 0%{ transform: translateX(-100%); } 100%{ transform: translateX(100%); } }
+
+    .hero-eyebrow {
+      font-size: 10px; letter-spacing: 3px;
+      color: var(--green-dim); text-transform: uppercase;
+      margin-bottom: 10px;
+    }
+    .hero-title {
+      font-family: 'Orbitron', monospace;
+      font-size: clamp(20px, 3vw, 34px); font-weight: 900;
+      color: var(--green); text-transform: uppercase;
+      letter-spacing: 2px; line-height: 1.15;
+      text-shadow: 0 0 20px var(--green-glow), 0 0 40px rgba(0,255,65,0.2);
+      margin-bottom: 14px;
+      position: relative;
+    }
+    .hero-title .accent { color: var(--amber); text-shadow: 0 0 20px var(--amber-dim); }
+
+    /* ── GLITCH ── */
+    .glitch { position: relative; }
+    .glitch::before, .glitch::after {
+      content: attr(data-text);
+      position: absolute; top: 0; left: 0; width: 100%;
+      white-space: pre;
+    }
+    .glitch::before {
+      color: #0FF;
+      animation: glitch-1 5s infinite linear;
+      clip-path: polygon(0 20%, 100% 20%, 100% 30%, 0 30%);
+    }
+    .glitch::after {
+      color: #F0F;
+      animation: glitch-2 5s infinite linear;
+      clip-path: polygon(0 62%, 100% 62%, 100% 74%, 0 74%);
+    }
+    @keyframes glitch-1 {
+      0%,92%,100%{ transform:translate(0); opacity:0; }
+      93%{ transform:translate(-3px,1px); opacity:0.7; }
+      95%{ transform:translate(3px,-1px); opacity:0.7; }
+      97%{ transform:translate(0); opacity:0; }
+    }
+    @keyframes glitch-2 {
+      0%,94%,100%{ transform:translate(0); opacity:0; }
+      96%{ transform:translate(3px,2px); opacity:0.6; }
+      98%{ transform:translate(-2px,-1px); opacity:0.6; }
+    }
+
+    .hero-sub {
+      font-size: 12px; color: rgba(0,255,65,0.65);
+      line-height: 1.75; max-width: 700px;
+    }
+
+    /* ── STAT GRID ── */
+    .stat-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px; margin-bottom: 18px;
+    }
+    .stat-box {
+      border: 1px solid var(--border);
+      background: var(--panel);
+      padding: 18px 16px; text-align: center;
+      position: relative;
+      transition: box-shadow 0.25s, border-color 0.25s;
+    }
+    .stat-box:hover { box-shadow: 0 0 20px var(--green-glow); border-color: var(--green); }
+    .stat-box::before {
+      content: attr(data-label);
+      position: absolute; top: -1px; left: 8px;
+      font-size: 9px; letter-spacing: 2px;
+      color: var(--black); background: var(--green);
+      padding: 1px 6px; text-transform: uppercase;
+    }
+    .stat-num {
+      font-family: 'Orbitron', monospace;
+      font-size: clamp(18px, 2.5vw, 26px); font-weight: 700;
+      color: var(--green); text-shadow: 0 0 12px var(--green-glow);
+      margin: 8px 0 4px; display: block;
+      transition: text-shadow 0.3s;
+    }
+    .stat-num.amber { color: var(--amber); text-shadow: 0 0 12px rgba(255,184,0,0.4); }
+    .stat-label {
+      font-size: 10px; color: var(--text-dim);
+      letter-spacing: 0.5px; line-height: 1.5;
+    }
+
+    /* ── FILTER SECTION ── */
+    .filter-section {
+      border: 1px solid var(--border);
+      background: var(--panel);
+      margin-bottom: 20px; overflow: hidden;
+    }
+    .filter-header {
+      border-bottom: 1px solid var(--border);
+      padding: 8px 20px;
+      display: flex; align-items: center; gap: 10px;
+      background: rgba(0,255,65,0.05);
+    }
+    .filter-body {
+      padding: 14px 20px;
+      display: flex; flex-wrap: wrap;
+      align-items: center; gap: 14px;
+    }
+    .filter-group { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+    .filter-label {
+      font-size: 10px; color: var(--text-faint);
+      letter-spacing: 1px; white-space: nowrap;
+    }
+    .filter-label::before { content: '> '; color: var(--green); }
+    .filter-pill {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 10px; background: transparent;
+      border: 1px solid var(--border); color: var(--text-dim);
+      padding: 4px 10px; cursor: pointer;
+      letter-spacing: 1px; transition: all 0.15s;
+      white-space: nowrap;
+    }
+    .filter-pill:hover { border-color: var(--green); color: var(--green); }
+    .filter-pill.active { background: var(--green); color: var(--black); border-color: var(--green); }
+    .filter-divider { width: 1px; height: 22px; background: var(--border); flex-shrink: 0; }
+    .search-wrap {
+      display: flex; align-items: center; gap: 8px;
+      border-bottom: 1px solid var(--green-dim);
+      padding-bottom: 2px;
+    }
+    .search-label {
+      font-size: 10px; color: var(--green);
+      letter-spacing: 1px; white-space: nowrap;
+    }
+    .search-input {
+      background: transparent; border: none; outline: none;
+      color: var(--green); font-family: 'Share Tech Mono', monospace;
+      font-size: 11px; width: 150px; caret-color: var(--green);
+    }
+    .search-input::placeholder { color: rgba(0,255,65,0.2); }
+
+    /* ── DOT ── */
+    .dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: var(--green); box-shadow: 0 0 6px var(--green);
+      animation: blink 2s ease-in-out infinite; flex-shrink: 0;
+    }
+    .dot.amber { background: var(--amber); box-shadow: 0 0 6px var(--amber); }
+    .dot.red   { background: var(--danger); box-shadow: 0 0 6px var(--danger); animation-delay: 0.4s; }
+    @keyframes blink { 0%,100%{ opacity:1; } 50%{ opacity:0.25; } }
+
+    .section-label {
+      font-size: 10px; letter-spacing: 2.5px;
+      text-transform: uppercase; color: var(--green-dim);
+    }
+
+    /* ── MAIN LAYOUT ── */
+    .main-layout {
+      display: grid;
+      grid-template-columns: 1fr 260px;
+      gap: 18px; align-items: start;
+    }
+
+    /* ── CATALOGUE GRID ── */
+    .catalogue-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+
+    /* ── OFFER CARD ── */
+    .offer-card {
+      border: 1px solid var(--border);
+      background: var(--panel);
+      overflow: hidden;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .offer-card:hover {
+      border-color: var(--green);
+      box-shadow: 0 0 20px var(--green-glow);
+    }
+    .offer-card.b2a {
+      border-top: 3px solid var(--green);
+      background: var(--b2a-tint);
+    }
+    .offer-card.hidden { display: none; }
+    .offer-card.layer-dim { opacity: 0.3; pointer-events: none; }
+
+    .offer-card-header {
+      border-bottom: 1px solid var(--border);
+      padding: 8px 16px;
+      display: flex; align-items: center; gap: 8px;
+      background: rgba(0,255,65,0.04);
+    }
+    .offer-card.b2a .offer-card-header {
+      background: rgba(255,184,0,0.04);
+    }
+    .offer-card-vertical {
+      font-size: 9px; letter-spacing: 2px;
+      text-transform: uppercase; color: var(--green-dim); flex: 1;
+    }
+
+    .offer-body { padding: 14px 16px; }
+
+    .offer-top-row {
+      display: flex; justify-content: space-between;
+      align-items: flex-start; margin-bottom: 8px;
+    }
+    .offer-badges { display: flex; gap: 5px; flex-wrap: wrap; }
+    .badge {
+      font-size: 9px; letter-spacing: 1.5px;
+      padding: 2px 7px; text-transform: uppercase; border: 1px solid;
+    }
+    .badge.b2b  { border-color: var(--green); color: var(--green); }
+    .badge.b2a  { border-color: var(--amber); color: var(--black); background: var(--amber); }
+    .badge.g-aplus { border-color: var(--green); color: var(--green); text-shadow: 0 0 6px var(--green-glow); }
+    .badge.g-a  { border-color: var(--green); color: var(--green); }
+    .badge.g-b  { border-color: var(--amber); color: var(--amber); }
+    .badge.g-c  { border-color: var(--danger); color: var(--danger); }
+    .badge.g-v  { border-color: var(--text-faint); color: var(--text-faint); }
+
+    .offer-num {
+      font-family: 'Orbitron', monospace;
+      font-size: 11px; font-weight: 700;
+      color: var(--text-faint); letter-spacing: 1px;
+    }
+    .offer-title {
+      font-family: 'Orbitron', monospace;
+      font-size: clamp(10px, 1.1vw, 13px); font-weight: 700;
+      color: var(--green); text-transform: uppercase;
+      letter-spacing: 0.8px; line-height: 1.3;
+      text-shadow: 0 0 10px rgba(0,255,65,0.25);
+      margin-bottom: 6px;
+    }
+    .offer-desc {
+      font-size: 11px; color: var(--text-dim);
+      line-height: 1.6; margin-bottom: 10px;
+    }
+
+    /* ── LAYER BAR ── */
+    .layer-bar {
+      display: flex; align-items: center;
+      gap: 2px; margin-bottom: 10px;
+    }
+    .layer-seg {
+      font-family: 'Orbitron', monospace;
+      font-size: 8px; font-weight: 700;
+      padding: 4px 7px;
+      background: rgba(0,255,65,0.05);
+      color: rgba(0,255,65,0.25);
+      letter-spacing: 0.5px; transition: all 0.2s;
+    }
+    .layer-seg.active {
+      background: var(--green); color: var(--black);
+      box-shadow: 0 0 5px var(--green);
+    }
+    .layer-count {
+      font-size: 9px; color: var(--text-faint);
+      margin-left: 6px; letter-spacing: 1px;
+    }
+
+    .offer-meta {
+      display: flex; justify-content: space-between;
+      align-items: center; margin-bottom: 12px;
+      font-size: 10px; flex-wrap: wrap; gap: 4px;
+    }
+    .offer-pricing { color: var(--green); }
+    .offer-pricing::before { content: '> '; }
+    .offer-settlement { color: var(--text-faint); }
+
+    .offer-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+    .btn-inspect, .btn-launch, .btn-coming {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 10px; background: transparent;
+      border: 1px solid; padding: 5px 10px;
+      cursor: pointer; letter-spacing: 1px;
+      transition: all 0.15s; white-space: nowrap;
+    }
+    .btn-inspect { border-color: var(--border); color: var(--text-dim); }
+    .btn-inspect:hover { border-color: var(--green); color: var(--green); }
+    .btn-inspect.open { border-color: var(--green); color: var(--green); background: rgba(0,255,65,0.06); }
+    .btn-launch { border-color: var(--green); color: var(--green); }
+    .btn-launch:hover { background: var(--green); color: var(--black); box-shadow: 0 0 12px var(--green-glow); }
+    .btn-coming { border-color: var(--text-faint); color: var(--text-faint); cursor: default; font-size: 9px; }
+
+    /* ── OFFER DETAIL (expanded) ── */
+    .offer-detail {
+      border-top: 1px solid var(--border);
+      padding: 14px 16px; display: none;
+    }
+    .offer-detail.open { display: block; }
+    .detail-title {
+      font-size: 9px; letter-spacing: 2px;
+      text-transform: uppercase; color: var(--text-faint);
+      margin-bottom: 10px; margin-top: 12px;
+    }
+    .detail-title:first-child { margin-top: 0; }
+
+    .param-grid {
+      display: grid; grid-template-columns: repeat(3, 1fr);
+      gap: 8px; margin-bottom: 4px;
+    }
+    .param-box {
+      border: 1px solid var(--border);
+      background: rgba(0,255,65,0.03);
+      padding: 10px 10px 8px;
+      text-align: center; position: relative;
+    }
+    .param-box::before {
+      content: attr(data-label);
+      position: absolute; top: -1px; left: 6px;
+      font-size: 8px; letter-spacing: 1.5px;
+      color: var(--black); background: var(--green-dim);
+      padding: 0 5px; text-transform: uppercase;
+    }
+    .param-val {
+      font-family: 'Orbitron', monospace;
+      font-size: clamp(11px, 1.4vw, 15px); font-weight: 700;
+      color: var(--green); text-shadow: 0 0 8px var(--green-glow);
+      display: block; margin-top: 6px;
+    }
+
+    .rule-block {
+      border-left: 3px solid var(--green);
+      padding: 8px 12px; margin-bottom: 8px;
+      background: rgba(0,255,65,0.03);
+    }
+    .rule-block:last-child { margin-bottom: 0; }
+    .rule-code {
+      font-size: 9px; color: var(--amber);
+      letter-spacing: 1.5px; text-transform: uppercase;
+      margin-bottom: 4px; display: block;
+    }
+    .rule-text {
+      font-size: 11px; color: rgba(0,255,65,0.7);
+      line-height: 1.65;
+    }
+
+    .detail-layer-grid {
+      display: grid; grid-template-columns: repeat(4, 1fr);
+      gap: 2px;
+    }
+    .dlseg {
+      padding: 8px 4px; text-align: center;
+      background: rgba(0,255,65,0.03);
+      border: 1px solid rgba(0,255,65,0.08);
+      transition: all 0.2s;
+    }
+    .dlseg.active {
+      background: rgba(0,255,65,0.09);
+      border-color: rgba(0,255,65,0.4);
+      box-shadow: 0 0 6px rgba(0,255,65,0.15);
+    }
+    .dlseg .dln {
+      font-family: 'Orbitron', monospace;
+      font-size: 9px; font-weight: 700;
+      color: rgba(0,255,65,0.25); display: block; margin-bottom: 3px;
+    }
+    .dlseg.active .dln { color: var(--green); }
+    .dlseg .dld { font-size: 8px; color: rgba(0,255,65,0.2); line-height: 1.4; }
+    .dlseg.active .dld { color: rgba(0,255,65,0.5); }
+
+    /* ── SIDEBAR ── */
+    .sidebar {
+      position: sticky; top: 20px;
+      border: 1px solid var(--border);
+      background: var(--panel); overflow: hidden;
+    }
+    .sidebar-hdr {
+      border-bottom: 1px solid var(--border);
+      padding: 10px 16px;
+      display: flex; align-items: center; gap: 8px;
+      background: rgba(0,255,65,0.05);
+    }
+    .sidebar-body { padding: 12px; }
+
+    .layer-block {
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--green-dim);
+      margin-bottom: 2px; cursor: pointer;
+      transition: all 0.2s;
+      background: rgba(0,255,65,0.02);
+    }
+    .layer-block:last-of-type { margin-bottom: 0; }
+    .layer-block:hover {
+      border-color: var(--green); border-left-color: var(--green);
+      box-shadow: 0 0 10px rgba(0,255,65,0.15);
+      background: rgba(0,255,65,0.05);
+    }
+    .layer-block.selected {
+      border-color: var(--green); border-left-color: var(--green);
+      box-shadow: 0 0 14px var(--green-glow);
+      background: rgba(0,255,65,0.07);
+    }
+    .layer-block.sidebar-dim { opacity: 0.3; }
+
+    .lbh {
+      padding: 8px 12px;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .lbn {
+      font-family: 'Orbitron', monospace;
+      font-size: 9px; font-weight: 700;
+      letter-spacing: 0.8px; color: var(--green);
+    }
+    .lbi { font-size: 9px; color: var(--text-faint); }
+    .lbc {
+      padding: 0 12px 8px; list-style: none;
+    }
+    .lbc li { font-size: 9px; color: var(--text-dim); line-height: 1.75; }
+    .lbc li::before { content: '> '; color: var(--green); }
+
+    .connector { width: 1px; height: 8px; background: var(--border); margin: 0 auto; }
+
+    .sidebar-ftr {
+      border-top: 1px solid var(--border);
+      padding: 10px 12px;
+    }
+    .btn-clear {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 10px; background: transparent;
+      border: 1px solid var(--border); color: var(--text-dim);
+      padding: 6px 12px; cursor: pointer; width: 100%;
+      letter-spacing: 1px; transition: all 0.15s;
+    }
+    .btn-clear:hover { border-color: var(--green); color: var(--green); }
+
+    /* ── EMPTY STATE ── */
+    .empty-state {
+      grid-column: 1/-1;
+      border: 1px solid var(--border); background: var(--panel);
+      padding: 48px; text-align: center; display: none;
+    }
+    .empty-state.visible { display: block; }
+    .empty-state-title {
+      font-family: 'Orbitron', monospace;
+      font-size: 13px; color: var(--text-dim); margin-bottom: 8px;
+    }
+    .empty-state-sub { font-size: 11px; color: var(--text-faint); }
+
+    /* ── FOOTER ── */
+    .footer {
+      border: 1px solid var(--border); background: var(--panel);
+      padding: 18px 24px; margin-top: 20px;
+      display: flex; justify-content: space-between;
+      align-items: center; flex-wrap: wrap; gap: 12px;
+    }
+    .footer-name { color: var(--green); font-weight: 700; font-size: 13px; }
+    .footer-role { color: rgba(0,255,65,0.4); font-size: 10px; letter-spacing: 1px; margin-top: 2px; }
+    .footer-links { display: flex; gap: 16px; flex-wrap: wrap; }
+    .footer-link {
+      font-size: 11px; color: var(--green-dim); text-decoration: none;
+      letter-spacing: 0.5px; transition: color 0.2s, text-shadow 0.2s;
+    }
+    .footer-link::before { content: '// '; color: rgba(0,255,65,0.25); }
+    .footer-link:hover { color: var(--green); text-shadow: 0 0 8px var(--green-glow); }
+
+    /* ── CURSOR BLINK ── */
+    .cursor {
+      display: inline-block; width: 8px; height: 14px;
+      background: var(--green); vertical-align: middle;
+      margin-left: 2px; animation: blink 1s step-end infinite;
+    }
+
+    /* ── MEDIA QUERIES ── */
+    @media (max-width: 1100px) {
+      .main-layout { grid-template-columns: 1fr; }
+      .sidebar { position: static; }
+      .sidebar-body {
+        display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;
+      }
+      .connector { display: none; }
+      .lbc { display: none; }
+      .lbh { padding: 10px 8px; }
+      .sidebar-ftr { display: none; }
+    }
+    @media (max-width: 760px) {
+      .catalogue-grid { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 680px) {
+      .stat-grid { grid-template-columns: repeat(2, 1fr); }
+      .filter-body { gap: 10px; overflow-x: auto; flex-wrap: nowrap; padding-bottom: 10px; }
+      .filter-group { flex-wrap: nowrap; }
+      .filter-divider { display: none; }
+      .sidebar-body { grid-template-columns: repeat(2, 1fr); }
+      .param-grid { grid-template-columns: 1fr 1fr; }
+      .hero { padding: 24px 20px 20px; }
+    }
+  </style>
+</head>
+<body>
+
+<canvas id="matrix-canvas"></canvas>
+
+<div class="wrapper">
+
+  <!-- Nav -->
+  <nav class="nav-bar">
+    <div class="nav-logo">6G BSS COCKPIT</div>
+    <div class="nav-links">
+      <a class="nav-link active" href="catalogue.html">Offer Catalogue</a>
+      <a class="nav-link cta" href="index.html">LAUNCH CONSOLE →</a>
+    </div>
+  </nav>
+
+  <!-- Boot sequence -->
+  <div class="boot">
+    <div class="b-line" id="boot0"></div>
+    <div class="b-line" id="boot1"></div>
+    <div class="b-line" id="boot2"></div>
+  </div>
+
+  <!-- Hero -->
+  <div class="hero">
+    <div class="hero-eyebrow">// 6G BSS MONETIZATION · OFFER CATALOGUE · 2026</div>
+    <div class="hero-title glitch" data-text="6G B2B AND B2A OFFER CATALOGUE">
+      6G B2B &amp; B2A<br><span class="accent">OFFER CATALOGUE</span>
+    </div>
+    <div class="hero-sub">
+      Beyond data bundles. Intent-based, outcome-priced, sustainability-aware offers where AI agents transact alongside enterprises — each billed per second only when outcomes are delivered.
+    </div>
+  </div>
+
+  <!-- Stat grid -->
+  <div class="stat-grid">
+    <div class="stat-box" data-label="CATALOGUE">
+      <span class="stat-num" id="statTotal">14</span>
+      <div class="stat-label">offers available<br>across all verticals</div>
+    </div>
+    <div class="stat-box" data-label="ENTERPRISE">
+      <span class="stat-num" id="statB2B">8</span>
+      <div class="stat-label">B2B offers for<br>enterprise customers</div>
+    </div>
+    <div class="stat-box" data-label="AI AGENT">
+      <span class="stat-num amber" id="statB2A">6</span>
+      <div class="stat-label">B2A offers for<br>autonomous AI agents</div>
+    </div>
+    <div class="stat-box" data-label="VERTICALS">
+      <span class="stat-num" id="statVerticals">8</span>
+      <div class="stat-label">industry verticals<br>with live offers</div>
+    </div>
+  </div>
+
+  <!-- Filters -->
+  <div class="filter-section">
+    <div class="filter-header">
+      <div class="dot"></div>
+      <div class="section-label">// FILTER :: SELECT OFFER PARAMETERS</div>
+    </div>
+    <div class="filter-body">
+      <div class="filter-group">
+        <span class="filter-label">TYPE</span>
+        <button class="filter-pill active" data-filter="type" data-val="all">ALL</button>
+        <button class="filter-pill" data-filter="type" data-val="B2B">B2B</button>
+        <button class="filter-pill" data-filter="type" data-val="B2A">B2A</button>
+      </div>
+      <div class="filter-divider"></div>
+      <div class="filter-group">
+        <span class="filter-label">VERTICAL</span>
+        <button class="filter-pill active" data-filter="vertical" data-val="all">ALL</button>
+        <button class="filter-pill" data-filter="vertical" data-val="industrial">INDUSTRIAL</button>
+        <button class="filter-pill" data-filter="vertical" data-val="logistics">LOGISTICS</button>
+        <button class="filter-pill" data-filter="vertical" data-val="drones">DRONES</button>
+        <button class="filter-pill" data-filter="vertical" data-val="media">MEDIA</button>
+        <button class="filter-pill" data-filter="vertical" data-val="energy">ENERGY</button>
+        <button class="filter-pill" data-filter="vertical" data-val="healthcare">HEALTHCARE</button>
+        <button class="filter-pill" data-filter="vertical" data-val="mobility">MOBILITY</button>
+        <button class="filter-pill" data-filter="vertical" data-val="compute">COMPUTE</button>
+      </div>
+      <div class="filter-divider"></div>
+      <div class="filter-group">
+        <span class="filter-label">CARBON</span>
+        <button class="filter-pill active" data-filter="carbon" data-val="all">ALL</button>
+        <button class="filter-pill" data-filter="carbon" data-val="ab">A+ / A</button>
+        <button class="filter-pill" data-filter="carbon" data-val="b">B</button>
+        <button class="filter-pill" data-filter="carbon" data-val="c">C</button>
+      </div>
+      <div class="filter-divider"></div>
+      <div class="search-wrap">
+        <span class="search-label">&gt; SEARCH ::</span>
+        <input class="search-input" id="searchInput" type="text" placeholder="filter by keyword..." autocomplete="off">
+      </div>
+    </div>
+  </div>
+
+  <!-- Main layout -->
+  <div class="main-layout">
+
+    <!-- Catalogue grid -->
+    <div class="catalogue-grid" id="catalogueGrid">
+      <div class="empty-state" id="emptyState">
+        <div class="empty-state-title">NO_OFFERS_MATCH :: 0 RESULTS</div>
+        <div class="empty-state-sub">Adjust filters or clear to see all offers</div>
+      </div>
+    </div>
+
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-hdr">
+        <div class="dot"></div>
+        <span class="section-label">// ARCHITECTURE STACK</span>
+      </div>
+      <div class="sidebar-body" id="sidebarBody">
+        <div class="layer-block" data-layer="1" id="sidebarL1">
+          <div class="lbh">
+            <div class="lbn">L1 :: AI EXPERIENCE</div>
+            <div class="lbi">▶</div>
+          </div>
+          <ul class="lbc">
+            <li>Agent Onboarding</li>
+            <li>Intent Catalogue</li>
+            <li>Monetization APIs</li>
+          </ul>
+        </div>
+        <div class="connector"></div>
+        <div class="layer-block" data-layer="2" id="sidebarL2">
+          <div class="lbh">
+            <div class="lbn">L2 :: 6G INTELLIGENCE</div>
+            <div class="lbi">▶</div>
+          </div>
+          <ul class="lbc">
+            <li>Intent &amp; Policy</li>
+            <li>Rating &amp; Mediation</li>
+            <li>Collections / Settlement</li>
+          </ul>
+        </div>
+        <div class="connector"></div>
+        <div class="layer-block" data-layer="3" id="sidebarL3">
+          <div class="lbh">
+            <div class="lbn">L3 :: TRUST &amp; GOVERNANCE</div>
+            <div class="lbi">▶</div>
+          </div>
+          <ul class="lbc">
+            <li>Sustainability</li>
+            <li>Reporting / Insights</li>
+            <li>B2A2X Marketplace</li>
+          </ul>
+        </div>
+        <div class="connector"></div>
+        <div class="layer-block" data-layer="4" id="sidebarL4">
+          <div class="lbh">
+            <div class="lbn">L4 :: API &amp; EVENT MESH</div>
+            <div class="lbi">▶</div>
+          </div>
+          <ul class="lbc">
+            <li>Kafka / NATS</li>
+            <li>Open APIs (CAMARA)</li>
+            <li>Federated Edge</li>
+          </ul>
+        </div>
+      </div>
+      <div class="sidebar-ftr">
+        <button class="btn-clear" id="clearLayerBtn">[ CLEAR_LAYER_FILTER ]</button>
+      </div>
+    </aside>
+
+  </div><!-- /main-layout -->
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div>
+      <div class="footer-name">Chris Sood <span class="cursor"></span></div>
+      <div class="footer-role">AGENTIC AI PRODUCT MANAGER · 6G BSS INNOVATION</div>
+    </div>
+    <div class="footer-links">
+      <a class="footer-link" href="index.html">Launch Console</a>
+      <a class="footer-link" href="https://www.linkedin.com/in/chrisamansood/" target="_blank">LinkedIn</a>
+      <a class="footer-link" href="https://chrisamansood.medium.com/" target="_blank">Medium</a>
+    </div>
+  </footer>
+
+</div><!-- /wrapper -->
+
+<script>
+/* ── MATRIX RAIN ── */
+(function() {
+  var canvas = document.getElementById('matrix-canvas');
+  var ctx = canvas.getContext('2d');
+  var fs = 13;
+  var cols, drops;
+  function resize() {
+    canvas.width  = window.innerWidth;
+    canvas.height = window.innerHeight;
+    cols  = Math.floor(canvas.width / fs);
+    drops = Array(cols).fill(1);
+  }
+  resize();
+  window.addEventListener('resize', resize);
+  var chars = 'アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホ01010110100111ABCDEFabcdef{}[]<>/|;:';
+  function draw() {
+    ctx.fillStyle = 'rgba(0,0,0,0.055)';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.font = fs + 'px Share Tech Mono, Courier New';
+    for (var i = 0; i < drops.length; i++) {
+      ctx.fillStyle = drops[i] * fs < canvas.height * 0.1 ? '#FFFFFF' : '#00FF41';
+      ctx.fillText(chars[Math.floor(Math.random() * chars.length)], i * fs, drops[i] * fs);
+      if (drops[i] * fs > canvas.height && Math.random() > 0.975) drops[i] = 0;
+      drops[i]++;
+    }
+  }
+  setInterval(draw, 42);
+})();
+
+/* ── BOOT SEQUENCE ── */
+(function() {
+  var lines = [
+    'SYSTEM_INIT :: 6G_BSS_CATALOGUE v1.0.0 <span>[LOADED]</span>',
+    'SCANNING :: 14 offers | 8 verticals | 4 architecture layers | intent-based pricing',
+    'STATUS :: <span>INTENT-BASED CATALOGUE ACTIVE</span> — select offer to inspect or launch in console'
+  ];
+  var lineIndex = 0;
+  function nextLine() {
+    if (lineIndex >= lines.length) return;
+    var el    = document.getElementById('boot' + lineIndex);
+    var raw   = lines[lineIndex];
+    var plain = raw.replace(/<[^>]+>/g, '');
+    var j = 0;
+    function type() {
+      j++;
+      if (j < plain.length) {
+        el.textContent = plain.substring(0, j);
+        setTimeout(type, 16);
+      } else {
+        el.innerHTML = raw;
+        lineIndex++;
+        setTimeout(nextLine, 180);
+      }
+    }
+    type();
+  }
+  setTimeout(nextLine, 400);
+})();
+
+/* ── OFFER DATA ── */
+var offers = [
+  {
+    id: 1, num: '01',
+    title: 'Smart Factory Robot Cell Control',
+    type: 'B2B', vertical: 'Industrial Manufacturing', vKey: 'industrial',
+    latency: '<2ms', compute: '50 GFLOPS', carbon: '80g CO2e/kWh',
+    grade: 'A', layers: [1,2,3,4], scenario: 'factory',
+    pricing: 'Outcome-second (accuracy ≥98%)',
+    settlement: '5-party smart contract',
+    desc: 'Sub-millisecond robot-cell coordination with deterministic edge compute and outcome-based billing. Charges accrue only when robot accuracy meets the ≥98% threshold.',
+    parties: ['Operator', 'Edge Cloud', 'Device OEM', 'Carbon Registry', 'Insurer'],
+    pricingDetail: 'Charges accrue per second only when accuracy threshold is sustained. Refund reserve: 12% for SLA breach. Carbon-adjusted billing on clean-energy edge routes.',
+    settlementDetail: '5-party smart contract with automated SLA monitoring. Settlement clears within 3 seconds of outcome verification. Insurer escrow holds SLA refund reserve.'
+  },
+  {
+    id: 2, num: '02',
+    title: 'Predictive Digital Twin Sync',
+    type: 'B2B', vertical: 'Industrial Manufacturing', vKey: 'industrial',
+    latency: '<8ms', compute: '30 GFLOPS', carbon: '65g CO2e/kWh',
+    grade: 'A', layers: [1,2,4], scenario: null,
+    pricing: 'Per-sync-cycle (fidelity threshold)',
+    settlement: '3-party',
+    desc: 'Continuous physical-digital twin synchronisation with fidelity-gated billing. Factory state propagated to digital model with sub-10ms round-trip and telemetry verification.',
+    parties: ['Operator', 'Edge Cloud', 'Platform OEM'],
+    pricingDetail: 'Billing triggered per synchronisation cycle when fidelity score exceeds agreed threshold. Cycles failing quality gates are not charged. Burst sync during shift changeovers billed at peak rate.',
+    settlementDetail: '3-party direct settlement. Revenue split: 65% Operator, 28% Edge Cloud, 7% Platform OEM. Monthly reconciliation via API.'
+  },
+  {
+    id: 3, num: '03',
+    title: 'Autonomous Port Fleet Coordination',
+    type: 'B2B', vertical: 'Logistics & Transport', vKey: 'logistics',
+    latency: '<5ms', compute: 'Edge vision pool', carbon: 'Peak-use cap',
+    grade: 'B', layers: [1,2,3,4], scenario: 'port',
+    pricing: 'Per container move',
+    settlement: '4-party',
+    desc: 'Real-time coordination of autonomous cranes, AGVs and vessel interfaces across port zones. Revenue locked to cryptographically verified container movements.',
+    parties: ['Operator', 'Port Authority', 'Logistics Platform', 'Carbon Ledger'],
+    pricingDetail: 'Fixed charge per verified container move. Carbon surcharge applied during peak hours based on real-time grid carbon intensity. Volume discount tiers at 1K/5K/10K moves.',
+    settlementDetail: '4-party settlement with Port Authority as primary verifier. Carbon Ledger records and offsets energy cost per move. Settlement window: T+24h.'
+  },
+  {
+    id: 4, num: '04',
+    title: 'Cross-Border Supply Chain Slice',
+    type: 'B2A', vertical: 'Logistics & Transport', vKey: 'logistics',
+    latency: '<20ms', compute: '10 GFLOPS', carbon: '90g CO2e/kWh',
+    grade: 'B', layers: [1,2,3,4], scenario: null,
+    pricing: 'Agent-negotiated per-corridor-hour',
+    settlement: 'DAO multi-operator',
+    desc: 'AI procurement agents autonomously acquire cross-border network slices for supply chain visibility. Agent-to-agent negotiation within SLA bounds set by enterprise principal.',
+    parties: ['Operator A', 'Operator B', 'DAO Treasury', 'Enterprise Principal'],
+    pricingDetail: 'AI agent negotiates slice price within enterprise-set bounds via real-time capacity auctions. Hourly corridor pricing with burst tolerance. Agent cannot exceed price ceiling without human approval.',
+    settlementDetail: 'DAO-governed multi-operator settlement. Smart contract enforces SLA penalties and distributes revenue across corridor operators. Enterprise principal has veto on final settlement.'
+  },
+  {
+    id: 5, num: '05',
+    title: 'Emergency Drone Corridor',
+    type: 'B2B', vertical: 'Public Safety & Drones', vKey: 'drones',
+    latency: 'Mission-critical', compute: 'Sensing + video', carbon: 'Exception',
+    grade: 'C', layers: [1,2,3,4], scenario: 'drone',
+    pricing: 'Temporary corridor charge',
+    settlement: '4-party',
+    desc: 'Instant provisioning of certified airspace corridors for emergency drone missions. Zero-queue slot activation via public safety override with civil aviation sign-off.',
+    parties: ['Operator', 'Civil Aviation', 'Emergency Services', 'Carbon Ledger'],
+    pricingDetail: 'Flat corridor charge per activated mission window. Emergency override waives normal capacity queue. Post-mission carbon offset calculated separately. Grade C due to mission criticality bypassing carbon guardrails.',
+    settlementDetail: '4-party settlement with Civil Aviation authority sign-off. Emergency Services receive priority routing with cost deferral to operator. Carbon Ledger records footprint for post-mission offset purchase.'
+  },
+  {
+    id: 6, num: '06',
+    title: 'Autonomous Drone Delivery Fleet',
+    type: 'B2A', vertical: 'Public Safety & Drones', vKey: 'drones',
+    latency: '<10ms', compute: '80 GFLOPS', carbon: '100g CO2e/kWh',
+    grade: 'B', layers: [1,2,3,4], scenario: null,
+    pricing: 'Per-mission (geofence proof)',
+    settlement: 'DAO smart contract',
+    desc: 'Fleet management for AI-piloted delivery drones. Agents reserve corridors and allocate edge compute for obstacle avoidance. Billing tied to cryptographic delivery proof.',
+    parties: ['Operator', 'Drone OEM', 'DAO Treasury', 'Delivery Platform'],
+    pricingDetail: 'Per-mission billing gated by cryptographic geofence proof. Failed deliveries trigger automatic refund. Carbon surcharge applied when intensity >90g. Agent bids for corridor time slots.',
+    settlementDetail: 'DAO-governed settlement clearing within sub-second of delivery proof submission. Multi-party revenue distribution encoded as smart contract with Drone OEM royalty.'
+  },
+  {
+    id: 7, num: '07',
+    title: 'Holographic Telepresence',
+    type: 'B2B', vertical: 'Immersive Media', vKey: 'media',
+    latency: '<4ms', compute: '120 GFLOPS', carbon: '75g CO2e/kWh',
+    grade: 'A', layers: [1,2,4], scenario: null,
+    pricing: 'QoE-based (mean opinion score)',
+    settlement: '3-party',
+    desc: '6G-enabled holographic meeting and collaboration with spatial audio and volumetric video. Ultra-low latency ensures presence-grade experience gated by Mean Opinion Score.',
+    parties: ['Operator', 'Edge Cloud', 'Content Platform'],
+    pricingDetail: 'Billing gated by Mean Opinion Score (MOS) ≥4.2. Sessions falling below threshold for >5s trigger automatic SLA credit. Premium tier unlocks 8K volumetric stream with additional edge compute.',
+    settlementDetail: '3-party settlement. Edge Cloud takes 30% for compute-intensive holographic rendering. Content Platform takes 18% for spatial audio processing. Operator retains 52%.'
+  },
+  {
+    id: 8, num: '08',
+    title: 'AI-Directed Live Event Streaming',
+    type: 'B2A', vertical: 'Immersive Media', vKey: 'media',
+    latency: '<15ms burst', compute: '200 GFLOPS', carbon: '110g CO2e/kWh',
+    grade: 'C', layers: [1,2,3,4], scenario: null,
+    pricing: 'Agent-negotiated spot auction',
+    settlement: 'Dynamic revenue share',
+    desc: 'AI director agents acquire burst compute and bandwidth for live event production. Real-time spot auction for edge slots during peak demand windows with sub-100ms price clearing.',
+    parties: ['Operator', 'Edge Cloud', 'Event Platform', 'Carbon Ledger'],
+    pricingDetail: 'AI agent bids for edge compute slots via sealed-bid auction with 100ms clearing cycles. Price discovery varies by demand. Carbon surcharge applied at runtime based on grid intensity.',
+    settlementDetail: 'Dynamic revenue share recalculated per session based on actual resources consumed. Carbon Ledger records per-event footprint. Grade C due to high carbon intensity during peak events.'
+  },
+  {
+    id: 9, num: '09',
+    title: 'Certified Green Slice',
+    type: 'B2B', vertical: 'Sustainability & Energy', vKey: 'energy',
+    latency: '<25ms', compute: '15 GFLOPS', carbon: '35g CO2e/kWh',
+    grade: 'A+', layers: [1,2,3,4], scenario: null,
+    pricing: 'Green premium per-GB',
+    settlement: '3-party + carbon registry',
+    desc: 'Guaranteed renewable-energy-only network slice with certified carbon footprint. ESG reporting API included. Carbon Registry issues verified offset tokens on each settlement cycle.',
+    parties: ['Operator', 'Edge Cloud', 'Carbon Registry'],
+    pricingDetail: 'Base GB rate plus green premium (12% surcharge) covers renewable energy sourcing and Carbon Registry certification. ESG report auto-generated per billing cycle with chain-of-custody proof.',
+    settlementDetail: '3-party settlement with Carbon Registry as verifier. Operator commits renewable energy % per contract SLA. Registry issues digital carbon certificates on-chain at settlement.'
+  },
+  {
+    id: 10, num: '10',
+    title: 'Smart Grid Edge Orchestration',
+    type: 'B2A', vertical: 'Sustainability & Energy', vKey: 'energy',
+    latency: '<50ms', compute: '40 GFLOPS', carbon: '45g CO2e/kWh',
+    grade: 'A', layers: [1,2,3,4], scenario: null,
+    pricing: 'Per-forecast-cycle',
+    settlement: 'Carbon-weighted smart contract',
+    desc: 'Energy grid AI agents orchestrate load balancing and demand-response via 6G. Per-cycle billing with carbon weight applied based on real-time grid carbon intensity.',
+    parties: ['Operator', 'Energy Platform', 'Grid Operator', 'Carbon Registry'],
+    pricingDetail: 'Billing per forecast cycle. Carbon weight multiplier (0.8×–1.4×) applied based on live grid carbon intensity. Agents incentivised to schedule compute during clean-energy windows.',
+    settlementDetail: 'Carbon-weighted smart contract with Grid Operator as outcome verifier. Settlement adjusts operator share based on demonstrated carbon performance. Registry audits quarterly.'
+  },
+  {
+    id: 11, num: '11',
+    title: 'Remote Surgical Assist',
+    type: 'B2B', vertical: 'Healthcare', vKey: 'healthcare',
+    latency: '<1ms', compute: '200 GFLOPS', carbon: '60g CO2e/kWh',
+    grade: 'A', layers: [1,2,3,4], scenario: null,
+    pricing: 'Per-procedure outcome',
+    settlement: '5-party + malpractice reserve',
+    desc: 'URLLC network slice enabling remote robotic surgical assistance. Sub-millisecond haptic feedback loop with 99.9999% deterministic reliability. Malpractice reserve held in escrow.',
+    parties: ['Operator', 'Edge Cloud', 'Surgical Platform', 'Hospital', 'Malpractice Reserve'],
+    pricingDetail: 'Per-procedure billing gated by outcome verification (surgical score ≥ protocol threshold). 8% malpractice reserve held in escrow for 90 days post-procedure. Latency guarantee: 99.9999% uptime SLA.',
+    settlementDetail: '5-party settlement with Hospital as primary outcome verifier. Malpractice Reserve held by licensed insurer and released after 90-day observation window. Edge Cloud SLA: hard 99.9999% uptime.'
+  },
+  {
+    id: 12, num: '12',
+    title: 'Connected Vehicle Swarm Intelligence',
+    type: 'B2A', vertical: 'Autonomous Mobility', vKey: 'mobility',
+    latency: '<3ms', compute: '150 GFLOPS', carbon: '85g CO2e/kWh',
+    grade: 'B', layers: [1,2,3,4], scenario: null,
+    pricing: 'Per-km with safety-score multiplier',
+    settlement: 'DAO multi-operator',
+    desc: 'AI vehicle agents co-ordinate swarm manoeuvres, emergency braking and route optimisation across operator zones. Revenue tied to distance driven with safety-score multiplier.',
+    parties: ['Operator A', 'Operator B', 'DAO Treasury', 'Vehicle OEM'],
+    pricingDetail: 'Base per-km rate multiplied by real-time safety score (0.9×–1.15×). Higher safety performance increases both revenue and operator reputation score in DAO governance.',
+    settlementDetail: 'DAO-governed multi-operator settlement. Cross-operator handoff coordinated by smart contract. Revenue split by coverage zone measured to 100m precision.'
+  },
+  {
+    id: 13, num: '13',
+    title: 'Urban Air Mobility Corridor',
+    type: 'B2B', vertical: 'Autonomous Mobility', vKey: 'mobility',
+    latency: '<5ms', compute: '60 GFLOPS', carbon: '95g CO2e/kWh',
+    grade: 'B', layers: [1,2,3,4], scenario: null,
+    pricing: 'Per-flight-minute (position gate)',
+    settlement: '4-party',
+    desc: 'Certified 6G-enabled corridors for urban air taxis and cargo drones. Per-flight-minute billing gated by live position verification with 10-second check intervals.',
+    parties: ['Operator', 'Civil Aviation', 'Air Traffic Platform', 'Carbon Ledger'],
+    pricingDetail: 'Per-flight-minute billing gated by position verification every 10 seconds. Corridor deviation events pause billing and trigger safety protocol. Seasonal carbon surcharges apply.',
+    settlementDetail: '4-party settlement with Civil Aviation as regulator. Carbon Ledger tracks per-flight footprint. Monthly aggregate carbon report required for aviation authority ESG disclosure.'
+  },
+  {
+    id: 14, num: '14',
+    title: 'Agentic Edge Compute Spot Market',
+    type: 'B2A', vertical: 'Edge Compute Marketplace', vKey: 'compute',
+    latency: 'Variable', compute: '5–500 GFLOPS', carbon: 'Variable',
+    grade: 'Varies', layers: [1,2,3,4], scenario: null,
+    pricing: 'Real-time auction (carbon surcharge)',
+    settlement: 'Sub-second smart contract clearing',
+    desc: 'Open marketplace where AI agents acquire edge compute via real-time spot auction. Carbon surcharge applied dynamically. Settlement clears within sub-second via DAO.',
+    parties: ['Multiple Operators', 'Edge Cloud Providers', 'Carbon Registry', 'Settlement DAO'],
+    pricingDetail: 'Real-time sealed-bid auction clearing every 500ms. Carbon surcharge (0%–25%) applied based on live grid intensity at selected edge node. Minimum bid floor prevents race-to-bottom dynamics.',
+    settlementDetail: 'Sub-second smart contract clearing via Settlement DAO. Multi-operator revenue split determined by auction outcome. Carbon credits auto-purchased at settlement at spot carbon price.'
+  }
+];
+
+/* ── STATE ── */
+var state = { typeF: 'all', vertF: 'all', carbonF: 'all', layerF: null, search: '', expanded: null };
+
+/* ── HELPERS ── */
+function gradeClass(g) {
+  if (g === 'A+') return 'g-aplus';
+  if (g === 'A')  return 'g-a';
+  if (g === 'B')  return 'g-b';
+  if (g === 'C')  return 'g-c';
+  return 'g-v';
+}
+function dotClass(g) {
+  if (g === 'A+' || g === 'A') return '';
+  if (g === 'B') return 'amber';
+  return 'red';
+}
+function carbonMatch(o, cf) {
+  if (cf === 'all') return true;
+  if (cf === 'ab') return o.grade === 'A+' || o.grade === 'A';
+  if (cf === 'b') return o.grade === 'B';
+  if (cf === 'c') return o.grade === 'C';
+  return true;
+}
+var layerAbbr  = ['AI EXP','6G INT','TRST','API'];
+var layerDescL = ['Intent, agent onboarding', 'Rating, mediation', 'ESG, B2A2X marketplace', 'CAMARA APIs, edge'];
+
+/* ── BUILD CARD ── */
+function buildCard(o) {
+  var isB2A = o.type === 'B2A';
+
+  var layerSegs = [1,2,3,4].map(function(n) {
+    var act = o.layers.indexOf(n) >= 0;
+    return '<div class="layer-seg' + (act ? ' active' : '') + '">L' + n + '</div>';
+  }).join('');
+
+  var paramBoxes = [
+    { label: 'LATENCY',  val: o.latency  },
+    { label: 'COMPUTE',  val: o.compute  },
+    { label: 'CARBON',   val: o.carbon   }
+  ].map(function(p) {
+    return '<div class="param-box" data-label="' + p.label + '"><span class="param-val">' + p.val + '</span></div>';
+  }).join('');
+
+  var partiesTxt = o.parties.map(function(p) {
+    return '<span style="color:var(--green)">' + p + '</span>';
+  }).join('<span style="color:var(--text-faint)"> · </span>');
+
+  var dlSegs = [1,2,3,4].map(function(n, i) {
+    var act = o.layers.indexOf(n) >= 0;
+    return '<div class="dlseg' + (act ? ' active' : '') + '">' +
+      '<span class="dln">L' + n + '</span>' +
+      '<span class="dld">' + (act ? layerDescL[i] : '—') + '</span>' +
+      '</div>';
+  }).join('');
+
+  var actionBtn = o.scenario
+    ? '<button class="btn-launch" onclick="launchScenario(\'' + o.scenario + '\')">LAUNCH IN CONSOLE →</button>'
+    : '<button class="btn-coming" disabled>[ CONSOLE COMING SOON ]</button>';
+
+  var div = document.createElement('div');
+  div.className = 'offer-card' + (isB2A ? ' b2a' : '');
+  div.id = 'card-' + o.id;
+  div.dataset.layers = o.layers.join(',');
+  div.innerHTML = [
+    '<div class="offer-card-header">',
+      '<div class="dot ' + dotClass(o.grade) + '"></div>',
+      '<div class="offer-card-vertical">// ' + o.vertical.toUpperCase() + '</div>',
+    '</div>',
+    '<div class="offer-body">',
+      '<div class="offer-top-row">',
+        '<div class="offer-badges">',
+          '<span class="badge ' + (isB2A ? 'b2a' : 'b2b') + '">' + o.type + '</span>',
+          '<span class="badge ' + gradeClass(o.grade) + '">GRADE ' + o.grade + '</span>',
+        '</div>',
+        '<div class="offer-num">OFFER_' + o.num + '</div>',
+      '</div>',
+      '<div class="offer-title">' + o.title.toUpperCase() + '</div>',
+      '<div class="offer-desc">' + o.desc + '</div>',
+      '<div class="layer-bar">' + layerSegs + '<span class="layer-count">' + o.layers.length + '/4 LAYERS</span></div>',
+      '<div class="offer-meta">',
+        '<span class="offer-pricing">' + o.pricing + '</span>',
+        '<span class="offer-settlement">' + o.settlement + '</span>',
+      '</div>',
+      '<div class="offer-actions">',
+        '<button class="btn-inspect" id="btn-' + o.id + '" onclick="toggleDetail(' + o.id + ')">[ INSPECT ▼ ]</button>',
+        actionBtn,
+      '</div>',
+    '</div>',
+    '<div class="offer-detail" id="detail-' + o.id + '">',
+      '<div class="detail-title">// INTENT PARAMETERS</div>',
+      '<div class="param-grid">' + paramBoxes + '</div>',
+      '<div class="detail-title">// SETTLEMENT PARTIES</div>',
+      '<div class="rule-block"><span class="rule-code">SETTLEMENT_PARTIES</span><div class="rule-text">' + partiesTxt + '</div></div>',
+      '<div class="detail-title">// PRICING MODEL</div>',
+      '<div class="rule-block"><span class="rule-code">PRICING_DETAIL</span><div class="rule-text">' + o.pricingDetail + '</div></div>',
+      '<div class="rule-block"><span class="rule-code">SETTLEMENT_DETAIL</span><div class="rule-text">' + o.settlementDetail + '</div></div>',
+      '<div class="detail-title">// ARCHITECTURE LAYERS</div>',
+      '<div class="detail-layer-grid">' + dlSegs + '</div>',
+    '</div>'
+  ].join('');
+
+  div.addEventListener('mouseenter', function() { highlightSidebar(o.layers); });
+  div.addEventListener('mouseleave', function() { clearSidebar(); });
+  return div;
+}
+
+/* ── RENDER ── */
+function renderOffers() {
+  var grid = document.getElementById('catalogueGrid');
+  var empty = document.getElementById('emptyState');
+  grid.querySelectorAll('.offer-card').forEach(function(el) { el.remove(); });
+
+  var q = state.search.toLowerCase().trim();
+  var total = 0, nb2b = 0, nb2a = 0;
+  var verts = {};
+
+  offers.forEach(function(o) {
+    var ok =
+      (state.typeF  === 'all' || o.type === state.typeF) &&
+      (state.vertF  === 'all' || o.vKey === state.vertF) &&
+      carbonMatch(o, state.carbonF) &&
+      (!state.layerF || o.layers.indexOf(state.layerF) >= 0) &&
+      (!q || (o.title+o.desc+o.pricing+o.vertical+o.type).toLowerCase().indexOf(q) >= 0);
+
+    var card = buildCard(o);
+    if (!ok) card.classList.add('hidden');
+    grid.insertBefore(card, empty);
+
+    if (ok) {
+      total++;
+      if (o.type === 'B2B') nb2b++;
+      if (o.type === 'B2A') nb2a++;
+      verts[o.vKey] = 1;
+    }
+  });
+
+  document.getElementById('statTotal').textContent     = total;
+  document.getElementById('statB2B').textContent       = nb2b;
+  document.getElementById('statB2A').textContent       = nb2a;
+  document.getElementById('statVerticals').textContent = Object.keys(verts).length;
+  empty.classList.toggle('visible', total === 0);
+}
+
+/* ── EXPAND / COLLAPSE ── */
+function toggleDetail(id) {
+  var detail = document.getElementById('detail-' + id);
+  var btn    = document.getElementById('btn-' + id);
+  var isOpen = detail.classList.contains('open');
+
+  document.querySelectorAll('.offer-detail.open').forEach(function(d) { d.classList.remove('open'); });
+  document.querySelectorAll('.btn-inspect.open').forEach(function(b) { b.classList.remove('open'); b.textContent = '[ INSPECT ▼ ]'; });
+
+  if (!isOpen) {
+    detail.classList.add('open');
+    btn.classList.add('open');
+    btn.textContent = '[ CLOSE ▲ ]';
+    state.expanded = id;
+  } else {
+    state.expanded = null;
+  }
+}
+
+/* ── LAUNCH ── */
+function launchScenario(scenario) {
+  window.location.href = 'index.html?scenario=' + scenario;
+}
+
+/* ── SIDEBAR INTERACTIONS ── */
+function highlightSidebar(layers) {
+  if (state.layerF) return;
+  [1,2,3,4].forEach(function(n) {
+    var b = document.getElementById('sidebarL' + n);
+    if (!b) return;
+    var active = layers.indexOf(n) >= 0;
+    b.classList.toggle('selected', active);
+    b.classList.toggle('sidebar-dim', !active);
+  });
+}
+function clearSidebar() {
+  if (state.layerF) return;
+  [1,2,3,4].forEach(function(n) {
+    var b = document.getElementById('sidebarL' + n);
+    if (b) { b.classList.remove('selected', 'sidebar-dim'); }
+  });
+}
+function setSidebarLayer(n) {
+  [1,2,3,4].forEach(function(m) {
+    var b = document.getElementById('sidebarL' + m);
+    if (!b) return;
+    b.classList.toggle('selected', m === n);
+    b.classList.toggle('sidebar-dim', n !== null && m !== n);
+  });
+}
+
+[1,2,3,4].forEach(function(n) {
+  var block = document.getElementById('sidebarL' + n);
+  if (!block) return;
+  block.addEventListener('click', function() {
+    if (state.layerF === n) {
+      state.layerF = null;
+      setSidebarLayer(null);
+    } else {
+      state.layerF = n;
+      setSidebarLayer(n);
+    }
+    renderOffers();
+  });
+});
+
+document.getElementById('clearLayerBtn').addEventListener('click', function() {
+  state.layerF = null;
+  setSidebarLayer(null);
+  renderOffers();
+});
+
+/* ── FILTER PILLS ── */
+document.querySelectorAll('.filter-pill').forEach(function(pill) {
+  pill.addEventListener('click', function() {
+    var f   = pill.dataset.filter;
+    var val = pill.dataset.val;
+    document.querySelectorAll('.filter-pill[data-filter="' + f + '"]').forEach(function(p) {
+      p.classList.remove('active');
+    });
+    pill.classList.add('active');
+    if (f === 'type')    state.typeF  = val;
+    if (f === 'vertical') state.vertF = val;
+    if (f === 'carbon')  state.carbonF = val;
+    renderOffers();
+  });
+});
+
+/* ── SEARCH ── */
+var searchTimer;
+document.getElementById('searchInput').addEventListener('input', function(e) {
+  clearTimeout(searchTimer);
+  var v = e.target.value;
+  searchTimer = setTimeout(function() { state.search = v; renderOffers(); }, 200);
+});
+
+/* ── INITIAL RENDER ── */
+renderOffers();
+
+/* ── URL PARAMS (pre-filter from external link) ── */
+(function() {
+  var p = new URLSearchParams(window.location.search);
+  var vp = p.get('vertical'), tp = p.get('type');
+  if (vp) {
+    var pill = document.querySelector('.filter-pill[data-filter="vertical"][data-val="' + vp + '"]');
+    if (pill) pill.click();
+  }
+  if (tp) {
+    var pill2 = document.querySelector('.filter-pill[data-filter="type"][data-val="' + tp + '"]');
+    if (pill2) pill2.click();
+  }
+})();
+</script>
+
+</body>
+</html>

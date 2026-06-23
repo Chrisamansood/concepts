@@ -27,5 +27,20 @@
     "status": "Live",
     "path": "jarvis-presenter/",
     "color": "#D97706"
+  },
+  {
+    "id": "6g-monetization-engine",
+    "title": "6G Monetisation Engine",
+    "subtitle": "Agentic BSS Monetisation for 6G",
+    "description": "An interactive Matrix-style prototype for exploring 6G B2B and B2A offers, then launching them through supervised AI agents that model pricing, settlement, carbon guardrails, approvals, and live telemetry.",
+    "tags": [
+      "6G",
+      "BSS",
+      "Agentic AI",
+      "Monetisation"
+    ],
+    "status": "Live",
+    "path": "6g-monetization-engine/",
+    "color": "#00FF41"
   }
 ]
