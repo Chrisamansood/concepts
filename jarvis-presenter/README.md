@@ -14,7 +14,16 @@ Then open:
 http://127.0.0.1:5177
 ```
 
-Use Chrome for the best screen-capture and voice-command support.
+Use Chrome for the best screen-capture and hand-tracking support.
+
+## Presentation UI
+
+- Click `Enter Present Mode` to hide the control rail and fill the browser viewport.
+- Press `Escape` or use the subtle bottom-right `Exit` button to return.
+- `Show camera` controls the camera picture-in-picture. It is hidden automatically when entering Present Mode and restored when exiting.
+- Source, Controls, Tools, Tuning, and Status are collapsible panel sections.
+- The on-stage indicator shows the current gesture state and active drawing feedback.
+- The first-visit gesture guide can be reopened with `Gesture Guide`.
 
 ## Teams Flow
 
@@ -28,25 +37,24 @@ Participants see the captured source plus the live annotation layer.
 
 ## Hand Control
 
-- Point with your index finger to move the pointer.
-- Pinch index finger and thumb together to draw.
-- Hold the pinch past the draw delay before drawing starts.
-- Release the pinch to stop drawing.
+- Extend only your index finger to draw with the active tool.
+- Make a peace sign to move the pointer without drawing.
+- Make a fist to idle and hide the cursor.
 - Show an open palm to pause safely.
 - Clap both open hands together to lock drawing; clap again to resume.
 - Hold two open hands apart for 1 second to clear the overlay.
 - Keep `Mirror movement` on if you want the pointer to move like a mirror.
 - Turn `Mirror movement` off if your camera/browser reverses left and right.
-- Select `Arrow`, `Circle`, or `Spot` first, then pinch-drag to place that shape.
-- Select `Erase`, then pinch over an area to erase it.
+- Select `Arrow`, `Circle`, or `Spot` first, then draw with index finger to place that shape.
+- Select `Erase`, then use index finger to erase.
 - Keep your hand clearly visible to the webcam with decent light.
 
 ## Gesture Tuning
 
-- `Pinch sensitivity`: higher means easier drawing, lower means fewer accidents.
-- `Smoothing`: higher makes the pointer steadier but less immediate.
-- `Draw delay`: prevents accidental marks when fingers briefly touch.
-- `Dead zone`: ignores tiny movements to reduce jitter.
+- `Stability`: steadies the cursor when your hand is slow or still.
+- `Responsiveness`: helps the cursor keep up with faster hand movement.
+- `Prediction`: compensates for camera/model latency.
+- `Prime delay`: controls how long index-only must be held before drawing starts.
 
 ## MVP Voice Commands
 

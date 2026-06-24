@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Chris's Jarvis</title>
-    <link rel="stylesheet" href="./styles.css">
+    <link rel="stylesheet" href="./styles.css?v=phase3">
   </head>
   <body>
     <main class="shell">
@@ -18,112 +18,146 @@
           <button id="collapseBtn" class="icon-button" title="Collapse panel" aria-label="Collapse panel">‹</button>
         </div>
 
-        <section class="control-group">
-          <button id="captureBtn" class="primary">Share Source</button>
-          <button id="handBtn">Start Hand Control</button>
-          <button id="voiceBtn">Start Voice</button>
-        </section>
-
-        <section class="control-group command-line" aria-label="Command test">
-          <input id="commandInput" type="text" placeholder='Try "blue arrow"'>
-          <button id="commandBtn">Run Command</button>
-        </section>
-
-        <section class="control-group tool-grid" aria-label="Drawing tools">
-          <button class="tool active" data-tool="pen" title="Pen">Pen</button>
-          <button class="tool" data-tool="arrow" title="Arrow">Arrow</button>
-          <button class="tool" data-tool="circle" title="Circle">Circle</button>
-          <button class="tool" data-tool="spotlight" title="Spotlight">Spot</button>
-          <button class="tool" data-tool="eraser" title="Eraser">Erase</button>
-          <button id="clearBtn" title="Clear overlay">Clear</button>
-        </section>
-
-        <section class="control-group swatches" aria-label="Color">
-          <button class="swatch active" data-color="#00e5ff" style="--swatch:#00e5ff" title="Cyan"></button>
-          <button class="swatch" data-color="#ff3b6b" style="--swatch:#ff3b6b" title="Red"></button>
-          <button class="swatch" data-color="#ffd166" style="--swatch:#ffd166" title="Yellow"></button>
-          <button class="swatch" data-color="#7cff6b" style="--swatch:#7cff6b" title="Green"></button>
-          <button class="swatch" data-color="#ffffff" style="--swatch:#ffffff" title="White"></button>
-        </section>
-
-        <section class="control-group gesture-guide" aria-label="Gesture guide">
-          <h2>Gesture Guide</h2>
-          <div class="gesture-row">
-            <span>Index finger</span>
-            <b>Move pointer</b>
-          </div>
-          <div class="gesture-row">
-            <span>Pinch + hold</span>
-            <b>Draw / shape</b>
-          </div>
-          <div class="gesture-row">
-            <span>Release pinch</span>
-            <b>Stop / commit</b>
-          </div>
-          <div class="gesture-row">
-            <span>Open palm</span>
-            <b>Pause safe</b>
-          </div>
-          <div class="gesture-row">
-            <span>Two-hand clap</span>
-            <b>Lock / resume</b>
-          </div>
-          <div class="gesture-row">
-            <span>Two open hands</span>
-            <b>Hold to clear</b>
+        <section class="panel-section open" data-section="source">
+          <button class="section-header" type="button" aria-expanded="true">
+            <span>Source</span><span class="section-chevron">⌄</span>
+          </button>
+          <div class="section-content control-group">
+            <button id="captureBtn" class="primary">Share Source</button>
+            <button id="slidesBtn">Load Slides</button>
+            <input id="slidesInput" type="file" accept="image/*" multiple hidden>
+            <div id="actionNotice" class="action-notice" role="status" aria-live="polite" hidden></div>
           </div>
         </section>
 
-        <section class="control-group sliders">
-          <label class="toggle-row">
-            <span>Mirror movement</span>
-            <input id="mirrorInput" type="checkbox" checked>
-          </label>
-          <label>
-            <span>Pinch sensitivity <b id="pinchReadout">Medium</b></span>
-            <input id="pinchInput" type="range" min="35" max="95" value="65">
-          </label>
-          <label>
-            <span>Smoothing <b id="smoothingReadout">Medium</b></span>
-            <input id="smoothingInput" type="range" min="10" max="85" value="35">
-          </label>
-          <label>
-            <span>Draw delay <b id="delayReadout">180 ms</b></span>
-            <input id="drawDelayInput" type="range" min="0" max="500" step="10" value="180">
-          </label>
-          <label>
-            <span>Dead zone <b id="deadZoneReadout">3 px</b></span>
-            <input id="deadZoneInput" type="range" min="0" max="18" value="3">
-          </label>
-          <label>
-            Size
-            <input id="sizeInput" type="range" min="2" max="28" value="7">
-          </label>
-          <label>
-            Glow
-            <input id="glowInput" type="range" min="0" max="28" value="14">
-          </label>
+        <section class="panel-section open" data-section="controls">
+          <button class="section-header" type="button" aria-expanded="true">
+            <span>Controls</span><span class="section-chevron">⌄</span>
+          </button>
+          <div class="section-content control-group">
+            <button id="handBtn">Start Hand Control</button>
+            <button id="voiceBtn">Start Voice</button>
+            <button id="presentBtn" class="primary">Enter Present Mode</button>
+            <button id="helpBtn">Gesture Guide</button>
+            <label class="toggle-row">
+              <span>Show camera</span>
+              <input id="cameraToggle" type="checkbox" checked>
+            </label>
+            <label class="toggle-row">
+              <span>Mirror movement</span>
+              <input id="mirrorInput" type="checkbox" checked>
+            </label>
+            <div class="command-line" aria-label="Command test">
+              <input id="commandInput" type="text" placeholder='Try "blue arrow"'>
+              <button id="commandBtn">Run Command</button>
+            </div>
+          </div>
         </section>
 
-        <section class="telemetry" aria-live="polite">
-          <span>Tool <b id="toolReadout">Pen</b></span>
-          <span>Hand <b id="handReadout">Off</b></span>
-          <span>Gesture <b id="gestureReadout">Standby</b></span>
-          <span>Lock <b id="lockReadout">Open</b></span>
-          <span>Mirror <b id="mirrorReadout">On</b></span>
-          <span>Voice <b id="voiceReadout">Off</b></span>
-          <span id="heardText">Awaiting command</span>
+        <section class="panel-section open" data-section="tools">
+          <button class="section-header" type="button" aria-expanded="true">
+            <span>Tools</span><span class="section-chevron">⌄</span>
+          </button>
+          <div class="section-content control-group">
+            <div class="tool-grid" aria-label="Drawing tools">
+              <button class="tool active" data-tool="pen" title="Pen">Pen</button>
+              <button class="tool" data-tool="arrow" title="Arrow">Arrow</button>
+              <button class="tool" data-tool="circle" title="Circle">Circle</button>
+              <button class="tool" data-tool="spotlight" title="Spotlight">Spot</button>
+              <button class="tool" data-tool="laser" title="Laser">Laser</button>
+              <button class="tool" data-tool="eraser" title="Eraser">Erase</button>
+              <button id="clearBtn" title="Clear overlay">Clear</button>
+              <button id="undoBtn" title="Undo last drawing">Undo</button>
+              <button id="redoBtn" title="Redo drawing">Redo</button>
+            </div>
+            <div class="swatches" aria-label="Color">
+              <button class="swatch active" data-color="#00e5ff" style="--swatch:#00e5ff" title="Cyan"></button>
+              <button class="swatch" data-color="#ff3b6b" style="--swatch:#ff3b6b" title="Red"></button>
+              <button class="swatch" data-color="#ffd166" style="--swatch:#ffd166" title="Yellow"></button>
+              <button class="swatch" data-color="#7cff6b" style="--swatch:#7cff6b" title="Green"></button>
+              <button class="swatch" data-color="#ffffff" style="--swatch:#ffffff" title="White"></button>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel-section" data-section="tuning">
+          <button class="section-header" type="button" aria-expanded="false">
+            <span>Tuning</span><span class="section-chevron">⌄</span>
+          </button>
+          <div class="section-content control-group sliders">
+            <label>
+              <span>Stability <b id="stabilityReadout">1.0</b></span>
+              <input id="stabilityInput" type="range" min="0.5" max="3" step="0.1" value="1">
+            </label>
+            <label>
+              <span>Responsiveness <b id="responsivenessReadout">0.007</b></span>
+              <input id="responsivenessInput" type="range" min="0" max="0.05" step="0.001" value="0.007">
+            </label>
+            <label>
+              <span>Prediction <b id="predictionReadout">30 ms</b></span>
+              <input id="predictionInput" type="range" min="0" max="50" step="1" value="30">
+            </label>
+            <label>
+              <span>Prime delay <b id="primeDelayReadout">50 ms</b></span>
+              <input id="primeDelayInput" type="range" min="20" max="120" step="5" value="50">
+            </label>
+            <label>
+              Size
+              <input id="sizeInput" type="range" min="2" max="28" value="7">
+            </label>
+            <label>
+              Glow
+              <input id="glowInput" type="range" min="0" max="28" value="14">
+            </label>
+          </div>
+        </section>
+
+        <section class="panel-section" data-section="status">
+          <button class="section-header" type="button" aria-expanded="false">
+            <span>Status</span><span class="section-chevron">⌄</span>
+          </button>
+          <div class="section-content telemetry" aria-live="polite">
+            <span>Tool <b id="toolReadout">Pen</b></span>
+            <span>Hand <b id="handReadout">Off</b></span>
+            <span>Gesture <b id="gestureReadout">Standby</b></span>
+            <span>Lock <b id="lockReadout">Open</b></span>
+            <span>History <b id="historyReadout">0/20</b></span>
+            <span>Slides <b id="slideReadout">Off</b></span>
+            <span>Mirror <b id="mirrorReadout">On</b></span>
+            <span>Voice <b id="voiceReadout">Off</b></span>
+            <span id="heardText">Awaiting command</span>
+          </div>
         </section>
       </aside>
 
       <section class="stage-wrap">
         <button id="expandBtn" class="expand-button" title="Show panel" aria-label="Show panel">☰</button>
+        <button id="exitPresentBtn" class="exit-present-button" title="Exit present mode" aria-label="Exit present mode">Exit</button>
         <div class="stage" id="stage">
-          <video id="sourceVideo" autoplay muted playsinline></video>
+          <div class="source-layer" id="sourceLayer">
+            <video id="sourceVideo" autoplay muted playsinline></video>
+            <img id="slideImage" alt="">
+          </div>
           <canvas id="drawCanvas"></canvas>
           <canvas id="previewCanvas"></canvas>
-          <div class="gesture-cursor" id="gestureCursor"></div>
+          <div class="gesture-cursor" id="gestureCursor"><span class="cursor-drop"></span></div>
+          <div class="radial-menu" id="radialMenu" aria-hidden="true">
+            <button class="radial-item" data-tool="pen" type="button">Pen</button>
+            <button class="radial-item" data-tool="arrow" type="button">Arrow</button>
+            <button class="radial-item" data-tool="circle" type="button">Circle</button>
+            <button class="radial-item" data-tool="spotlight" type="button">Spot</button>
+            <button class="radial-item" data-tool="eraser" type="button">Erase</button>
+            <button class="radial-item" data-tool="laser" type="button">Laser</button>
+            <span class="radial-core">Tools</span>
+          </div>
           <video id="cameraVideo" autoplay muted playsinline></video>
+          <div class="gesture-indicator state-idle" id="gestureIndicator" aria-live="polite">
+            <span class="gesture-indicator-icon" id="gestureIndicatorIcon">●</span>
+            <span>
+              <b id="gestureIndicatorLabel">Standby</b>
+              <small id="gestureIndicatorDetail">Hand control off</small>
+            </span>
+          </div>
           <div class="hud">
             <span class="pulse"></span>
             <span id="hudText">Select a source, then share this window in Teams.</span>
@@ -133,11 +167,25 @@
             <h1>Chris's Jarvis</h1>
             <p>Share any screen, app window, document, browser tab, or deck.</p>
           </div>
+          <div class="onboarding" id="onboarding" hidden>
+            <div class="onboarding-card">
+              <button id="closeOnboardingBtn" class="onboarding-close" type="button" aria-label="Close gesture guide">×</button>
+              <span class="eyebrow">Gesture controls</span>
+              <h2>Present without touching the keyboard</h2>
+              <div class="onboarding-grid">
+                <div><span class="gesture-symbol">☝</span><b>One finger</b><small>Draw</small></div>
+                <div><span class="gesture-symbol">✌</span><b>Peace sign</b><small>Point and pan</small></div>
+                <div><span class="gesture-symbol">✋</span><b>Open palm</b><small>Pause or hold for tools</small></div>
+                <div><span class="gesture-symbol">✊</span><b>Fist</b><small>Standby</small></div>
+              </div>
+              <p>Clap to lock controls. Use two open palms to clear. Dismiss this guide with a click or any detected gesture.</p>
+              <button id="dismissOnboardingBtn" class="primary" type="button">Got it</button>
+            </div>
+          </div>
         </div>
       </section>
     </main>
 
-    <script src="./vendor/hands/hands.js"></script>
-    <script src="./app.js"></script>
+    <script type="module" src="./app.js?v=phase3"></script>
   </body>
 </html>

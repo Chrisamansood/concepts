@@ -1,25 +1,50 @@
+import { FilesetResolver, HandLandmarker } from "./vendor/tasks-vision/vision_bundle.mjs";
+import { OneEuroFilter } from "./one-euro-filter.js";
+
 const captureBtn = document.getElementById("captureBtn");
+const slidesBtn = document.getElementById("slidesBtn");
+const slidesInput = document.getElementById("slidesInput");
 const handBtn = document.getElementById("handBtn");
 const voiceBtn = document.getElementById("voiceBtn");
+const actionNotice = document.getElementById("actionNotice");
 const clearBtn = document.getElementById("clearBtn");
+const undoBtn = document.getElementById("undoBtn");
+const redoBtn = document.getElementById("redoBtn");
 const collapseBtn = document.getElementById("collapseBtn");
 const expandBtn = document.getElementById("expandBtn");
+const presentBtn = document.getElementById("presentBtn");
+const exitPresentBtn = document.getElementById("exitPresentBtn");
+const helpBtn = document.getElementById("helpBtn");
+const cameraToggle = document.getElementById("cameraToggle");
+const sectionHeaders = [...document.querySelectorAll(".section-header")];
 const commandInput = document.getElementById("commandInput");
 const commandBtn = document.getElementById("commandBtn");
 const toolButtons = [...document.querySelectorAll("[data-tool]")];
+const radialMenu = document.getElementById("radialMenu");
+const radialItems = [...document.querySelectorAll(".radial-item")];
+const radialCore = document.querySelector(".radial-core");
 const swatches = [...document.querySelectorAll("[data-color]")];
 const mirrorInput = document.getElementById("mirrorInput");
-const pinchInput = document.getElementById("pinchInput");
-const smoothingInput = document.getElementById("smoothingInput");
-const drawDelayInput = document.getElementById("drawDelayInput");
-const deadZoneInput = document.getElementById("deadZoneInput");
+const stabilityInput = document.getElementById("stabilityInput");
+const responsivenessInput = document.getElementById("responsivenessInput");
+const predictionInput = document.getElementById("predictionInput");
+const primeDelayInput = document.getElementById("primeDelayInput");
 const sizeInput = document.getElementById("sizeInput");
 const glowInput = document.getElementById("glowInput");
+const sourceLayer = document.getElementById("sourceLayer");
 const sourceVideo = document.getElementById("sourceVideo");
+const slideImage = document.getElementById("slideImage");
 const cameraVideo = document.getElementById("cameraVideo");
 const drawCanvas = document.getElementById("drawCanvas");
 const previewCanvas = document.getElementById("previewCanvas");
 const gestureCursor = document.getElementById("gestureCursor");
+const gestureIndicator = document.getElementById("gestureIndicator");
+const gestureIndicatorIcon = document.getElementById("gestureIndicatorIcon");
+const gestureIndicatorLabel = document.getElementById("gestureIndicatorLabel");
+const gestureIndicatorDetail = document.getElementById("gestureIndicatorDetail");
+const onboarding = document.getElementById("onboarding");
+const dismissOnboardingBtn = document.getElementById("dismissOnboardingBtn");
+const closeOnboardingBtn = document.getElementById("closeOnboardingBtn");
 const stage = document.getElementById("stage");
 const emptyState = document.getElementById("emptyState");
 const hudText = document.getElementById("hudText");
@@ -28,11 +53,13 @@ const toolReadout = document.getElementById("toolReadout");
 const handReadout = document.getElementById("handReadout");
 const gestureReadout = document.getElementById("gestureReadout");
 const lockReadout = document.getElementById("lockReadout");
+const historyReadout = document.getElementById("historyReadout");
+const slideReadout = document.getElementById("slideReadout");
 const mirrorReadout = document.getElementById("mirrorReadout");
-const pinchReadout = document.getElementById("pinchReadout");
-const smoothingReadout = document.getElementById("smoothingReadout");
-const delayReadout = document.getElementById("delayReadout");
-const deadZoneReadout = document.getElementById("deadZoneReadout");
+const stabilityReadout = document.getElementById("stabilityReadout");
+const responsivenessReadout = document.getElementById("responsivenessReadout");
+const predictionReadout = document.getElementById("predictionReadout");
+const primeDelayReadout = document.getElementById("primeDelayReadout");
 const voiceReadout = document.getElementById("voiceReadout");
 const heardText = document.getElementById("heardText");
 
@@ -40,13 +67,35 @@ const drawCtx = drawCanvas.getContext("2d");
 const previewCtx = previewCanvas.getContext("2d");
 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 
+const Gesture = {
+  NONE: "NONE",
+  FIST: "FIST",
+  INDEX_ONLY: "INDEX_ONLY",
+  PEACE: "PEACE",
+  PALM: "PALM",
+  PINCH: "PINCH",
+  OTHER: "OTHER"
+};
+
+const State = {
+  IDLE: "IDLE",
+  TRACKING: "TRACKING",
+  POINTING: "POINTING",
+  PRIMING: "PRIMING",
+  DRAWING: "DRAWING",
+  COOLDOWN: "COOLDOWN",
+  PAUSED: "PAUSED",
+  MENU: "MENU",
+  LOCKED: "LOCKED"
+};
+
 let activeTool = "pen";
 let activeColor = "#00e5ff";
 let mirrorMovement = true;
-let pinchThreshold = 0.065;
-let smoothingFactor = 0.35;
-let drawDelayMs = 180;
-let deadZonePx = 3;
+let stability = 1;
+let responsiveness = 0.007;
+let predictionMs = 30;
+let primeDelayMs = 50;
 let pointerDown = false;
 let startPoint = null;
 let lastPoint = null;
@@ -54,25 +103,151 @@ let recognition = null;
 let voiceOn = false;
 let voiceShouldRun = false;
 let handLandmarker = null;
-let handsFrameBusy = false;
+let handLandmarkerPromise = null;
 let cameraStream = null;
 let handModeOn = false;
+let handStarting = false;
 let gestureLocked = false;
 let lastClapAt = 0;
+let clapActive = false;
+let clapTimer = null;
 let clearHoldStartedAt = null;
 let clearHoldArmed = false;
-let gestureDrawing = false;
+let gestureState = State.IDLE;
+let pendingState = State.IDLE;
+let pendingFrames = 0;
+let handSeenFrames = 0;
+let lastHandAt = 0;
+let stateEnteredAt = performance.now();
 let gestureStartPoint = null;
 let gestureLastPoint = null;
-let pinchStartedAt = null;
-let pendingGestureStartPoint = null;
 let lastVideoTime = -1;
-let smoothedGesturePoint = null;
 let gestureAnimationId = null;
+let positionHistory = [];
+let radialCenter = null;
+let radialSelectedTool = "pen";
+let canvasHistory = [];
+let redoHistory = [];
+let lastSwipeAt = 0;
+let laserPositions = [];
+let slideSwipeHistory = [];
+let zoomScale = 1;
+let panX = 0;
+let panY = 0;
+let pinchZoomStart = null;
+let panStart = null;
+let lastSlideSwipeAt = 0;
+let slideDeck = [];
+let currentSlideIndex = 0;
+let slideMode = false;
+let presentMode = false;
+let editModeCameraVisible = true;
+
+const pointFilters = {
+  cursor: {
+    x: new OneEuroFilter({ freq: 30, minCutoff: 1, beta: 0.007, dCutoff: 1 }),
+    y: new OneEuroFilter({ freq: 30, minCutoff: 1, beta: 0.007, dCutoff: 1 }),
+    history: []
+  },
+  draw: {
+    x: new OneEuroFilter({ freq: 30, minCutoff: 1, beta: 0.007, dCutoff: 1 }),
+    y: new OneEuroFilter({ freq: 30, minCutoff: 1, beta: 0.007, dCutoff: 1 }),
+    history: []
+  }
+};
 
 function setStatus(message) {
   hudText.textContent = message;
   systemState.textContent = message;
+}
+
+function showActionNotice(message, error = false) {
+  actionNotice.textContent = message;
+  actionNotice.hidden = false;
+  actionNotice.classList.toggle("error", error);
+}
+
+function hideActionNotice() {
+  actionNotice.hidden = true;
+  actionNotice.classList.remove("error");
+}
+
+function setGestureStateLabel(label) {
+  gestureReadout.textContent = label;
+  gestureIndicatorLabel.textContent = label;
+}
+
+function gestureIndicatorContent(state) {
+  const content = {
+    [State.IDLE]: { icon: "●", label: "Standby", detail: handModeOn ? "Show your hand" : "Hand control off" },
+    [State.TRACKING]: { icon: "◎", label: "Ready", detail: "Gesture control active" },
+    [State.POINTING]: { icon: "⌖", label: "Pointer", detail: zoomScale > 1 ? "Move to pan" : "Move without ink" },
+    [State.PRIMING]: { icon: "◔", label: "Priming", detail: `${activeTool} ready` },
+    [State.DRAWING]: {
+      icon: activeTool === "eraser" ? "◇" : "●",
+      label: activeTool === "eraser" ? "Erasing" : toolReadout.textContent,
+      detail: activeTool === "laser" ? "Laser trail active" : "Drawing"
+    },
+    [State.COOLDOWN]: { icon: "◌", label: "Ready", detail: "Gesture released" },
+    [State.PAUSED]: { icon: "Ⅱ", label: "Paused", detail: "Hold for tool menu" },
+    [State.MENU]: { icon: "✦", label: "Tools", detail: "Point and pinch" },
+    [State.LOCKED]: { icon: "×", label: "Locked", detail: "Clap to resume" }
+  };
+  return content[state] || content[State.IDLE];
+}
+
+function updateGestureIndicator(state = gestureState) {
+  const content = gestureIndicatorContent(state);
+  gestureIndicator.className = `gesture-indicator state-${state.toLowerCase()}`;
+  gestureIndicator.style.setProperty("--active-color", activeColor);
+  gestureIndicatorIcon.textContent = content.icon;
+  gestureIndicatorLabel.textContent = content.label;
+  gestureIndicatorDetail.textContent = content.detail;
+}
+
+function applySourceTransform() {
+  sourceLayer.style.transform = `translate(${panX}px, ${panY}px) scale(${zoomScale})`;
+}
+
+function clampPan() {
+  if (zoomScale <= 1) {
+    panX = 0;
+    panY = 0;
+    return;
+  }
+
+  const rect = stage.getBoundingClientRect();
+  const maxX = (rect.width * (zoomScale - 1)) / 2;
+  const maxY = (rect.height * (zoomScale - 1)) / 2;
+  panX = Math.min(maxX, Math.max(-maxX, panX));
+  panY = Math.min(maxY, Math.max(-maxY, panY));
+}
+
+function setZoom(nextScale, center = stageCenter()) {
+  const previousScale = zoomScale;
+  const scale = Math.min(4, Math.max(1, nextScale));
+  if (scale === previousScale) return;
+
+  const rect = stage.getBoundingClientRect();
+  const centerOffsetX = center.x - rect.width / 2;
+  const centerOffsetY = center.y - rect.height / 2;
+  const ratio = scale / previousScale;
+  panX = centerOffsetX - (centerOffsetX - panX) * ratio;
+  panY = centerOffsetY - (centerOffsetY - panY) * ratio;
+  zoomScale = scale;
+  clampPan();
+  applySourceTransform();
+  setStatus(`Zoom ${zoomScale.toFixed(1)}x`);
+}
+
+function resetZoom() {
+  zoomScale = 1;
+  panX = 0;
+  panY = 0;
+  pinchZoomStart = null;
+  panStart = null;
+  applySourceTransform();
+  setStatus("Zoom reset");
 }
 
 function resizeCanvases() {
@@ -97,6 +272,8 @@ function resizeCanvases() {
       ctx.drawImage(snapshot, 0, 0, snapshot.width / ratio, snapshot.height / ratio, 0, 0, rect.width, rect.height);
     }
   }
+  clampPan();
+  applySourceTransform();
 }
 
 function canvasPoint(event) {
@@ -122,14 +299,66 @@ function clearPreview() {
   previewCtx.clearRect(0, 0, rect.width, rect.height);
 }
 
+function canvasSnapshot() {
+  if (!drawCanvas.width || !drawCanvas.height) return null;
+  return drawCtx.getImageData(0, 0, drawCanvas.width, drawCanvas.height);
+}
+
+function updateHistoryReadout() {
+  historyReadout.textContent = `${canvasHistory.length}/20`;
+}
+
+function restoreCanvasSnapshot(snapshot) {
+  if (!snapshot) return;
+  const rect = drawCanvas.getBoundingClientRect();
+  drawCtx.clearRect(0, 0, rect.width, rect.height);
+  drawCtx.putImageData(snapshot, 0, 0);
+}
+
+function pushCanvasHistory() {
+  const snapshot = canvasSnapshot();
+  if (!snapshot) return;
+  canvasHistory.push(snapshot);
+  canvasHistory = canvasHistory.slice(-20);
+  redoHistory = [];
+  updateHistoryReadout();
+}
+
+function undoDrawing() {
+  const current = canvasSnapshot();
+  const previous = canvasHistory.pop();
+  if (!previous || !current) {
+    setStatus("Nothing to undo");
+    return;
+  }
+  redoHistory.push(current);
+  restoreCanvasSnapshot(previous);
+  clearPreview();
+  updateHistoryReadout();
+  setStatus("Undo");
+}
+
+function redoDrawing() {
+  const current = canvasSnapshot();
+  const next = redoHistory.pop();
+  if (!next || !current) {
+    setStatus("Nothing to redo");
+    return;
+  }
+  canvasHistory.push(current);
+  canvasHistory = canvasHistory.slice(-20);
+  restoreCanvasSnapshot(next);
+  clearPreview();
+  updateHistoryReadout();
+  setStatus("Redo");
+}
+
 function clearGestureDrawingState() {
-  gestureDrawing = false;
   gestureStartPoint = null;
   gestureLastPoint = null;
-  pinchStartedAt = null;
-  pendingGestureStartPoint = null;
   clearPreview();
-  gestureCursor.classList.remove("drawing", "paused");
+  gestureCursor.classList.remove("drawing", "paused", "priming", "pointing", "laser");
+  gestureCursor.style.setProperty("--prime-progress", "0deg");
 }
 
 function setGestureLocked(locked) {
@@ -137,8 +366,8 @@ function setGestureLocked(locked) {
   lockReadout.textContent = locked ? "Locked" : "Open";
   clearGestureDrawingState();
   hideGestureCursor();
+  transitionTo(locked ? State.LOCKED : State.TRACKING, true);
   setStatus(locked ? "Gesture lock active" : "Gesture control resumed");
-  setGestureState(locked ? "Locked" : "Pointing");
 }
 
 function resetClearHold() {
@@ -193,6 +422,72 @@ function drawLine(ctx, from, to) {
   drawHudSegment(ctx, from, to);
 }
 
+function drawLaser(ctx, point, persistent = false, from = null) {
+  if (persistent) {
+    ctx.save();
+    configureStroke(ctx, "#ff3b6b");
+    ctx.lineWidth = Math.max(2, Number(sizeInput.value) * 0.55);
+    ctx.shadowBlur = Number(glowInput.value) + 24;
+    ctx.globalAlpha = 0.82;
+    if (from) {
+      ctx.beginPath();
+      ctx.moveTo(from.x, from.y);
+      ctx.lineTo(point.x, point.y);
+      ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = "rgba(255,255,255,0.96)";
+    ctx.beginPath();
+    ctx.arc(point.x, point.y, 2.4, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+    return;
+  }
+
+  const now = performance.now();
+  laserPositions.push({ ...point, timestamp: now });
+  laserPositions = laserPositions.filter((entry) => now - entry.timestamp <= 400).slice(-15);
+
+  clearPreview();
+  ctx.save();
+  ctx.globalCompositeOperation = "source-over";
+
+  for (const entry of laserPositions) {
+    const age = now - entry.timestamp;
+    const alpha = Math.max(0.08, 1 - age / 400);
+    ctx.strokeStyle = `rgba(255, 59, 107, ${alpha * 0.88})`;
+    ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
+    ctx.shadowColor = "#ff3b6b";
+    ctx.shadowBlur = (Number(glowInput.value) + 18) * alpha;
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.arc(entry.x, entry.y, 8 + alpha * 10, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(entry.x, entry.y, 2 + alpha * 2, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  ctx.strokeStyle = "rgba(255, 209, 102, 0.84)";
+  ctx.shadowBlur = Number(glowInput.value) + 12;
+  ctx.lineWidth = 1.2;
+  ctx.beginPath();
+  ctx.moveTo(point.x - 28, point.y);
+  ctx.lineTo(point.x - 12, point.y);
+  ctx.moveTo(point.x + 12, point.y);
+  ctx.lineTo(point.x + 28, point.y);
+  ctx.moveTo(point.x, point.y - 28);
+  ctx.lineTo(point.x, point.y - 12);
+  ctx.moveTo(point.x, point.y + 12);
+  ctx.lineTo(point.x, point.y + 28);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.arc(point.x, point.y, 3.5, 0, Math.PI * 2);
+  ctx.fillStyle = "rgba(255,255,255,0.96)";
+  ctx.fill();
+  ctx.restore();
+}
+
 function drawArrow(ctx, from, to) {
   const headLength = 28;
   const angle = Math.atan2(to.y - from.y, to.x - from.x);
@@ -213,7 +508,6 @@ function drawArrow(ctx, from, to) {
 }
 
 function drawCircle(ctx, from, to) {
-  configureStroke(ctx);
   const radiusX = Math.abs(to.x - from.x) / 2;
   const radiusY = Math.abs(to.y - from.y) / 2;
   const centerX = (from.x + to.x) / 2;
@@ -321,6 +615,7 @@ function commandShapeBounds(shape) {
 
 function drawCommandShape(shape) {
   const { from, to } = commandShapeBounds(shape);
+  pushCanvasHistory();
 
   if (shape === "arrow") drawArrow(drawCtx, from, to);
   if (shape === "circle") drawCircle(drawCtx, from, to);
@@ -329,31 +624,30 @@ function drawCommandShape(shape) {
   setStatus(`${shape.charAt(0).toUpperCase() + shape.slice(1)} placed`);
 }
 
-function updateGestureCursor(point, drawing) {
+function updateGestureCursor(point, mode = "tracking") {
   gestureCursor.style.left = `${point.x}px`;
   gestureCursor.style.top = `${point.y}px`;
+  gestureCursor.style.setProperty("--cursor-color", activeColor);
   gestureCursor.classList.add("active");
-  gestureCursor.classList.toggle("drawing", drawing);
-  gestureCursor.classList.remove("paused");
+  gestureCursor.classList.toggle("drawing", mode === "drawing");
+  gestureCursor.classList.toggle("paused", mode === "paused");
+  gestureCursor.classList.toggle("priming", mode === "priming");
+  gestureCursor.classList.toggle("pointing", mode === "pointing");
+  gestureCursor.classList.toggle("laser", mode === "laser");
 }
 
 function hideGestureCursor() {
-  gestureCursor.classList.remove("active", "drawing", "paused");
-}
-
-function setGestureState(state) {
-  gestureReadout.textContent = state;
+  gestureCursor.classList.remove("active", "drawing", "paused", "priming", "pointing", "laser");
+  gestureCursor.style.setProperty("--prime-progress", "0deg");
 }
 
 function setPausedCursor(point) {
-  gestureCursor.style.left = `${point.x}px`;
-  gestureCursor.style.top = `${point.y}px`;
-  gestureCursor.classList.add("active", "paused");
-  gestureCursor.classList.remove("drawing");
+  updateGestureCursor(point, "paused");
 }
 
 function eraseCommandArea() {
   const center = stageCenter();
+  pushCanvasHistory();
   drawCtx.save();
   drawCtx.globalCompositeOperation = "destination-out";
   drawCtx.beginPath();
@@ -365,56 +659,40 @@ function eraseCommandArea() {
 
 async function loadHandLandmarker() {
   if (handLandmarker) return handLandmarker;
+  if (handLandmarkerPromise) return handLandmarkerPromise;
 
   setStatus("Loading hand model");
-  if (!window.Hands) {
-    throw new Error("MediaPipe Hands script did not load");
+  handLandmarkerPromise = (async () => {
+    const vision = await FilesetResolver.forVisionTasks("./vendor/tasks-vision/wasm");
+    handLandmarker = await HandLandmarker.createFromOptions(vision, {
+      baseOptions: {
+        modelAssetPath: "./vendor/mediapipe-models/hand_landmarker.task"
+      },
+      runningMode: "VIDEO",
+      numHands: 2,
+      minHandDetectionConfidence: 0.6,
+      minHandPresenceConfidence: 0.6,
+      minTrackingConfidence: 0.6
+    });
+    return handLandmarker;
+  })();
+
+  try {
+    return await handLandmarkerPromise;
+  } catch (error) {
+    handLandmarker = null;
+    throw error;
+  } finally {
+    handLandmarkerPromise = null;
   }
-
-  handLandmarker = new window.Hands({
-    locateFile: (file) => `./vendor/hands/${file}`
-  });
-
-  handLandmarker.setOptions({
-    selfieMode: true,
-    modelComplexity: 0,
-    numHands: 2,
-    minDetectionConfidence: 0.6,
-    minTrackingConfidence: 0.6
-  });
-
-  handLandmarker.onResults((result) => {
-    const hands = result.multiHandLandmarks || [];
-
-    if (hands.length) {
-      processHands(hands);
-    } else {
-      clearGestureDrawingState();
-      resetClearHold();
-      hideGestureCursor();
-      handReadout.textContent = "Searching";
-      setGestureState("Searching");
-    }
-  });
-
-  return handLandmarker;
 }
 
 function describeStartupError(error) {
   const message = String(error?.message || error?.name || error || "unknown error");
 
-  if (message.includes("Permission") || message.includes("NotAllowed")) {
-    return "Camera permission blocked";
-  }
-
-  if (message.includes("getUserMedia")) {
-    return "Camera unavailable in this browser";
-  }
-
-  if (message.includes("Failed to fetch") || message.includes("import") || message.includes("load")) {
-    return "Hand model download blocked";
-  }
-
+  if (message.includes("Permission") || message.includes("NotAllowed")) return "Camera permission blocked";
+  if (message.includes("getUserMedia")) return "Camera unavailable in this browser";
+  if (message.includes("Failed to fetch") || message.includes("import") || message.includes("load")) return "Hand model download blocked";
   return `Hand startup failed: ${message.slice(0, 72)}`;
 }
 
@@ -429,72 +707,396 @@ function palmCenter(hand) {
   };
 }
 
-function pointFromLandmark(landmark) {
+function screenPointFromLandmark(landmark) {
   const rect = drawCanvas.getBoundingClientRect();
-  const raw = {
-    x: (mirrorMovement ? landmark.x : 1 - landmark.x) * rect.width,
+  return {
+    x: (mirrorMovement ? 1 - landmark.x : landmark.x) * rect.width,
     y: landmark.y * rect.height
   };
+}
 
-  if (!smoothedGesturePoint) {
-    smoothedGesturePoint = raw;
-    return raw;
+function resetFilters() {
+  for (const filterSet of Object.values(pointFilters)) {
+    filterSet.x.update({ minCutoff: stability, beta: responsiveness });
+    filterSet.y.update({ minCutoff: stability, beta: responsiveness });
+    filterSet.x.reset();
+    filterSet.y.reset();
+    filterSet.history = [];
+  }
+  positionHistory = [];
+}
+
+function pointFromLandmark(landmark, timestamp = performance.now(), mode = "cursor") {
+  const filterSet = pointFilters[mode] || pointFilters.cursor;
+  const raw = screenPointFromLandmark(landmark);
+  filterSet.history.push({ ...raw, timestamp });
+  filterSet.history = filterSet.history.filter((point) => timestamp - point.timestamp <= 160).slice(-4);
+
+  let predicted = raw;
+  if (filterSet.history.length >= 3 && predictionMs > 0) {
+    const first = filterSet.history[0];
+    const last = filterSet.history[filterSet.history.length - 1];
+    const elapsed = Math.max(1, last.timestamp - first.timestamp);
+    predicted = {
+      x: raw.x + ((last.x - first.x) / elapsed) * predictionMs,
+      y: raw.y + ((last.y - first.y) / elapsed) * predictionMs
+    };
   }
 
-  const next = {
-    x: smoothedGesturePoint.x * (1 - smoothingFactor) + raw.x * smoothingFactor,
-    y: smoothedGesturePoint.y * (1 - smoothingFactor) + raw.y * smoothingFactor
+  return {
+    x: filterSet.x.filter(predicted.x, timestamp),
+    y: filterSet.y.filter(predicted.y, timestamp)
   };
-
-  if (Math.hypot(next.x - smoothedGesturePoint.x, next.y - smoothedGesturePoint.y) < deadZonePx) {
-    return smoothedGesturePoint;
-  }
-
-  smoothedGesturePoint = next;
-
-  return smoothedGesturePoint;
 }
 
 function isFingerExtended(hand, tip, pip) {
-  return hand[tip].y < hand[pip].y - 0.018;
+  return hand[tip].y < hand[pip].y - 0.025;
 }
 
-function isOpenPalm(hand, pinchDistance) {
-  const extendedCount = [
-    isFingerExtended(hand, 8, 6),
-    isFingerExtended(hand, 12, 10),
-    isFingerExtended(hand, 16, 14),
-    isFingerExtended(hand, 20, 18)
-  ].filter(Boolean).length;
+function classifyGesture(hand) {
+  const pinchDistance = landmarkDistance(hand[8], hand[4]);
+  const index = isFingerExtended(hand, 8, 6);
+  const middle = isFingerExtended(hand, 12, 10);
+  const ring = isFingerExtended(hand, 16, 14);
+  const pinky = isFingerExtended(hand, 20, 18);
+  const thumb = Math.abs(hand[4].x - hand[3].x) > 0.04;
+  const fingers = [index, middle, ring, pinky].filter(Boolean).length;
 
-  return extendedCount >= 4 && pinchDistance > pinchThreshold * 1.35;
+  if (pinchDistance < 0.052) return Gesture.PINCH;
+  if (fingers === 0 && !thumb) return Gesture.FIST;
+  if (index && !middle && !ring && !pinky) return Gesture.INDEX_ONLY;
+  if (index && middle && !ring && !pinky) return Gesture.PEACE;
+  if (fingers >= 4) return Gesture.PALM;
+  return Gesture.OTHER;
+}
+
+function stableTargetState(gesture) {
+  if (gestureLocked) return State.LOCKED;
+  if (gesture === Gesture.FIST) return State.IDLE;
+  if (gesture === Gesture.INDEX_ONLY) return State.PRIMING;
+  if (gesture === Gesture.PEACE) return State.POINTING;
+  if (gesture === Gesture.PALM) return State.PAUSED;
+  return State.TRACKING;
+}
+
+function stateLabel(state) {
+  const labels = {
+    [State.IDLE]: "Idle",
+    [State.TRACKING]: "Ready",
+    [State.POINTING]: "Pointer",
+    [State.PRIMING]: "Priming",
+    [State.DRAWING]: activeTool === "eraser" ? "Erasing" : "Drawing",
+    [State.COOLDOWN]: "Cooldown",
+    [State.PAUSED]: "Paused",
+    [State.MENU]: "Menu",
+    [State.LOCKED]: "Locked"
+  };
+  return labels[state] || state;
+}
+
+function layoutRadialMenu() {
+  radialItems.forEach((item, index) => {
+    const angle = (index / radialItems.length) * Math.PI * 2 - Math.PI / 2;
+    item.style.setProperty("--angle", `${angle}rad`);
+    item.style.setProperty("--angle-inverse", `${-angle}rad`);
+  });
+}
+
+function clampMenuPoint(point) {
+  const rect = stage.getBoundingClientRect();
+  const margin = 124;
+  return {
+    x: Math.min(Math.max(point.x, margin), Math.max(margin, rect.width - margin)),
+    y: Math.min(Math.max(point.y, margin), Math.max(margin, rect.height - margin))
+  };
+}
+
+function openRadialMenu(point) {
+  radialCenter = clampMenuPoint(point);
+  radialSelectedTool = activeTool;
+  radialCore.textContent = toolReadout.textContent;
+  radialMenu.style.left = `${radialCenter.x}px`;
+  radialMenu.style.top = `${radialCenter.y}px`;
+  radialMenu.classList.add("open");
+  radialMenu.setAttribute("aria-hidden", "false");
+  updateRadialSelection(point);
+  setStatus("Tool menu open");
+}
+
+function closeRadialMenu() {
+  radialMenu.classList.remove("open");
+  radialMenu.setAttribute("aria-hidden", "true");
+  radialItems.forEach((item) => item.classList.remove("menu-hot"));
+  radialCenter = null;
+}
+
+function updateRadialSelection(point) {
+  if (!radialCenter || !radialItems.length) return;
+  const angle = Math.atan2(point.y - radialCenter.y, point.x - radialCenter.x);
+  const normalized = (angle + Math.PI / 2 + Math.PI * 2) % (Math.PI * 2);
+  const index = Math.round(normalized / ((Math.PI * 2) / radialItems.length)) % radialItems.length;
+  const item = radialItems[index];
+  radialSelectedTool = item.dataset.tool || activeTool;
+  radialItems.forEach((candidate) => candidate.classList.toggle("menu-hot", candidate === item));
+  updateGestureCursor(point, "pointing");
+}
+
+function selectRadialTool() {
+  if (!radialSelectedTool) return;
+  selectTool(radialSelectedTool);
+  closeRadialMenu();
+  transitionTo(State.TRACKING, true);
+}
+
+function transitionTo(nextState, force = false) {
+  if (!force && nextState === gestureState) return;
+  gestureState = nextState;
+  stateEnteredAt = performance.now();
+  setGestureStateLabel(stateLabel(nextState));
+  updateGestureIndicator(nextState);
+
+  if (nextState !== State.MENU) {
+    closeRadialMenu();
+  }
+
+  if ([State.IDLE, State.TRACKING, State.POINTING, State.PAUSED, State.LOCKED].includes(nextState)) {
+    clearGestureDrawingState();
+  }
+
+  if ([State.IDLE, State.LOCKED].includes(nextState)) {
+    hideGestureCursor();
+  }
+}
+
+function requestState(nextState, requiredFrames = 3) {
+  if (nextState === gestureState) {
+    pendingState = nextState;
+    pendingFrames = 0;
+    return;
+  }
+
+  if (pendingState !== nextState) {
+    pendingState = nextState;
+    pendingFrames = 1;
+  } else {
+    pendingFrames += 1;
+  }
+
+  if (pendingFrames >= requiredFrames) {
+    transitionTo(nextState);
+    pendingFrames = 0;
+  }
+}
+
+function isOpenPalm(hand) {
+  return classifyGesture(hand) === Gesture.PALM;
 }
 
 function isClapGesture(hands) {
   if (hands.length < 2) return false;
   const left = palmCenter(hands[0]);
   const right = palmCenter(hands[1]);
-  const palmDistance = landmarkDistance(left, right);
-  const handAOpen = isOpenPalm(hands[0], landmarkDistance(hands[0][8], hands[0][4]));
-  const handBOpen = isOpenPalm(hands[1], landmarkDistance(hands[1][8], hands[1][4]));
+  return landmarkDistance(left, right) < 0.16 && isOpenPalm(hands[0]) && isOpenPalm(hands[1]);
+}
 
-  return palmDistance < 0.16 && handAOpen && handBOpen;
+function handleClapEvent() {
+  const now = performance.now();
+
+  if (now - lastClapAt < 500) {
+    window.clearTimeout(clapTimer);
+    clapTimer = null;
+    lastClapAt = 0;
+    resetZoom();
+    setGestureStateLabel("Zoom reset");
+    return;
+  }
+
+  lastClapAt = now;
+  window.clearTimeout(clapTimer);
+  clapTimer = window.setTimeout(() => {
+    setGestureLocked(!gestureLocked);
+    clapTimer = null;
+  }, 520);
 }
 
 function isClearHoldGesture(hands) {
   if (hands.length < 2) return false;
   const left = palmCenter(hands[0]);
   const right = palmCenter(hands[1]);
-  const palmDistance = landmarkDistance(left, right);
-  const handAOpen = isOpenPalm(hands[0], landmarkDistance(hands[0][8], hands[0][4]));
-  const handBOpen = isOpenPalm(hands[1], landmarkDistance(hands[1][8], hands[1][4]));
+  const distance = landmarkDistance(left, right);
+  return distance > 0.24 && distance < 0.62 && isOpenPalm(hands[0]) && isOpenPalm(hands[1]);
+}
 
-  return palmDistance > 0.24 && palmDistance < 0.62 && handAOpen && handBOpen;
+function isTwoHandPinchZoom(hands) {
+  return hands.length >= 2 && classifyGesture(hands[0]) === Gesture.PINCH && classifyGesture(hands[1]) === Gesture.PINCH;
+}
+
+function handleTwoHandPinchZoom(hands) {
+  const first = screenPointFromLandmark(hands[0][8]);
+  const second = screenPointFromLandmark(hands[1][8]);
+  const distance = Math.max(1, Math.hypot(second.x - first.x, second.y - first.y));
+  const center = {
+    x: (first.x + second.x) / 2,
+    y: (first.y + second.y) / 2
+  };
+
+  if (!pinchZoomStart) {
+    pinchZoomStart = {
+      distance,
+      scale: zoomScale
+    };
+    setGestureStateLabel("Zoom");
+    setStatus(`Zoom ${zoomScale.toFixed(1)}x`);
+    return;
+  }
+
+  setZoom(pinchZoomStart.scale * (distance / pinchZoomStart.distance), center);
+  setGestureStateLabel(`Zoom ${zoomScale.toFixed(1)}x`);
+}
+
+function trackPointerPan(point, gesture) {
+  if (zoomScale <= 1 || gesture !== Gesture.PEACE) {
+    panStart = null;
+    return;
+  }
+
+  if (!panStart) {
+    panStart = { point, panX, panY };
+    return;
+  }
+
+  panX = panStart.panX + point.x - panStart.point.x;
+  panY = panStart.panY + point.y - panStart.point.y;
+  clampPan();
+  applySourceTransform();
+}
+
+function trackPointerSwipe(hand, timestamp) {
+  const wristPoint = screenPointFromLandmark(hand[0]);
+  positionHistory.push({ ...wristPoint, timestamp });
+  positionHistory = positionHistory.filter((point) => timestamp - point.timestamp <= 220);
+
+  if (performance.now() - lastSwipeAt < 400 || positionHistory.length < 3) return;
+
+  const first = positionHistory[0];
+  const last = positionHistory[positionHistory.length - 1];
+  const elapsedSeconds = Math.max(0.001, (last.timestamp - first.timestamp) / 1000);
+  const velocityX = (last.x - first.x) / elapsedSeconds;
+  const velocityY = (last.y - first.y) / elapsedSeconds;
+
+  if (Math.abs(velocityX) > 800 && Math.abs(velocityY) < 200) {
+    lastSwipeAt = performance.now();
+    positionHistory = [];
+    if (velocityX < 0) {
+      undoDrawing();
+    } else {
+      redoDrawing();
+    }
+  }
+}
+
+function setSlideMode(enabled) {
+  slideMode = enabled;
+  sourceVideo.classList.toggle("slides-active", enabled);
+  slideImage.classList.toggle("active", enabled);
+  slideReadout.textContent = enabled && slideDeck.length ? `${currentSlideIndex + 1}/${slideDeck.length}` : "Off";
+}
+
+function showSlide(index) {
+  if (!slideDeck.length) return;
+  currentSlideIndex = Math.min(slideDeck.length - 1, Math.max(0, index));
+  slideImage.style.opacity = "0";
+  window.setTimeout(() => {
+    slideImage.onload = () => {
+      slideImage.style.opacity = "1";
+      slideImage.onload = null;
+      slideImage.onerror = null;
+    };
+    slideImage.onerror = () => {
+      slideImage.style.opacity = "1";
+      setStatus(`Could not load ${slideDeck[currentSlideIndex].name}`);
+      slideImage.onload = null;
+      slideImage.onerror = null;
+    };
+    slideImage.src = slideDeck[currentSlideIndex].url;
+  }, 90);
+  slideReadout.textContent = `${currentSlideIndex + 1}/${slideDeck.length}`;
+  setStatus(`Slide ${currentSlideIndex + 1} / ${slideDeck.length}`);
+}
+
+function nextSlide() {
+  if (!slideMode || currentSlideIndex >= slideDeck.length - 1) return;
+  showSlide(currentSlideIndex + 1);
+}
+
+function previousSlide() {
+  if (!slideMode || currentSlideIndex <= 0) return;
+  showSlide(currentSlideIndex - 1);
+}
+
+function trackSlideSwipe(hand, timestamp) {
+  if (!slideMode || sourceVideo.srcObject || performance.now() - lastSlideSwipeAt < 600) return;
+  const center = screenPointFromLandmark(palmCenter(hand));
+  slideSwipeHistory.push({ ...center, timestamp });
+  slideSwipeHistory = slideSwipeHistory.filter((point) => timestamp - point.timestamp <= 240);
+
+  if (slideSwipeHistory.length < 3) return;
+
+  const first = slideSwipeHistory[0];
+  const last = slideSwipeHistory[slideSwipeHistory.length - 1];
+  const elapsedSeconds = Math.max(0.001, (last.timestamp - first.timestamp) / 1000);
+  const velocityX = (last.x - first.x) / elapsedSeconds;
+  const velocityY = (last.y - first.y) / elapsedSeconds;
+
+  if (Math.abs(velocityX) > 600 && Math.abs(velocityY) < 200) {
+    lastSlideSwipeAt = performance.now();
+    slideSwipeHistory = [];
+    if (velocityX < 0) {
+      nextSlide();
+    } else {
+      previousSlide();
+    }
+  }
+}
+
+function revokeSlideUrls() {
+  slideDeck.forEach((slide) => URL.revokeObjectURL(slide.url));
+}
+
+function loadSlides(files) {
+  const images = [...files].filter((file) => file.type.startsWith("image/"));
+  if (!images.length) {
+    setStatus("Choose PNG, JPG, or WebP slide images");
+    slidesInput.value = "";
+    return;
+  }
+
+  sourceVideo.srcObject?.getTracks().forEach((track) => track.stop());
+  sourceVideo.srcObject = null;
+  revokeSlideUrls();
+  slideDeck = images.map((file) => ({
+    name: file.name,
+    url: URL.createObjectURL(file)
+  }));
+  currentSlideIndex = 0;
+  setSlideMode(true);
+  resetZoom();
+  clearDrawing();
+  emptyState.classList.add("hidden");
+  showSlide(0);
+  slidesInput.value = "";
+}
+
+function clearDrawing() {
+  pushCanvasHistory();
+  const rect = drawCanvas.getBoundingClientRect();
+  drawCtx.clearRect(0, 0, rect.width, rect.height);
+  clearPreview();
+  setStatus("Overlay cleared");
 }
 
 function handleClearHold() {
   const now = performance.now();
-
   if (clearHoldStartedAt === null) {
     clearHoldStartedAt = now;
     clearHoldArmed = true;
@@ -502,32 +1104,50 @@ function handleClearHold() {
 
   const elapsed = now - clearHoldStartedAt;
   const remaining = Math.max(0, Math.ceil((1000 - elapsed) / 100) / 10);
-  setGestureState(`Clear ${remaining.toFixed(1)}s`);
+  setGestureStateLabel(`Clear ${remaining.toFixed(1)}s`);
   setStatus(`Hold to clear ${remaining.toFixed(1)}s`);
 
   if (elapsed >= 1000 && clearHoldArmed) {
     clearHoldArmed = false;
     clearDrawing();
-    setGestureState("Cleared");
+    setGestureStateLabel("Cleared");
     window.setTimeout(resetClearHold, 450);
   }
 }
 
-function processHands(hands) {
-  if (isClapGesture(hands)) {
-    const now = performance.now();
-    if (now - lastClapAt > 1200) {
-      lastClapAt = now;
-      setGestureLocked(!gestureLocked);
+function processHands(hands, timestamp) {
+  if (!hands.length) {
+    clapActive = false;
+    pinchZoomStart = null;
+    panStart = null;
+    if (performance.now() - lastHandAt > 500) {
+      transitionTo(State.IDLE);
+      handReadout.textContent = "Searching";
+      hideGestureCursor();
     }
     return;
   }
 
+  if (!onboarding.hidden) dismissOnboarding();
+  handSeenFrames += 1;
+  lastHandAt = performance.now();
+  handReadout.textContent = "Tracking";
+
+  const clapping = isClapGesture(hands);
+  if (clapping && !clapActive) {
+    clapActive = true;
+    handleClapEvent();
+    return;
+  }
+  if (!clapping) {
+    clapActive = false;
+  }
+  if (clapping) {
+    return;
+  }
+
   if (gestureLocked) {
-    resetClearHold();
-    clearGestureDrawingState();
-    hideGestureCursor();
-    setGestureState("Locked");
+    transitionTo(State.LOCKED);
     return;
   }
 
@@ -538,80 +1158,152 @@ function processHands(hands) {
     return;
   }
 
+  if (isTwoHandPinchZoom(hands)) {
+    clearGestureDrawingState();
+    handleTwoHandPinchZoom(hands);
+    return;
+  }
+
+  pinchZoomStart = null;
+
   resetClearHold();
 
-  processHandLandmarks(hands[0]);
+  const hand = hands[0];
+  const gesture = classifyGesture(hand);
+  const cursorPoint = pointFromLandmark(hand[5], timestamp, "cursor");
+  const drawingPoint = pointFromLandmark(hand[8], timestamp, "draw");
+  const target = stableTargetState(gesture);
+
+  if (gesture === Gesture.PEACE) {
+    trackPointerSwipe(hand, timestamp);
+  } else {
+    positionHistory = [];
+  }
+
+  if (gesture === Gesture.PALM) {
+    trackSlideSwipe(hand, timestamp);
+  } else {
+    slideSwipeHistory = [];
+  }
+
+  if (gestureState === State.MENU) {
+    runStateBehavior(cursorPoint, drawingPoint, gesture);
+    return;
+  }
+
+  if (gestureState === State.DRAWING && target !== State.PRIMING) {
+    finishDrawing(drawingPoint);
+    transitionTo(State.COOLDOWN, true);
+    return;
+  }
+
+  if (gestureState === State.DRAWING && target === State.PRIMING) {
+    drawActiveTool(drawingPoint);
+    return;
+  }
+
+  if (gestureState === State.COOLDOWN) {
+    if (performance.now() - stateEnteredAt >= 80) transitionTo(State.TRACKING, true);
+    return;
+  }
+
+  if (handSeenFrames < 3) {
+    transitionTo(State.TRACKING);
+    updateGestureCursor(cursorPoint, "tracking");
+    return;
+  }
+
+  requestState(target, 3);
+  runStateBehavior(cursorPoint, drawingPoint, gesture);
 }
 
-function processHandLandmarks(hand) {
-  const indexTip = hand[8];
-  const thumbTip = hand[4];
-  const point = pointFromLandmark(indexTip);
-  const pinchDistance = landmarkDistance(indexTip, thumbTip);
-  const pinching = pinchDistance < pinchThreshold;
-
-  handReadout.textContent = "Tracking";
-
-  if (gestureLocked) {
-    clearGestureDrawingState();
+function runStateBehavior(cursorPoint, drawingPoint, gesture = Gesture.NONE) {
+  if (gestureState === State.IDLE) {
+    panStart = null;
     hideGestureCursor();
-    setGestureState("Locked");
     return;
   }
 
-  if (isOpenPalm(hand, pinchDistance)) {
-    clearGestureDrawingState();
-    setPausedCursor(point);
-    setGestureState("Paused");
+  if (gestureState === State.TRACKING) {
+    panStart = null;
+    updateGestureCursor(cursorPoint, "tracking");
     return;
   }
 
-  handleGestureDraw(point, pinching);
-}
-
-function setMirrorMovement(enabled) {
-  mirrorMovement = enabled;
-  mirrorInput.checked = enabled;
-  mirrorReadout.textContent = enabled ? "On" : "Off";
-  smoothedGesturePoint = null;
-  clearGestureDrawingState();
-  setStatus(enabled ? "Mirror movement on" : "Mirror movement off");
-}
-
-function handleGestureDraw(point, pinching) {
-  if (!pinching) {
-    updateGestureCursor(point, false);
-    if (gestureDrawing && ["arrow", "circle", "spotlight"].includes(activeTool)) {
-      startPoint = gestureStartPoint;
-      commitShape(point);
-      startPoint = null;
+  if (gestureState === State.POINTING) {
+    trackPointerPan(cursorPoint, gesture);
+    if (activeTool === "laser") {
+      updateGestureCursor(cursorPoint, "laser");
+      drawLaser(previewCtx, cursorPoint);
+    } else {
+      updateGestureCursor(cursorPoint, "pointing");
+      laserPositions = [];
+      clearPreview();
     }
-    clearGestureDrawingState();
-    updateGestureCursor(point, false);
-    setGestureState("Pointing");
     return;
   }
 
-  if (!gestureDrawing) {
-    if (pinchStartedAt === null) {
-      pinchStartedAt = performance.now();
-      pendingGestureStartPoint = point;
+  if (gestureState === State.PAUSED) {
+    panStart = null;
+    setPausedCursor(cursorPoint);
+    if (gesture === Gesture.PALM && performance.now() - stateEnteredAt >= 500) {
+      openRadialMenu(cursorPoint);
+      transitionTo(State.MENU, true);
     }
+    return;
+  }
 
-    if (performance.now() - pinchStartedAt < drawDelayMs) {
-      updateGestureCursor(point, false);
-      setGestureState("Priming");
+  if (gestureState === State.MENU) {
+    panStart = null;
+    if (gesture === Gesture.PINCH) {
+      selectRadialTool();
       return;
     }
-
-    gestureDrawing = true;
-    gestureStartPoint = pendingGestureStartPoint || point;
-    gestureLastPoint = point;
+    if (gesture === Gesture.FIST || gesture === Gesture.OTHER || gesture === Gesture.NONE) {
+      closeRadialMenu();
+      transitionTo(State.TRACKING, true);
+      return;
+    }
+    updateRadialSelection(gesture === Gesture.INDEX_ONLY ? drawingPoint : cursorPoint);
+    return;
   }
 
-  updateGestureCursor(point, true);
-  setGestureState(activeTool === "eraser" ? "Erasing" : "Drawing");
+  if (gestureState === State.PRIMING) {
+    panStart = null;
+    const progress = Math.min(1, (performance.now() - stateEnteredAt) / Math.max(1, primeDelayMs));
+    gestureCursor.style.setProperty("--prime-progress", `${progress * 360}deg`);
+    updateGestureCursor(drawingPoint, "priming");
+    if (performance.now() - stateEnteredAt >= primeDelayMs) {
+      startDrawing(drawingPoint);
+      transitionTo(State.DRAWING, true);
+    }
+    return;
+  }
 
+  if (gestureState === State.DRAWING) {
+    drawActiveTool(drawingPoint);
+  }
+}
+
+function startDrawing(point) {
+  gestureStartPoint = point;
+  gestureLastPoint = point;
+  if (activeTool !== "laser") pushCanvasHistory();
+  if (activeTool === "eraser") eraseAt(point);
+  if (activeTool === "laser") drawLaser(previewCtx, point);
+}
+
+function finishDrawing(point) {
+  if (["arrow", "circle", "spotlight"].includes(activeTool) && gestureStartPoint) {
+    startPoint = gestureStartPoint;
+    commitShape(point);
+    startPoint = null;
+  }
+  clearGestureDrawingState();
+}
+
+function drawActiveTool(point) {
+  updateGestureCursor(point, activeTool === "laser" ? "laser" : "drawing");
   if (activeTool === "pen" && gestureLastPoint) {
     drawLine(drawCtx, gestureLastPoint, point);
   } else if (activeTool === "eraser") {
@@ -620,25 +1312,10 @@ function handleGestureDraw(point, pinching) {
     startPoint = gestureStartPoint;
     previewShape(point);
     startPoint = null;
+  } else if (activeTool === "laser") {
+    drawLaser(drawCtx, point, true, gestureLastPoint);
   }
-
   gestureLastPoint = point;
-}
-
-function updateGestureSettings() {
-  pinchThreshold = Number(pinchInput.value) / 1000;
-  smoothingFactor = Number(smoothingInput.value) / 100;
-  drawDelayMs = Number(drawDelayInput.value);
-  deadZonePx = Number(deadZoneInput.value);
-
-  const pinchLabel = pinchThreshold < 0.052 ? "Low" : pinchThreshold > 0.078 ? "High" : "Medium";
-  const smoothingLabel = smoothingFactor < 0.25 ? "High" : smoothingFactor > 0.55 ? "Low" : "Medium";
-
-  pinchReadout.textContent = pinchLabel;
-  smoothingReadout.textContent = smoothingLabel;
-  delayReadout.textContent = `${drawDelayMs} ms`;
-  deadZoneReadout.textContent = `${deadZonePx} px`;
-  clearGestureDrawingState();
 }
 
 function runGestureLoop() {
@@ -647,59 +1324,91 @@ function runGestureLoop() {
     return;
   }
 
-  if (!handsFrameBusy && cameraVideo.currentTime !== lastVideoTime) {
+  if (cameraVideo.currentTime !== lastVideoTime) {
     lastVideoTime = cameraVideo.currentTime;
-    handsFrameBusy = true;
-    handLandmarker.send({ image: cameraVideo })
-      .catch((error) => {
-        setStatus(describeStartupError(error));
-        heardText.textContent = String(error?.message || error?.name || error);
-      })
-      .finally(() => {
-        handsFrameBusy = false;
-      });
+    try {
+      const timestamp = performance.now();
+      const results = handLandmarker.detectForVideo(cameraVideo, timestamp);
+      processHands(results.landmarks || [], timestamp);
+    } catch (error) {
+      console.warn("Hand tracking frame failed", error);
+      setStatus("Hand tracking recovering");
+    }
   }
 
   gestureAnimationId = window.requestAnimationFrame(runGestureLoop);
 }
 
 async function startHandControl() {
+  if (handStarting || handModeOn) return;
   if (!navigator.mediaDevices?.getUserMedia) {
     setStatus("Camera unavailable");
+    showActionNotice("Camera access is unavailable. Open Jarvis Presenter in Google Chrome.", true);
     return;
   }
 
+  handStarting = true;
+  handBtn.disabled = true;
+  handBtn.textContent = "Allow Camera...";
+  handReadout.textContent = "Starting";
+  setStatus("Waiting for camera permission");
+  showActionNotice("Allow camera access when Chrome asks.");
+
   try {
-    await loadHandLandmarker();
     cameraStream = await navigator.mediaDevices.getUserMedia({
-      video: {
-        width: { ideal: 640 },
-        height: { ideal: 480 },
-        facingMode: "user"
-      },
+      video: { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: "user" },
       audio: false
     });
     cameraVideo.srcObject = cameraStream;
     await cameraVideo.play();
+    handBtn.textContent = "Loading Hand Model...";
+    handReadout.textContent = "Loading";
+    setStatus("Loading hand model");
+    showActionNotice("Camera connected. Loading hand tracking...");
+    await loadHandLandmarker();
     handModeOn = true;
+    handSeenFrames = 0;
+    resetFilters();
+    transitionTo(State.TRACKING, true);
     handBtn.textContent = "Stop Hand Control";
     handBtn.classList.add("listening");
     cameraVideo.classList.add("active");
+    applyCameraVisibility();
     handReadout.textContent = "Searching";
     setStatus("Hand control online");
+    showActionNotice("Hand control is ready. Hold your hand inside the camera view.");
     runGestureLoop();
   } catch (error) {
     handModeOn = false;
+    cameraStream?.getTracks().forEach((track) => track.stop());
+    cameraStream = null;
+    cameraVideo.srcObject = null;
     handReadout.textContent = "Off";
-    setStatus(describeStartupError(error));
+    const startupMessage = describeStartupError(error);
+    setStatus(startupMessage);
+    showActionNotice(
+      startupMessage === "Camera permission blocked"
+        ? "Camera access is blocked. In Chrome, click the camera icon beside the address bar, allow access, then try again."
+        : startupMessage,
+      true
+    );
     heardText.textContent = String(error?.message || error?.name || error || "unknown startup error");
     console.warn("Hand control startup failed", error);
+  } finally {
+    handStarting = false;
+    handBtn.disabled = false;
+    if (!handModeOn) handBtn.textContent = "Start Hand Control";
   }
 }
 
 function stopHandControl() {
+  handStarting = false;
   handModeOn = false;
   window.cancelAnimationFrame(gestureAnimationId);
+  window.clearTimeout(clapTimer);
+  clapTimer = null;
+  clapActive = false;
+  lastClapAt = 0;
   clearGestureDrawingState();
   hideGestureCursor();
   cameraStream?.getTracks().forEach((track) => track.stop());
@@ -710,7 +1419,9 @@ function stopHandControl() {
   handBtn.classList.remove("listening");
   handReadout.textContent = "Off";
   setGestureLocked(false);
+  transitionTo(State.IDLE, true);
   setStatus("Hand control offline");
+  showActionNotice("Hand control stopped.");
 }
 
 function eraseAt(point) {
@@ -742,46 +1453,55 @@ function selectTool(tool) {
   activeTool = tool;
   toolButtons.forEach((button) => button.classList.toggle("active", button.dataset.tool === tool));
   toolReadout.textContent = tool.charAt(0).toUpperCase() + tool.slice(1);
+  if (radialCore) radialCore.textContent = toolReadout.textContent;
+  if (tool !== "laser") laserPositions = [];
+  clearPreview();
+  updateGestureIndicator();
   setStatus(`${toolReadout.textContent} online`);
 }
 
 function selectColor(color) {
   activeColor = color;
   swatches.forEach((button) => button.classList.toggle("active", button.dataset.color === color));
+  gestureCursor.style.setProperty("--cursor-color", activeColor);
+  gestureIndicator.style.setProperty("--active-color", activeColor);
   setStatus("Color updated");
-}
-
-function clearDrawing() {
-  const rect = drawCanvas.getBoundingClientRect();
-  drawCtx.clearRect(0, 0, rect.width, rect.height);
-  clearPreview();
-  setStatus("Overlay cleared");
 }
 
 async function startCapture() {
   if (!navigator.mediaDevices?.getDisplayMedia) {
     setStatus("Screen capture unavailable");
+    showActionNotice("Screen sharing is unavailable here. Open Jarvis Presenter in Google Chrome.", true);
     return;
   }
 
+  captureBtn.disabled = true;
+  captureBtn.textContent = "Choose Window...";
+  setStatus("Choose a screen or window");
+  showActionNotice("Chrome is opening the screen-sharing picker. Choose a screen, window, or tab.");
+
   try {
     const stream = await navigator.mediaDevices.getDisplayMedia({
-      video: {
-        displaySurface: "window"
-      },
+      video: { displaySurface: "window" },
       audio: false
     });
+    setSlideMode(false);
     sourceVideo.srcObject = stream;
     emptyState.classList.add("hidden");
     setStatus("Source connected");
-
-    const [track] = stream.getVideoTracks();
-    track.addEventListener("ended", () => {
+    showActionNotice("Source connected. Share this Jarvis window in Teams or Google Meet.");
+    stream.getVideoTracks()[0]?.addEventListener("ended", () => {
       emptyState.classList.remove("hidden");
+      sourceVideo.srcObject = null;
       setStatus("Source disconnected");
+      showActionNotice("Screen sharing stopped.");
     });
   } catch (error) {
     setStatus("Source selection cancelled");
+    showActionNotice("No source was selected. Click Share Source and choose a screen, window, or tab.", true);
+  } finally {
+    captureBtn.disabled = false;
+    captureBtn.textContent = "Share Source";
   }
 }
 
@@ -790,8 +1510,9 @@ function handlePointerDown(event) {
   startPoint = canvasPoint(event);
   lastPoint = startPoint;
   previewCanvas.setPointerCapture?.(event.pointerId);
-
+  if (activeTool !== "laser") pushCanvasHistory();
   if (activeTool === "eraser") eraseAt(startPoint);
+  if (activeTool === "laser") drawLaser(previewCtx, startPoint);
 }
 
 function handlePointerMove(event) {
@@ -802,6 +1523,8 @@ function handlePointerMove(event) {
     drawLine(drawCtx, lastPoint, point);
   } else if (activeTool === "eraser") {
     eraseAt(point);
+  } else if (activeTool === "laser") {
+    drawLaser(previewCtx, point);
   } else {
     previewShape(point);
   }
@@ -812,9 +1535,8 @@ function handlePointerMove(event) {
 function handlePointerUp(event) {
   if (!pointerDown) return;
   const point = canvasPoint(event);
-  if (["arrow", "circle", "spotlight"].includes(activeTool)) {
-    commitShape(point);
-  }
+  if (["arrow", "circle", "spotlight"].includes(activeTool)) commitShape(point);
+  if (activeTool === "laser") clearPreview();
   pointerDown = false;
   startPoint = null;
   lastPoint = null;
@@ -823,64 +1545,50 @@ function handlePointerUp(event) {
 function applyVoiceCommand(rawText) {
   const text = rawText.toLowerCase();
   heardText.textContent = rawText;
-
   const colorMap = [
     ["red", "#ff3b6b"],
     ["blue", "#00e5ff"],
     ["cyan", "#00e5ff"],
     ["yellow", "#ffd166"],
     ["green", "#7cff6b"],
-    ["white", "#ffffff"]
+    ["white", "#ffffff"],
+    ["orange", "#ff8a2a"]
   ];
 
   if (text.includes("clear")) {
     clearDrawing();
     return;
   }
-
-  for (const [word, color] of colorMap) {
-    if (text.includes(word)) {
-      selectColor(color);
-    }
+  if (text.includes("undo")) {
+    undoDrawing();
+    return;
   }
-
+  if (text.includes("redo")) {
+    redoDrawing();
+    return;
+  }
+  for (const [word, color] of colorMap) {
+    if (text.includes(word)) selectColor(color);
+  }
   if (text.includes("arrow")) {
     selectTool("arrow");
     drawCommandShape("arrow");
-    return;
-  }
-
-  if (text.includes("circle")) {
+  } else if (text.includes("circle")) {
     selectTool("circle");
     drawCommandShape("circle");
-    return;
-  }
-
-  if (text.includes("spotlight") || text.includes("highlight")) {
+  } else if (text.includes("spotlight") || text.includes("highlight")) {
     selectTool("spotlight");
     drawCommandShape("spotlight");
-    return;
-  }
-
-  if (text.includes("erase") || text.includes("eraser")) {
+  } else if (text.includes("erase") || text.includes("eraser")) {
     selectTool("eraser");
     eraseCommandArea();
-    return;
-  }
-
-  if (text.includes("stop drawing")) {
+  } else if (text.includes("laser") || text.includes("pointer")) {
+    selectTool("laser");
+  } else if (text.includes("draw") || text.includes("pen")) {
     selectTool("pen");
-    setStatus("Drawing paused");
-    return;
+  } else {
+    setStatus("Command not mapped");
   }
-
-  if (text.includes("draw") || text.includes("pen")) {
-    selectTool("pen");
-    setStatus("Pen ready");
-    return;
-  }
-
-  setStatus("Command not mapped");
 }
 
 function startVoice() {
@@ -895,7 +1603,6 @@ function startVoice() {
   recognition.continuous = true;
   recognition.interimResults = true;
   recognition.lang = "en-US";
-
   recognition.onstart = () => {
     voiceOn = true;
     voiceBtn.classList.add("listening");
@@ -903,7 +1610,6 @@ function startVoice() {
     voiceReadout.textContent = "On";
     setStatus("Voice online");
   };
-
   recognition.onend = () => {
     if (voiceShouldRun) {
       window.setTimeout(() => {
@@ -915,38 +1621,29 @@ function startVoice() {
       }, 350);
       return;
     }
-
     voiceOn = false;
     voiceBtn.classList.remove("listening");
     voiceBtn.textContent = "Start Voice";
     voiceReadout.textContent = "Off";
   };
-
   recognition.onerror = (event) => {
     if (event.error === "not-allowed" || event.error === "service-not-allowed") {
       voiceShouldRun = false;
       setStatus("Microphone permission blocked");
       return;
     }
-
     if (event.error === "no-speech") {
       setStatus("Listening");
       return;
     }
-
     setStatus(`Voice ${event.error}`);
   };
-
   recognition.onresult = (event) => {
     const result = event.results[event.results.length - 1];
     const latest = result[0].transcript.trim();
     heardText.textContent = latest;
-
-    if (result.isFinal) {
-      applyVoiceCommand(latest);
-    }
+    if (result.isFinal) applyVoiceCommand(latest);
   };
-
   try {
     recognition.start();
   } catch (error) {
@@ -966,23 +1663,143 @@ function runTypedCommand() {
   commandInput.select();
 }
 
+function setMirrorMovement(enabled) {
+  mirrorMovement = enabled;
+  mirrorInput.checked = enabled;
+  mirrorReadout.textContent = enabled ? "On" : "Off";
+  resetFilters();
+  clearGestureDrawingState();
+  setStatus(enabled ? "Mirror movement on" : "Mirror movement off");
+}
+
+function updateGestureSettings() {
+  stability = Number(stabilityInput.value);
+  responsiveness = Number(responsivenessInput.value);
+  predictionMs = Number(predictionInput.value);
+  primeDelayMs = Number(primeDelayInput.value);
+  stabilityReadout.textContent = stability.toFixed(1);
+  responsivenessReadout.textContent = responsiveness.toFixed(3);
+  predictionReadout.textContent = `${predictionMs} ms`;
+  primeDelayReadout.textContent = `${primeDelayMs} ms`;
+  for (const filterSet of Object.values(pointFilters)) {
+    filterSet.x.update({ minCutoff: stability, beta: responsiveness });
+    filterSet.y.update({ minCutoff: stability, beta: responsiveness });
+  }
+}
+
 function setPanelCollapsed(collapsed) {
   document.querySelector(".shell").classList.toggle("panel-collapsed", collapsed);
   window.setTimeout(resizeCanvases, 180);
 }
 
+function applyCameraVisibility() {
+  cameraVideo.classList.toggle("camera-visible", handModeOn && cameraToggle.checked);
+}
+
+function setCameraVisible(visible) {
+  cameraToggle.checked = visible;
+  applyCameraVisibility();
+}
+
+function setPresentMode(enabled) {
+  if (presentMode === enabled) return;
+  presentMode = enabled;
+  const shell = document.querySelector(".shell");
+  shell.classList.toggle("present-mode", enabled);
+  presentBtn.textContent = enabled ? "Exit Present Mode" : "Enter Present Mode";
+
+  if (enabled) {
+    editModeCameraVisible = cameraToggle.checked;
+    setCameraVisible(false);
+    setStatus("Present mode");
+  } else {
+    setCameraVisible(editModeCameraVisible);
+    setStatus("Edit mode");
+  }
+
+  window.setTimeout(resizeCanvases, 180);
+}
+
+function togglePanelSection(header) {
+  const section = header.closest(".panel-section");
+  const open = !section.classList.contains("open");
+  section.classList.toggle("open", open);
+  header.setAttribute("aria-expanded", String(open));
+}
+
+function showOnboarding() {
+  onboarding.hidden = false;
+}
+
+function dismissOnboarding() {
+  onboarding.hidden = true;
+  try {
+    localStorage.setItem("jarvisPresenterOnboardingSeen", "true");
+  } catch (error) {
+    console.warn("Could not save onboarding preference", error);
+  }
+}
+
+function initializeOnboarding() {
+  let seen = false;
+  try {
+    seen = localStorage.getItem("jarvisPresenterOnboardingSeen") === "true";
+  } catch (error) {
+    console.warn("Could not read onboarding preference", error);
+  }
+  onboarding.hidden = seen;
+}
+
 captureBtn.addEventListener("click", startCapture);
+slidesBtn.addEventListener("click", () => slidesInput.click());
+slidesInput.addEventListener("change", () => loadSlides(slidesInput.files));
 handBtn.addEventListener("click", () => (handModeOn ? stopHandControl() : startHandControl()));
 voiceBtn.addEventListener("click", () => (voiceOn ? stopVoice() : startVoice()));
 clearBtn.addEventListener("click", clearDrawing);
+undoBtn.addEventListener("click", undoDrawing);
+redoBtn.addEventListener("click", redoDrawing);
 collapseBtn.addEventListener("click", () => setPanelCollapsed(true));
 expandBtn.addEventListener("click", () => setPanelCollapsed(false));
+presentBtn.addEventListener("click", () => setPresentMode(!presentMode));
+exitPresentBtn.addEventListener("click", () => setPresentMode(false));
+helpBtn.addEventListener("click", showOnboarding);
+cameraToggle.addEventListener("change", applyCameraVisibility);
+sectionHeaders.forEach((header) => header.addEventListener("click", () => togglePanelSection(header)));
+dismissOnboardingBtn.addEventListener("click", dismissOnboarding);
+closeOnboardingBtn.addEventListener("click", dismissOnboarding);
+onboarding.addEventListener("click", (event) => {
+  if (event.target === onboarding) dismissOnboarding();
+});
 commandBtn.addEventListener("click", runTypedCommand);
 commandInput.addEventListener("keydown", (event) => {
   if (event.key === "Enter") runTypedCommand();
 });
+window.addEventListener("keydown", (event) => {
+  if (event.key === "Escape" && presentMode) {
+    setPresentMode(false);
+    return;
+  }
+  if (!event.metaKey && !event.ctrlKey && slideMode) {
+    if (event.key === "ArrowRight") {
+      nextSlide();
+      return;
+    }
+    if (event.key === "ArrowLeft") {
+      previousSlide();
+      return;
+    }
+  }
+  if (!event.metaKey && !event.ctrlKey) return;
+  if (event.key.toLowerCase() !== "z") return;
+  event.preventDefault();
+  if (event.shiftKey) {
+    redoDrawing();
+  } else {
+    undoDrawing();
+  }
+});
 mirrorInput.addEventListener("change", () => setMirrorMovement(mirrorInput.checked));
-[pinchInput, smoothingInput, drawDelayInput, deadZoneInput].forEach((input) => {
+[stabilityInput, responsivenessInput, predictionInput, primeDelayInput].forEach((input) => {
   input.addEventListener("input", updateGestureSettings);
 });
 toolButtons.forEach((button) => button.addEventListener("click", () => selectTool(button.dataset.tool)));
@@ -995,6 +1812,10 @@ previewCanvas.addEventListener("pointercancel", handlePointerUp);
 window.addEventListener("resize", resizeCanvases);
 
 resizeCanvases();
+layoutRadialMenu();
 selectTool("pen");
 setMirrorMovement(true);
 updateGestureSettings();
+updateHistoryReadout();
+transitionTo(State.IDLE, true);
+initializeOnboarding();
