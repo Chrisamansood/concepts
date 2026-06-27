@@ -436,6 +436,7 @@ input[type="range"] {
 .source-layer,
 #sourceVideo,
 #slideImage,
+#pptxCanvas,
 #drawCanvas,
 #previewCanvas,
 .gesture-cursor {
@@ -452,7 +453,8 @@ input[type="range"] {
 }
 
 #sourceVideo,
-#slideImage {
+#slideImage,
+#pptxCanvas {
   width: 100%;
   height: 100%;
   object-fit: contain;
@@ -463,6 +465,15 @@ input[type="range"] {
   display: none;
   opacity: 1;
   transition: opacity 180ms ease;
+}
+
+#pptxCanvas {
+  display: none;
+  object-fit: contain;
+}
+
+#pptxCanvas.active {
+  display: block;
 }
 
 #slideImage.active {
@@ -986,4 +997,160 @@ input[type="range"] {
   .onboarding-grid {
     grid-template-columns: repeat(2, 1fr);
   }
+}
+
+/* Phase 3: transparent Jarvis HUD skin */
+:root {
+  --bg: #01070c;
+  --panel: rgba(2, 18, 29, 0.48);
+  --panel-2: rgba(5, 33, 47, 0.34);
+  --glass: rgba(2, 24, 36, 0.36);
+  --glass-strong: rgba(2, 22, 34, 0.58);
+  --line: rgba(57, 246, 255, 0.3);
+  --cyan: #39f6ff;
+  --blue: #78cfff;
+  --text: #d9fbff;
+  --muted: #82b8c2;
+  --shadow: 0 18px 56px rgba(0, 0, 0, 0.48), 0 0 28px rgba(57, 246, 255, 0.1);
+  --soft-edge: inset 0 1px 0 rgba(163, 250, 255, 0.12), inset 0 -1px 0 rgba(57, 246, 255, 0.06);
+}
+
+body {
+  background:
+    linear-gradient(rgba(57, 246, 255, 0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(57, 246, 255, 0.025) 1px, transparent 1px),
+    radial-gradient(circle at 55% 42%, rgba(11, 107, 129, 0.2), transparent 34%),
+    linear-gradient(145deg, #01090f, #02050a 68%, #001018);
+  background-size: 42px 42px, 42px 42px, auto, auto;
+  font-family: "Arial Narrow", "Roboto Condensed", Inter, ui-sans-serif, system-ui, sans-serif;
+}
+
+.shell { gap: 10px; padding: 10px; }
+
+.rail {
+  gap: 10px;
+  padding: 12px;
+  border-color: rgba(57, 246, 255, 0.34);
+  border-radius: 2px;
+  background:
+    linear-gradient(135deg, rgba(57, 246, 255, 0.06), transparent 34%),
+    rgba(1, 16, 26, 0.47);
+  backdrop-filter: blur(13px) saturate(125%);
+  box-shadow: inset 3px 0 0 rgba(57, 246, 255, 0.14), var(--shadow);
+  clip-path: polygon(0 0, calc(100% - 18px) 0, 100% 18px, 100% 100%, 14px 100%, 0 calc(100% - 14px));
+}
+
+.brand { border-bottom: 1px solid rgba(57, 246, 255, 0.26); }
+.brand strong { color: #e8fdff; letter-spacing: .08em; text-transform: uppercase; }
+.brand span { color: var(--cyan); letter-spacing: .12em; text-transform: uppercase; }
+.brand-mark {
+  border-color: rgba(57, 246, 255, 0.72);
+  border-radius: 50%;
+  background:
+    radial-gradient(circle, #39f6ff 0 8%, transparent 10% 30%, rgba(57,246,255,.48) 31% 33%, transparent 34%),
+    repeating-conic-gradient(from 15deg, rgba(57,246,255,.9) 0 4deg, transparent 4deg 24deg);
+  box-shadow: inset 0 0 14px rgba(57,246,255,.22), 0 0 20px rgba(57,246,255,.24);
+  animation: jarvis-spin 18s linear infinite;
+}
+
+@keyframes jarvis-spin { to { transform: rotate(360deg); } }
+
+.panel-section { border-top-color: rgba(57, 246, 255, 0.18); }
+.section-header { color: #aeeef3; letter-spacing: .16em; }
+.section-header::before { content: "//"; margin-right: 7px; color: rgba(57,246,255,.65); }
+.section-header > span:first-child { margin-right: auto; }
+.control-group { border-top-color: rgba(57, 246, 255, 0.16); }
+
+button,
+input[type="text"] {
+  border-color: rgba(57, 246, 255, 0.28);
+  border-radius: 2px;
+  background: rgba(3, 31, 43, 0.36);
+  backdrop-filter: blur(9px);
+  clip-path: polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 8px 100%, 0 calc(100% - 8px));
+}
+
+button:hover { border-color: rgba(57,246,255,.82); background: rgba(10, 76, 91, .42); }
+.primary, .tool.active { color: #001318; background: rgba(57, 246, 255, 0.82); border-color: #9bfbff; }
+.tool-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+.tool-grid button { min-height: 38px; font-size: 11px; letter-spacing: .07em; text-transform: uppercase; }
+.swatch { border-radius: 50%; clip-path: none; }
+.toggle-row { border-color: rgba(57,246,255,.18); background: rgba(3,27,39,.28); }
+.telemetry { border-color: rgba(57,246,255,.22); background: rgba(2,25,37,.28); }
+.telemetry b { color: var(--cyan); }
+
+.stage {
+  border-color: rgba(57,246,255,.32);
+  border-radius: 2px;
+  background: rgba(0, 5, 9, .78);
+  box-shadow: inset 0 0 50px rgba(25, 209, 227, .035), 0 0 28px rgba(57,246,255,.08);
+  clip-path: polygon(0 0, calc(100% - 22px) 0, 100% 22px, 100% 100%, 22px 100%, 0 calc(100% - 22px));
+}
+
+.stage-chrome { position: absolute; inset: 0; z-index: 8; pointer-events: none; opacity: .66; transition: opacity 180ms ease; }
+.stage-corner { position: absolute; width: 54px; height: 54px; border-color: var(--cyan); filter: drop-shadow(0 0 5px rgba(57,246,255,.4)); }
+.corner-tl { top: 12px; left: 12px; border-top: 2px solid; border-left: 2px solid; }
+.corner-tr { top: 12px; right: 12px; border-top: 2px solid; border-right: 2px solid; }
+.corner-bl { bottom: 12px; left: 12px; border-bottom: 2px solid; border-left: 2px solid; }
+.corner-br { right: 12px; bottom: 12px; border-right: 2px solid; border-bottom: 2px solid; }
+.stage-system-label { position: absolute; top: 17px; left: 82px; color: rgba(111,246,255,.72); font-size: 9px; letter-spacing: .22em; }
+.stage-axis { position: absolute; top: 28%; width: 1px; height: 44%; background: repeating-linear-gradient(to bottom, rgba(57,246,255,.58) 0 2px, transparent 2px 10px); }
+.stage-axis-left { left: 17px; }
+.stage-axis-right { right: 17px; }
+
+.scanner {
+  position: relative;
+  border-color: rgba(57,246,255,.44);
+  background:
+    repeating-conic-gradient(from 0deg, rgba(57,246,255,.52) 0 1deg, transparent 1deg 12deg),
+    radial-gradient(circle, rgba(57,246,255,.7) 0 2%, transparent 3% 18%, rgba(57,246,255,.25) 18.5% 19%, transparent 19.5% 39%, rgba(57,246,255,.32) 39.5% 40%, transparent 40.5% 61%, rgba(57,246,255,.24) 61.5% 62%, transparent 62.5%);
+  box-shadow: inset 0 0 42px rgba(57,246,255,.11), 0 0 36px rgba(57,246,255,.12);
+  animation: scanner-pulse 3.4s ease-in-out infinite;
+}
+@keyframes scanner-pulse { 50% { transform: scale(1.025); filter: brightness(1.28); } }
+.empty h1 { color: #cfffff; letter-spacing: .13em; text-transform: uppercase; text-shadow: 0 0 18px rgba(57,246,255,.32); }
+.empty p { color: #77aeb8; letter-spacing: .05em; }
+
+.hud, .gesture-indicator {
+  border-color: rgba(57,246,255,.3);
+  border-radius: 2px;
+  background: rgba(1, 19, 29, .42);
+  backdrop-filter: blur(10px);
+  box-shadow: inset 0 0 20px rgba(57,246,255,.045);
+  pointer-events: none;
+}
+.gesture-indicator { clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 12px 100%, 0 calc(100% - 12px)); }
+.radial-menu { border-color: rgba(57,246,255,.5); background: rgba(0,13,21,.58); box-shadow: 0 0 42px rgba(57,246,255,.26); }
+.radial-core { color: #001318; background: rgba(57,246,255,.88); }
+.onboarding-card { border-color: rgba(57,246,255,.42); border-radius: 2px; background: rgba(1,14,23,.82); }
+
+/* Presentation-safe mode: the slide owns the screen. */
+.shell.present-mode .stage { clip-path: none; background: #000; }
+.shell.present-mode .stage-chrome { display: none; }
+.shell.present-mode .empty .scanner { opacity: .22; }
+.shell.present-mode .empty h1,
+.shell.present-mode .empty p { opacity: .42; }
+.shell.present-mode .hud {
+  opacity: .16;
+  transform: scale(.86);
+  transform-origin: left bottom;
+  transition: opacity 150ms ease;
+}
+.shell.present-mode .hud:hover { opacity: .62; }
+.shell.present-mode .gesture-indicator {
+  opacity: .24;
+  transform: scale(.82);
+  transform-origin: right bottom;
+  transition: opacity 150ms ease;
+}
+.shell.present-mode .gesture-indicator small { display: none; }
+.shell.present-mode .gesture-indicator.state-drawing,
+.shell.present-mode .gesture-indicator.state-priming,
+.shell.present-mode .gesture-indicator.state-paused,
+.shell.present-mode .gesture-indicator.state-locked { opacity: .72; }
+.shell.present-mode .exit-present-button { opacity: .14; background: rgba(1,18,27,.28); border-color: rgba(57,246,255,.18); }
+.shell.present-mode .exit-present-button:hover { opacity: .9; }
+
+@media (prefers-reduced-motion: reduce) {
+  .brand-mark, .scanner { animation: none; }
 }

@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Chris's Jarvis</title>
-    <link rel="stylesheet" href="./styles.css?v=phase3">
+    <link rel="stylesheet" href="./styles.css?v=phase3-fix2">
   </head>
   <body>
     <main class="shell">
@@ -25,7 +25,7 @@
           <div class="section-content control-group">
             <button id="captureBtn" class="primary">Share Source</button>
             <button id="slidesBtn">Load Slides</button>
-            <input id="slidesInput" type="file" accept="image/*" multiple hidden>
+            <input id="slidesInput" type="file" accept="image/*,.pptx,application/vnd.openxmlformats-officedocument.presentationml.presentation" multiple hidden>
             <div id="actionNotice" class="action-notice" role="status" aria-live="polite" hidden></div>
           </div>
         </section>
@@ -134,9 +134,19 @@
         <button id="expandBtn" class="expand-button" title="Show panel" aria-label="Show panel">☰</button>
         <button id="exitPresentBtn" class="exit-present-button" title="Exit present mode" aria-label="Exit present mode">Exit</button>
         <div class="stage" id="stage">
+          <div class="stage-chrome" aria-hidden="true">
+            <span class="stage-corner corner-tl"></span>
+            <span class="stage-corner corner-tr"></span>
+            <span class="stage-corner corner-bl"></span>
+            <span class="stage-corner corner-br"></span>
+            <span class="stage-system-label">JARVIS // PRESENTATION CORE</span>
+            <span class="stage-axis stage-axis-left"></span>
+            <span class="stage-axis stage-axis-right"></span>
+          </div>
           <div class="source-layer" id="sourceLayer">
             <video id="sourceVideo" autoplay muted playsinline></video>
             <img id="slideImage" alt="">
+            <canvas id="pptxCanvas" aria-label="PowerPoint slide"></canvas>
           </div>
           <canvas id="drawCanvas"></canvas>
           <canvas id="previewCanvas"></canvas>
@@ -186,6 +196,9 @@
       </section>
     </main>
 
-    <script type="module" src="./app.js?v=phase3"></script>
+    <script src="./vendor/pptx/jszip.min.js"></script>
+    <script src="./vendor/pptx/chart.umd.min.js"></script>
+    <script src="./vendor/pptx/PptxViewJS.min.js"></script>
+    <script type="module" src="./app.js?v=phase3-fix2"></script>
   </body>
 </html>

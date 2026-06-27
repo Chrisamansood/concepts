@@ -24,6 +24,7 @@ Use Chrome for the best screen-capture and hand-tracking support.
 - Source, Controls, Tools, Tuning, and Status are collapsible panel sections.
 - The on-stage indicator shows the current gesture state and active drawing feedback.
 - The first-visit gesture guide can be reopened with `Gesture Guide`.
+- `Load Slides` accepts one `.pptx` file or a set of PNG, JPG, or WebP slide images. PowerPoint rendering happens locally in the browser.
 
 ## Teams Flow
 
@@ -43,6 +44,9 @@ Participants see the captured source plus the live annotation layer.
 - Show an open palm to pause safely.
 - Clap both open hands together to lock drawing; clap again to resume.
 - Hold two open hands apart for 1 second to clear the overlay.
+- Keep two hands visible briefly before using a two-hand command; Jarvis confirms the pair before switching modes.
+- Pinch with both hands and hold, then spread them apart to zoom in or bring them together to zoom out.
+- Finger detection is orientation-independent, so drawing continues when the pointing hand moves downward or sideways.
 - Keep `Mirror movement` on if you want the pointer to move like a mirror.
 - Turn `Mirror movement` off if your camera/browser reverses left and right.
 - Select `Arrow`, `Circle`, or `Spot` first, then draw with index finger to place that shape.

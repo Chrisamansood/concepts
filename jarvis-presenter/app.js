@@ -34,6 +34,7 @@ const glowInput = document.getElementById("glowInput");
 const sourceLayer = document.getElementById("sourceLayer");
 const sourceVideo = document.getElementById("sourceVideo");
 const slideImage = document.getElementById("slideImage");
+const pptxCanvas = document.getElementById("pptxCanvas");
 const cameraVideo = document.getElementById("cameraVideo");
 const drawCanvas = document.getElementById("drawCanvas");
 const previewCanvas = document.getElementById("previewCanvas");
@@ -140,8 +141,18 @@ let lastSlideSwipeAt = 0;
 let slideDeck = [];
 let currentSlideIndex = 0;
 let slideMode = false;
+let slideSourceType = "images";
+let pptxViewer = null;
+let pptxRendering = false;
 let presentMode = false;
 let editModeCameraVisible = true;
+let twoHandMode = false;
+let twoHandCandidateFrames = 0;
+let twoHandLostFrames = 0;
+let zoomCandidateFrames = 0;
+let lastPrimaryWrist = null;
+let palmMenuBlockedUntil = 0;
+let palmHoldAnchor = null;
 
 const pointFilters = {
   cursor: {
@@ -749,24 +760,49 @@ function pointFromLandmark(landmark, timestamp = performance.now(), mode = "curs
   };
 }
 
-function isFingerExtended(hand, tip, pip) {
-  return hand[tip].y < hand[pip].y - 0.025;
+function jointAngle(a, joint, c) {
+  const first = { x: a.x - joint.x, y: a.y - joint.y };
+  const second = { x: c.x - joint.x, y: c.y - joint.y };
+  const magnitude = Math.hypot(first.x, first.y) * Math.hypot(second.x, second.y);
+  if (!magnitude) return 0;
+  const cosine = Math.min(1, Math.max(-1, (first.x * second.x + first.y * second.y) / magnitude));
+  return (Math.acos(cosine) * 180) / Math.PI;
+}
+
+function isFingerExtended(hand, tip, pip, mcp) {
+  const straight = jointAngle(hand[mcp], hand[pip], hand[tip]) > 152;
+  const reachesPastJoint = landmarkDistance(hand[tip], hand[0]) > landmarkDistance(hand[pip], hand[0]) * 1.06;
+  return straight && reachesPastJoint;
+}
+
+function isThumbExtended(hand) {
+  const straight = jointAngle(hand[2], hand[3], hand[4]) > 145;
+  const reachesPastJoint = landmarkDistance(hand[4], hand[0]) > landmarkDistance(hand[3], hand[0]) * 1.04;
+  return straight && reachesPastJoint;
+}
+
+function isPrecisionPinch(hand) {
+  const palmWidth = Math.max(0.001, landmarkDistance(hand[5], hand[17]));
+  const pinchRatio = landmarkDistance(hand[8], hand[4]) / palmWidth;
+  const middle = isFingerExtended(hand, 12, 10, 9);
+  const ring = isFingerExtended(hand, 16, 14, 13);
+  const pinky = isFingerExtended(hand, 20, 18, 17);
+  return pinchRatio < 0.42 && [middle, ring, pinky].filter(Boolean).length <= 1;
 }
 
 function classifyGesture(hand) {
-  const pinchDistance = landmarkDistance(hand[8], hand[4]);
-  const index = isFingerExtended(hand, 8, 6);
-  const middle = isFingerExtended(hand, 12, 10);
-  const ring = isFingerExtended(hand, 16, 14);
-  const pinky = isFingerExtended(hand, 20, 18);
-  const thumb = Math.abs(hand[4].x - hand[3].x) > 0.04;
+  const index = isFingerExtended(hand, 8, 6, 5);
+  const middle = isFingerExtended(hand, 12, 10, 9);
+  const ring = isFingerExtended(hand, 16, 14, 13);
+  const pinky = isFingerExtended(hand, 20, 18, 17);
+  const thumb = isThumbExtended(hand);
   const fingers = [index, middle, ring, pinky].filter(Boolean).length;
 
-  if (pinchDistance < 0.052) return Gesture.PINCH;
+  if (fingers >= 4) return Gesture.PALM;
+  if (isPrecisionPinch(hand)) return Gesture.PINCH;
   if (fingers === 0 && !thumb) return Gesture.FIST;
   if (index && !middle && !ring && !pinky) return Gesture.INDEX_ONLY;
   if (index && middle && !ring && !pinky) return Gesture.PEACE;
-  if (fingers >= 4) return Gesture.PALM;
   return Gesture.OTHER;
 }
 
@@ -855,6 +891,8 @@ function transitionTo(nextState, force = false) {
   setGestureStateLabel(stateLabel(nextState));
   updateGestureIndicator(nextState);
 
+  if (nextState !== State.PAUSED) palmHoldAnchor = null;
+
   if (nextState !== State.MENU) {
     closeRadialMenu();
   }
@@ -886,6 +924,69 @@ function requestState(nextState, requiredFrames = 3) {
     transitionTo(nextState);
     pendingFrames = 0;
   }
+}
+
+function handednessLabel(entry) {
+  return entry?.[0]?.categoryName || entry?.[0]?.displayName || "";
+}
+
+function validTwoHandPair(hands, handedness = []) {
+  if (hands.length < 2) return false;
+  const firstLabel = handednessLabel(handedness[0]);
+  const secondLabel = handednessLabel(handedness[1]);
+  if (firstLabel && secondLabel && firstLabel === secondLabel) return false;
+  const centerDistance = landmarkDistance(palmCenter(hands[0]), palmCenter(hands[1]));
+  return centerDistance > 0.025;
+}
+
+function updateTwoHandMode(hands, handedness = []) {
+  const validPair = validTwoHandPair(hands, handedness);
+
+  if (validPair) {
+    twoHandCandidateFrames += 1;
+    twoHandLostFrames = 0;
+    if (!twoHandMode && twoHandCandidateFrames >= 6) {
+      twoHandMode = true;
+      clearGestureDrawingState();
+      resetFilters();
+      hideGestureCursor();
+      setGestureStateLabel("Two hands");
+      setStatus("Two-hand controls ready");
+    }
+  } else {
+    twoHandCandidateFrames = 0;
+    if (twoHandMode) {
+      twoHandLostFrames += 1;
+      if (twoHandLostFrames >= 5) {
+        twoHandMode = false;
+        twoHandLostFrames = 0;
+        zoomCandidateFrames = 0;
+        pinchZoomStart = null;
+        resetClearHold();
+        resetFilters();
+        transitionTo(State.TRACKING, true);
+        setStatus("Single-hand controls ready");
+      }
+    }
+  }
+
+  return { validPair, active: twoHandMode };
+}
+
+function selectPrimaryHand(hands) {
+  if (hands.length === 1) {
+    lastPrimaryWrist = hands[0][0];
+    return hands[0];
+  }
+  if (!lastPrimaryWrist) {
+    lastPrimaryWrist = hands[0][0];
+    return hands[0];
+  }
+  const selected = hands.reduce((best, hand) => (
+    landmarkDistance(hand[0], lastPrimaryWrist) < landmarkDistance(best[0], lastPrimaryWrist) ? hand : best
+  ), hands[0]);
+  lastPrimaryWrist = selected[0];
+  return selected;
 }
 
 function isOpenPalm(hand) {
@@ -928,7 +1029,7 @@ function isClearHoldGesture(hands) {
 }
 
 function isTwoHandPinchZoom(hands) {
-  return hands.length >= 2 && classifyGesture(hands[0]) === Gesture.PINCH && classifyGesture(hands[1]) === Gesture.PINCH;
+  return hands.length >= 2 && isPrecisionPinch(hands[0]) && isPrecisionPinch(hands[1]);
 }
 
 function handleTwoHandPinchZoom(hands) {
@@ -946,11 +1047,13 @@ function handleTwoHandPinchZoom(hands) {
       scale: zoomScale
     };
     setGestureStateLabel("Zoom");
-    setStatus(`Zoom ${zoomScale.toFixed(1)}x`);
+    setStatus("Spread hands to zoom in, bring them together to zoom out");
     return;
   }
 
-  setZoom(pinchZoomStart.scale * (distance / pinchZoomStart.distance), center);
+  const ratio = distance / pinchZoomStart.distance;
+  if (Math.abs(ratio - 1) < 0.035) return;
+  setZoom(pinchZoomStart.scale * ratio, center);
   setGestureStateLabel(`Zoom ${zoomScale.toFixed(1)}x`);
 }
 
@@ -998,13 +1101,32 @@ function trackPointerSwipe(hand, timestamp) {
 function setSlideMode(enabled) {
   slideMode = enabled;
   sourceVideo.classList.toggle("slides-active", enabled);
-  slideImage.classList.toggle("active", enabled);
+  slideImage.classList.toggle("active", enabled && slideSourceType === "images");
+  pptxCanvas.classList.toggle("active", enabled && slideSourceType === "pptx");
   slideReadout.textContent = enabled && slideDeck.length ? `${currentSlideIndex + 1}/${slideDeck.length}` : "Off";
 }
 
-function showSlide(index) {
+async function showSlide(index) {
   if (!slideDeck.length) return;
   currentSlideIndex = Math.min(slideDeck.length - 1, Math.max(0, index));
+
+  if (slideSourceType === "pptx") {
+    if (!pptxViewer || pptxRendering) return;
+    pptxRendering = true;
+    setStatus(`Rendering slide ${currentSlideIndex + 1} / ${slideDeck.length}`);
+    try {
+      await pptxViewer.renderSlide(currentSlideIndex, pptxCanvas);
+      slideReadout.textContent = `${currentSlideIndex + 1}/${slideDeck.length}`;
+      setStatus(`Slide ${currentSlideIndex + 1} / ${slideDeck.length}`);
+    } catch (error) {
+      setStatus(`PowerPoint slide failed: ${String(error?.message || error).slice(0, 72)}`);
+      console.warn("PowerPoint slide render failed", error);
+    } finally {
+      pptxRendering = false;
+    }
+    return;
+  }
+
   slideImage.style.opacity = "0";
   window.setTimeout(() => {
     slideImage.onload = () => {
@@ -1026,21 +1148,21 @@ function showSlide(index) {
 
 function nextSlide() {
   if (!slideMode || currentSlideIndex >= slideDeck.length - 1) return;
-  showSlide(currentSlideIndex + 1);
+  void showSlide(currentSlideIndex + 1);
 }
 
 function previousSlide() {
   if (!slideMode || currentSlideIndex <= 0) return;
-  showSlide(currentSlideIndex - 1);
+  void showSlide(currentSlideIndex - 1);
 }
 
 function trackSlideSwipe(hand, timestamp) {
-  if (!slideMode || sourceVideo.srcObject || performance.now() - lastSlideSwipeAt < 600) return;
+  if (!slideMode || sourceVideo.srcObject || performance.now() - lastSlideSwipeAt < 600) return false;
   const center = screenPointFromLandmark(palmCenter(hand));
   slideSwipeHistory.push({ ...center, timestamp });
   slideSwipeHistory = slideSwipeHistory.filter((point) => timestamp - point.timestamp <= 240);
 
-  if (slideSwipeHistory.length < 3) return;
+  if (slideSwipeHistory.length < 3) return false;
 
   const first = slideSwipeHistory[0];
   const last = slideSwipeHistory[slideSwipeHistory.length - 1];
@@ -1050,41 +1172,97 @@ function trackSlideSwipe(hand, timestamp) {
 
   if (Math.abs(velocityX) > 600 && Math.abs(velocityY) < 200) {
     lastSlideSwipeAt = performance.now();
+    palmMenuBlockedUntil = lastSlideSwipeAt + 900;
     slideSwipeHistory = [];
     if (velocityX < 0) {
       nextSlide();
     } else {
       previousSlide();
     }
+    return true;
   }
+  return false;
 }
 
 function revokeSlideUrls() {
-  slideDeck.forEach((slide) => URL.revokeObjectURL(slide.url));
+  slideDeck.forEach((slide) => {
+    if (slide.url) URL.revokeObjectURL(slide.url);
+  });
+  pptxViewer?.destroy?.();
+  pptxViewer = null;
 }
 
-function loadSlides(files) {
-  const images = [...files].filter((file) => file.type.startsWith("image/"));
-  if (!images.length) {
-    setStatus("Choose PNG, JPG, or WebP slide images");
+async function loadPowerPoint(file) {
+  if (!window.PptxViewJS?.PPTXViewer) throw new Error("PowerPoint renderer did not load");
+  pptxCanvas.width = 1280;
+  pptxCanvas.height = 720;
+  pptxViewer = new window.PptxViewJS.PPTXViewer({
+    canvas: pptxCanvas,
+    enableThumbnails: false,
+    autoRenderFirstSlide: false,
+    autoChartRerenderDelayMs: 200
+  });
+  await pptxViewer.loadFile(file);
+  const count = pptxViewer.getSlideCount();
+  if (!count) throw new Error("No slides were found in this PowerPoint file");
+  slideDeck = Array.from({ length: count }, (_, index) => ({ name: `${file.name} — slide ${index + 1}` }));
+  slideSourceType = "pptx";
+}
+
+async function loadSlides(files) {
+  const selectedFiles = [...files];
+  const powerPoints = selectedFiles.filter((file) => file.name.toLowerCase().endsWith(".pptx"));
+  const images = selectedFiles.filter((file) => file.type.startsWith("image/"));
+
+  if (powerPoints.length) {
+    if (selectedFiles.length !== 1) {
+      setStatus("Choose one PowerPoint file at a time");
+      slidesInput.value = "";
+      return;
+    }
+    slidesBtn.disabled = true;
+    slidesBtn.textContent = "Loading PowerPoint...";
+    setStatus("Reading PowerPoint locally");
+    showActionNotice("Opening the PowerPoint in your browser. The file stays on this device.");
+  }
+
+  if (!images.length && !powerPoints.length) {
+    setStatus("Choose a PPTX, PNG, JPG, or WebP file");
     slidesInput.value = "";
     return;
   }
 
-  sourceVideo.srcObject?.getTracks().forEach((track) => track.stop());
-  sourceVideo.srcObject = null;
-  revokeSlideUrls();
-  slideDeck = images.map((file) => ({
-    name: file.name,
-    url: URL.createObjectURL(file)
-  }));
-  currentSlideIndex = 0;
-  setSlideMode(true);
-  resetZoom();
-  clearDrawing();
-  emptyState.classList.add("hidden");
-  showSlide(0);
-  slidesInput.value = "";
+  try {
+    sourceVideo.srcObject?.getTracks().forEach((track) => track.stop());
+    sourceVideo.srcObject = null;
+    revokeSlideUrls();
+    if (powerPoints.length) {
+      await loadPowerPoint(powerPoints[0]);
+    } else {
+      slideSourceType = "images";
+      slideDeck = images.map((file) => ({
+        name: file.name,
+        url: URL.createObjectURL(file)
+      }));
+    }
+    currentSlideIndex = 0;
+    setSlideMode(true);
+    resetZoom();
+    clearDrawing();
+    emptyState.classList.add("hidden");
+    await showSlide(0);
+    showActionNotice(powerPoints.length ? "PowerPoint loaded. Use palm swipes or arrow keys to change slides." : "Slides loaded.");
+  } catch (error) {
+    slideDeck = [];
+    setSlideMode(false);
+    setStatus(`Could not open PowerPoint: ${String(error?.message || error).slice(0, 72)}`);
+    showActionNotice("This PowerPoint could not be rendered. Try saving it again as PPTX or export it to slide images.", true);
+    console.warn("Slide loading failed", error);
+  } finally {
+    slidesBtn.disabled = false;
+    slidesBtn.textContent = "Load Slides";
+    slidesInput.value = "";
+  }
 }
 
 function clearDrawing() {
@@ -1115,11 +1293,18 @@ function handleClearHold() {
   }
 }
 
-function processHands(hands, timestamp) {
+function processHands(hands, timestamp, handedness = []) {
+  const handMode = updateTwoHandMode(hands, handedness);
+
   if (!hands.length) {
     clapActive = false;
     pinchZoomStart = null;
     panStart = null;
+    lastPrimaryWrist = null;
+    if (handMode.active) {
+      hideGestureCursor();
+      return;
+    }
     if (performance.now() - lastHandAt > 500) {
       transitionTo(State.IDLE);
       handReadout.textContent = "Searching";
@@ -1131,44 +1316,63 @@ function processHands(hands, timestamp) {
   if (!onboarding.hidden) dismissOnboarding();
   handSeenFrames += 1;
   lastHandAt = performance.now();
-  handReadout.textContent = "Tracking";
 
-  const clapping = isClapGesture(hands);
-  if (clapping && !clapActive) {
-    clapActive = true;
-    handleClapEvent();
+  if (handMode.active) {
+    handReadout.textContent = handMode.validPair ? "Two hands" : "Releasing";
+    clearGestureDrawingState();
+    hideGestureCursor();
+
+    if (!handMode.validPair) return;
+
+    const pair = hands.slice(0, 2);
+    const clapping = isClapGesture(pair);
+    if (clapping && !clapActive) {
+      clapActive = true;
+      handleClapEvent();
+      return;
+    }
+    if (!clapping) clapActive = false;
+    if (clapping) return;
+
+    if (gestureLocked) {
+      transitionTo(State.LOCKED);
+      return;
+    }
+
+    if (isClearHoldGesture(pair)) {
+      zoomCandidateFrames = 0;
+      pinchZoomStart = null;
+      handleClearHold();
+      return;
+    }
+
+    resetClearHold();
+    if (isTwoHandPinchZoom(pair)) {
+      zoomCandidateFrames += 1;
+      if (zoomCandidateFrames >= 5) handleTwoHandPinchZoom(pair);
+      else setStatus("Hold both pinches to start zoom");
+      return;
+    }
+
+    zoomCandidateFrames = 0;
+    pinchZoomStart = null;
+    setGestureStateLabel("Two hands");
+    setStatus("Pinch with both hands to zoom");
     return;
   }
-  if (!clapping) {
-    clapActive = false;
-  }
-  if (clapping) {
-    return;
-  }
+
+  clapActive = false;
+  zoomCandidateFrames = 0;
+  pinchZoomStart = null;
+  resetClearHold();
+  handReadout.textContent = hands.length > 1 ? "Confirming" : "Tracking";
 
   if (gestureLocked) {
     transitionTo(State.LOCKED);
     return;
   }
 
-  if (isClearHoldGesture(hands)) {
-    clearGestureDrawingState();
-    hideGestureCursor();
-    handleClearHold();
-    return;
-  }
-
-  if (isTwoHandPinchZoom(hands)) {
-    clearGestureDrawingState();
-    handleTwoHandPinchZoom(hands);
-    return;
-  }
-
-  pinchZoomStart = null;
-
-  resetClearHold();
-
-  const hand = hands[0];
+  const hand = selectPrimaryHand(hands);
   const gesture = classifyGesture(hand);
   const cursorPoint = pointFromLandmark(hand[5], timestamp, "cursor");
   const drawingPoint = pointFromLandmark(hand[8], timestamp, "draw");
@@ -1181,7 +1385,13 @@ function processHands(hands, timestamp) {
   }
 
   if (gesture === Gesture.PALM) {
-    trackSlideSwipe(hand, timestamp);
+    if (trackSlideSwipe(hand, timestamp)) {
+      palmHoldAnchor = null;
+      transitionTo(State.TRACKING, true);
+      setGestureStateLabel("Slide changed");
+      hideGestureCursor();
+      return;
+    }
   } else {
     slideSwipeHistory = [];
   }
@@ -1246,7 +1456,19 @@ function runStateBehavior(cursorPoint, drawingPoint, gesture = Gesture.NONE) {
   if (gestureState === State.PAUSED) {
     panStart = null;
     setPausedCursor(cursorPoint);
-    if (gesture === Gesture.PALM && performance.now() - stateEnteredAt >= 500) {
+    if (!palmHoldAnchor) palmHoldAnchor = { ...cursorPoint };
+    const palmMovement = Math.hypot(cursorPoint.x - palmHoldAnchor.x, cursorPoint.y - palmHoldAnchor.y);
+    if (palmMovement > 34) {
+      palmHoldAnchor = { ...cursorPoint };
+      stateEnteredAt = performance.now();
+      palmMenuBlockedUntil = Math.max(palmMenuBlockedUntil, performance.now() + 220);
+      setGestureStateLabel("Palm moving");
+    }
+    if (
+      gesture === Gesture.PALM
+      && performance.now() >= palmMenuBlockedUntil
+      && performance.now() - stateEnteredAt >= 500
+    ) {
       openRadialMenu(cursorPoint);
       transitionTo(State.MENU, true);
     }
@@ -1300,6 +1522,9 @@ function finishDrawing(point) {
     startPoint = null;
   }
   clearGestureDrawingState();
+  pendingState = State.TRACKING;
+  pendingFrames = 0;
+  resetFilters();
 }
 
 function drawActiveTool(point) {
@@ -1329,7 +1554,7 @@ function runGestureLoop() {
     try {
       const timestamp = performance.now();
       const results = handLandmarker.detectForVideo(cameraVideo, timestamp);
-      processHands(results.landmarks || [], timestamp);
+      processHands(results.landmarks || [], timestamp, results.handedness || []);
     } catch (error) {
       console.warn("Hand tracking frame failed", error);
       setStatus("Hand tracking recovering");
@@ -1368,6 +1593,11 @@ async function startHandControl() {
     await loadHandLandmarker();
     handModeOn = true;
     handSeenFrames = 0;
+    twoHandMode = false;
+    twoHandCandidateFrames = 0;
+    twoHandLostFrames = 0;
+    zoomCandidateFrames = 0;
+    lastPrimaryWrist = null;
     resetFilters();
     transitionTo(State.TRACKING, true);
     handBtn.textContent = "Stop Hand Control";
@@ -1409,6 +1639,11 @@ function stopHandControl() {
   clapTimer = null;
   clapActive = false;
   lastClapAt = 0;
+  twoHandMode = false;
+  twoHandCandidateFrames = 0;
+  twoHandLostFrames = 0;
+  zoomCandidateFrames = 0;
+  lastPrimaryWrist = null;
   clearGestureDrawingState();
   hideGestureCursor();
   cameraStream?.getTracks().forEach((track) => track.stop());
@@ -1450,12 +1685,19 @@ function commitShape(to) {
 }
 
 function selectTool(tool) {
+  const toolChanged = activeTool !== tool;
   activeTool = tool;
   toolButtons.forEach((button) => button.classList.toggle("active", button.dataset.tool === tool));
   toolReadout.textContent = tool.charAt(0).toUpperCase() + tool.slice(1);
   if (radialCore) radialCore.textContent = toolReadout.textContent;
   if (tool !== "laser") laserPositions = [];
   clearPreview();
+  if (toolChanged) {
+    clearGestureDrawingState();
+    pendingState = State.TRACKING;
+    pendingFrames = 0;
+    resetFilters();
+  }
   updateGestureIndicator();
   setStatus(`${toolReadout.textContent} online`);
 }
