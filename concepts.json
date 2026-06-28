@@ -42,5 +42,20 @@
     "status": "Live",
     "path": "6g-monetization-engine/",
     "color": "#00FF41"
+  },
+  {
+    "id": "vaccsafe-community-animal-network",
+    "title": "VaccSafe",
+    "subtitle": "Community Animal Identity & Care Network",
+    "description": "An interactive concept for QRB's low-cost community animal platform — connecting QR identity, sightings, vaccination history, care cases, volunteer operations, and live Google Sheet-powered insights.",
+    "tags": [
+      "Civic Tech",
+      "Animal Welfare",
+      "QR Identity",
+      "Google Sheets"
+    ],
+    "status": "Live",
+    "path": "vaccsafe-community-animal-network/",
+    "color": "#33E6B5"
   }
 ]

@@ -1,0 +1,727 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>QRB VaccSafe — Community Animal Network Concept</title>
+  <meta name="description" content="Interactive concept walkthrough for QRB's VaccSafe community animal identity and care network." />
+  <style>
+    :root {
+      --bg: #171b1d;
+      --shell: #202426;
+      --card: #292e2f;
+      --card-2: #313738;
+      --card-3: #3a4040;
+      --ink: #f5f7f6;
+      --muted: #aab1af;
+      --faint: #737b79;
+      --line: rgba(255,255,255,.09);
+      --mint: #33e6b5;
+      --mint-2: #16bd91;
+      --amber: #ffbf66;
+      --red: #ff7c72;
+      --blue: #7fc4ff;
+      --shadow: 0 28px 80px rgba(0,0,0,.28);
+      --r-xl: 32px;
+      --r-lg: 24px;
+      --r-md: 18px;
+      --font: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--ink);
+      font-family: var(--font);
+      background:
+        linear-gradient(rgba(23,27,29,.88), rgba(23,27,29,.96)),
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='900' height='600' viewBox='0 0 900 600'%3E%3Cg fill='none' stroke='%23666f6d' stroke-width='2' opacity='.28'%3E%3Cpath d='M-30 100C170 20 235 180 410 105S700 18 950 82'/%3E%3Cpath d='M-20 460C190 350 250 520 470 420s250-150 470-65'/%3E%3Cpath d='M90-30c80 140 40 230 145 320s48 210 120 350'/%3E%3Cpath d='M680-50c-30 110 35 180-20 280s50 210-10 410'/%3E%3Cpath d='M0 260h900M430 0v600'/%3E%3Cpath d='M300 0l-40 600M800 0L710 600'/%3E%3C/g%3E%3C/svg%3E");
+      background-attachment: fixed;
+    }
+    button, input, select, textarea { font: inherit; }
+    button, a { -webkit-tap-highlight-color: transparent; }
+    button { color: inherit; }
+    a { color: inherit; }
+    svg { display: block; }
+
+    .app-shell { width: min(1520px, calc(100% - 48px)); margin: 28px auto 64px; }
+    .topbar {
+      position: sticky; top: 16px; z-index: 30;
+      min-height: 82px;
+      display: grid; grid-template-columns: 280px 1fr 290px; align-items: center;
+      padding: 12px 18px 12px 26px;
+      background: rgba(41,46,47,.94);
+      border: 1px solid rgba(255,255,255,.04);
+      border-radius: 999px;
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(18px);
+    }
+    .brand { display: flex; align-items: center; gap: 14px; min-width: 0; }
+    .qrb-mark { width: 58px; color: var(--ink); text-align: center; flex: 0 0 auto; }
+    .qrb-mark strong { display: block; font-size: 20px; font-weight: 500; letter-spacing: .43em; transform: translateX(4px); }
+    .qrb-mark i { display: block; width: 22px; height: 1px; margin: 6px auto 0; background: var(--muted); }
+    .brand-copy b { display: block; color: var(--mint); font-size: 19px; letter-spacing: -.03em; }
+    .brand-copy span { display: block; margin-top: 3px; color: var(--muted); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; }
+
+    .nav { display: flex; justify-content: center; gap: 4px; min-width: 0; }
+    .nav-btn {
+      border: 0; background: transparent; color: var(--muted); cursor: pointer;
+      padding: 14px 18px; border-radius: 999px; white-space: nowrap; transition: .2s ease;
+    }
+    .nav-btn:hover { color: var(--ink); background: rgba(255,255,255,.04); }
+    .nav-btn.active { color: var(--ink); background: #59605f; box-shadow: inset 0 0 0 1px rgba(255,255,255,.05); }
+    .nav-btn.build-link.active { background: var(--mint); color: #11221c; }
+
+    .top-actions { display: flex; justify-content: flex-end; align-items: center; gap: 8px; }
+    .icon-button, .pill-button, .primary-button, .ghost-button {
+      border: 1px solid var(--line); cursor: pointer; transition: .2s ease;
+    }
+    .icon-button { width: 44px; height: 44px; display: grid; place-items: center; border-radius: 50%; background: rgba(255,255,255,.04); }
+    .icon-button:hover, .ghost-button:hover { border-color: rgba(51,230,181,.45); background: rgba(51,230,181,.08); }
+    .pill-button { padding: 12px 16px; border-radius: 999px; background: rgba(255,255,255,.04); }
+    .primary-button { padding: 13px 18px; border-radius: 999px; border-color: transparent; color: #0e211b; background: var(--mint); font-weight: 750; box-shadow: 0 9px 24px rgba(51,230,181,.14); }
+    .primary-button:hover { transform: translateY(-1px); background: #5cf0c7; }
+    .ghost-button { padding: 11px 15px; border-radius: 999px; color: var(--muted); background: transparent; }
+    .small-button { padding: 8px 11px; font-size: 12px; }
+    .button-row { display: flex; flex-wrap: wrap; align-items: center; gap: 9px; }
+    .avatar { width: 38px; height: 38px; border-radius: 50%; display: grid; place-items: center; color: #09241b; background: linear-gradient(145deg, #b4ffe9, var(--mint)); font-weight: 800; }
+    .admin-label { display: flex; align-items: center; gap: 9px; color: var(--muted); font-size: 14px; }
+
+    .walkthrough {
+      display: flex; align-items: center; gap: 14px; margin: 18px 8px 20px;
+      color: var(--muted); font-size: 13px;
+    }
+    .walkthrough::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--mint); box-shadow: 0 0 0 6px rgba(51,230,181,.08); }
+    .walkthrough strong { color: var(--ink); font-weight: 650; }
+    .walkthrough .spacer { flex: 1; }
+    .tour-progress { display: flex; gap: 5px; }
+    .tour-progress i { width: 28px; height: 3px; border-radius: 9px; background: rgba(255,255,255,.12); }
+    .tour-progress i.on { background: var(--mint); }
+
+    main { min-height: 760px; }
+    .view { display: none; animation: viewIn .35s ease both; }
+    .view.active { display: block; }
+    @keyframes viewIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+    .page-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 20px; padding: 10px 8px 22px; }
+    .eyebrow { color: var(--mint); font-size: 12px; font-weight: 800; letter-spacing: .13em; text-transform: uppercase; }
+    h1, h2, h3, p { margin-top: 0; }
+    h1 { margin-bottom: 7px; font-size: clamp(34px, 4.2vw, 64px); line-height: .98; letter-spacing: -.055em; font-weight: 520; }
+    h2 { margin-bottom: 8px; font-size: clamp(24px, 2vw, 34px); line-height: 1.08; letter-spacing: -.04em; font-weight: 520; }
+    h3 { margin-bottom: 8px; font-size: 18px; line-height: 1.2; font-weight: 620; letter-spacing: -.02em; }
+    .subhead { margin-bottom: 0; color: var(--muted); line-height: 1.6; max-width: 700px; }
+
+    .grid { display: grid; grid-template-columns: repeat(12, 1fr); gap: 18px; }
+    .card {
+      position: relative; overflow: hidden; padding: 26px;
+      background: linear-gradient(145deg, rgba(46,52,52,.98), rgba(39,44,45,.98));
+      border: 1px solid rgba(255,255,255,.04);
+      border-radius: var(--r-xl);
+      box-shadow: 0 15px 45px rgba(0,0,0,.15);
+    }
+    .card.soft { background: rgba(49,55,56,.8); }
+    .card-title { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; margin-bottom: 20px; }
+    .card-title p { margin: 5px 0 0; color: var(--muted); font-size: 13px; line-height: 1.5; }
+    .tag { display: inline-flex; align-items: center; gap: 7px; padding: 7px 10px; border: 1px solid var(--line); border-radius: 999px; color: var(--muted); font-size: 12px; white-space: nowrap; }
+    .tag.mint { color: var(--mint); border-color: rgba(51,230,181,.25); background: rgba(51,230,181,.07); }
+    .tag.red { color: #ffc0ba; border-color: rgba(255,124,114,.25); background: rgba(255,124,114,.09); }
+    .tag.amber { color: #ffda9f; border-color: rgba(255,191,102,.25); background: rgba(255,191,102,.09); }
+    .dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+    .muted { color: var(--muted); }
+    .fine { color: var(--faint); font-size: 12px; }
+    .metric { font-size: clamp(34px, 4vw, 58px); letter-spacing: -.06em; line-height: 1; font-weight: 450; }
+    .metric small { color: var(--muted); font-size: 15px; letter-spacing: 0; }
+
+    .map-card { grid-column: span 6; min-height: 575px; }
+    .trend-card { grid-column: span 3; min-height: 360px; }
+    .coverage-card { grid-column: span 3; min-height: 360px; }
+    .spotlight-card { grid-column: span 8; min-height: 350px; }
+    .queue-card { grid-column: span 4; min-height: 350px; }
+    .mini-metrics { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 14px; }
+    .mini-metric { padding: 17px; border-radius: 18px; background: rgba(255,255,255,.055); border: 1px solid rgba(255,255,255,.035); }
+    .mini-metric b { display: block; margin-top: 8px; font-size: 25px; font-weight: 520; letter-spacing: -.04em; }
+
+    .map-stage {
+      position: relative; height: 385px; margin: 4px -8px 0; overflow: hidden;
+      border-radius: 24px; background: #242a2a;
+      border: 1px solid rgba(255,255,255,.04);
+    }
+    .map-stage::after { content: ""; position: absolute; inset: 0; pointer-events: none; background: radial-gradient(circle at 42% 52%, rgba(51,230,181,.12), transparent 32%); }
+    .map-svg { width: 100%; height: 100%; opacity: .72; }
+    .map-svg path { fill: none; stroke: #6f7875; stroke-width: 2; opacity: .35; }
+    .map-svg path.major { stroke: #b5bcba; stroke-width: 3; opacity: .36; }
+    .map-svg path.water { stroke: #537d7b; stroke-width: 12; opacity: .22; }
+    .map-label { position: absolute; color: rgba(255,255,255,.28); font-size: 10px; letter-spacing: .05em; text-transform: uppercase; }
+    .marker {
+      position: absolute; z-index: 2; width: 42px; height: 42px; transform: translate(-50%,-50%);
+      display: grid; place-items: center; border: 1px solid var(--mint); border-radius: 50%;
+      color: #09241b; background: var(--mint); box-shadow: 0 0 0 8px rgba(51,230,181,.1), 0 8px 18px rgba(0,0,0,.25); cursor: pointer;
+    }
+    .marker.alert { color: #2a1110; background: var(--red); border-color: #ffb0a9; box-shadow: 0 0 0 8px rgba(255,124,114,.12); }
+    .marker.cluster { width: 48px; height: 48px; color: var(--ink); background: #545c5a; border-color: rgba(255,255,255,.35); }
+    .marker:hover { transform: translate(-50%,-50%) scale(1.08); }
+    .map-tools { position: absolute; top: 16px; right: 16px; z-index: 3; display: grid; gap: 7px; }
+    .map-tools button { width: 37px; height: 37px; border: 1px solid var(--line); border-radius: 50%; color: var(--ink); background: rgba(27,31,32,.85); cursor: pointer; }
+    .map-legend { position: absolute; left: 16px; bottom: 14px; z-index: 3; display: flex; gap: 8px; flex-wrap: wrap; }
+    .map-legend span { padding: 7px 9px; border-radius: 999px; color: var(--muted); font-size: 10px; background: rgba(22,26,27,.84); border: 1px solid var(--line); }
+
+    .chart-shell { height: 205px; margin: 30px -8px 0; position: relative; }
+    .chart-shell svg { width: 100%; height: 100%; overflow: visible; }
+    .chart-grid line { stroke: rgba(255,255,255,.08); stroke-dasharray: 4 7; }
+    .chart-line { fill: none; stroke: var(--mint); stroke-width: 5; stroke-linecap: round; stroke-linejoin: round; }
+    .chart-line.secondary { stroke: #8b9492; stroke-width: 3; }
+    .chart-area { fill: url(#chartFade); opacity: .52; }
+    .axis-row { display: flex; justify-content: space-between; margin-top: 8px; color: var(--faint); font-size: 10px; }
+    .bars { height: 210px; display: flex; align-items: flex-end; justify-content: space-between; gap: 10px; padding-top: 30px; }
+    .bar-wrap { flex: 1; text-align: center; color: var(--faint); font-size: 10px; }
+    .bar { position: relative; min-height: 20px; border-radius: 14px 14px 7px 7px; background: linear-gradient(to bottom, #b7c0bd, #4a5250); }
+    .bar.hot { background: linear-gradient(to bottom, var(--mint), #176c58); }
+    .bar b { position: absolute; top: -25px; left: 50%; transform: translateX(-50%); padding: 5px 7px; border-radius: 8px; color: var(--ink); background: #181c1d; font-size: 10px; font-weight: 500; }
+    .bar-wrap span { display: block; margin-top: 9px; }
+
+    .spotlight-layout { display: grid; grid-template-columns: 1.15fr 1fr; gap: 28px; height: 100%; }
+    .animal-photo { min-height: 290px; border-radius: 24px; background-size: cover; background-position: center; box-shadow: inset 0 0 0 1px rgba(255,255,255,.05); }
+    .photo-moti { background-image: linear-gradient(to top, rgba(5,10,8,.25), transparent 55%), url('https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&w=1100&q=86'); }
+    .photo-cat { background-image: linear-gradient(to top, rgba(5,10,8,.28), transparent 55%), url('https://images.unsplash.com/photo-1574158622682-e40e69881006?auto=format&fit=crop&w=1100&q=86'); }
+    .photo-dog2 { background-image: linear-gradient(to top, rgba(5,10,8,.28), transparent 55%), url('https://images.unsplash.com/photo-1537151608828-ea2b11777ee8?auto=format&fit=crop&w=1100&q=86'); }
+    .photo-cow { background-image: linear-gradient(to top, rgba(5,10,8,.28), transparent 55%), url('https://images.unsplash.com/photo-1560493676-04071c5f467b?auto=format&fit=crop&w=1100&q=86'); }
+    .spotlight-copy { display: flex; flex-direction: column; justify-content: center; }
+    .profile-facts { display: grid; grid-template-columns: repeat(2,1fr); gap: 18px; margin: 20px 0; }
+    .profile-facts span { display: block; color: var(--faint); font-size: 11px; }
+    .profile-facts b { display: block; margin-top: 5px; color: var(--muted); font-weight: 500; font-size: 14px; }
+    .health-row { display: flex; flex-wrap: wrap; gap: 7px; }
+
+    .queue-list { display: grid; gap: 10px; }
+    .queue-item { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 12px; padding: 13px; border-radius: 18px; background: rgba(255,255,255,.045); }
+    .queue-icon { width: 37px; height: 37px; display: grid; place-items: center; border-radius: 13px; color: #24110f; background: var(--red); }
+    .queue-icon.amber { color: #2d1c07; background: var(--amber); }
+    .queue-icon.mint { color: #06241b; background: var(--mint); }
+    .queue-item b { display: block; font-size: 13px; font-weight: 600; }
+    .queue-item small { color: var(--faint); }
+
+    .explore-layout { display: grid; grid-template-columns: minmax(0,1.5fr) minmax(320px,.72fr); gap: 18px; }
+    .explore-map { min-height: 660px; }
+    .explore-map .map-stage { height: 530px; }
+    .side-panel { display: grid; gap: 18px; align-content: start; }
+    .quick-action { padding: 20px; border-radius: 24px; border: 1px solid var(--line); background: rgba(255,255,255,.035); cursor: pointer; transition: .2s ease; }
+    .quick-action:hover { transform: translateY(-2px); border-color: rgba(51,230,181,.35); }
+    .quick-action strong { display: block; margin: 12px 0 5px; font-size: 18px; }
+    .quick-action p { margin-bottom: 0; color: var(--muted); font-size: 13px; line-height: 1.5; }
+    .action-icon { width: 42px; height: 42px; display: grid; place-items: center; border-radius: 15px; color: #09251b; background: var(--mint); }
+    .location-list { display: grid; gap: 9px; }
+    .location-item { display: flex; align-items: center; justify-content: space-between; padding: 13px 0; border-bottom: 1px solid var(--line); }
+    .location-item:last-child { border-bottom: 0; }
+    .location-item b { font-size: 13px; font-weight: 550; }
+    .location-item span { color: var(--faint); font-size: 12px; }
+
+    .toolbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 18px; }
+    .search { position: relative; flex: 1 1 300px; }
+    .search input, .field input, .field select, .field textarea, .toolbar select {
+      width: 100%; color: var(--ink); background: #262b2c; border: 1px solid var(--line); border-radius: 15px; outline: none;
+    }
+    .search input { padding: 14px 18px 14px 45px; }
+    .search::before { content: "⌕"; position: absolute; left: 17px; top: 10px; color: var(--muted); font-size: 24px; }
+    .toolbar select { width: auto; min-width: 155px; padding: 13px 34px 13px 14px; }
+    .animal-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+    .animal-card { overflow: hidden; padding: 0; cursor: pointer; transition: .25s ease; }
+    .animal-card:hover { transform: translateY(-4px); border-color: rgba(51,230,181,.25); }
+    .animal-card .animal-photo { min-height: 205px; border-radius: 0; }
+    .animal-card-body { padding: 18px; }
+    .animal-card-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+    .animal-card h3 { margin-bottom: 4px; font-size: 20px; }
+    .animal-card p { margin: 0; color: var(--muted); font-size: 12px; }
+    .animal-card-foot { display: flex; justify-content: space-between; gap: 8px; margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--line); color: var(--faint); font-size: 11px; }
+
+    .ops-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; align-items: start; }
+    .ops-column { min-height: 480px; padding: 20px; border-radius: 28px; background: rgba(42,47,48,.72); border: 1px solid rgba(255,255,255,.04); }
+    .ops-heading { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+    .ops-heading b { font-size: 15px; }
+    .count { min-width: 27px; height: 27px; display: grid; place-items: center; border-radius: 50%; color: var(--muted); background: rgba(255,255,255,.07); font-size: 11px; }
+    .case-list { display: grid; gap: 10px; }
+    .case-card { padding: 16px; border-radius: 19px; background: #303637; border: 1px solid var(--line); }
+    .case-card-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+    .case-card h3 { margin: 14px 0 7px; font-size: 15px; }
+    .case-card p { margin-bottom: 13px; color: var(--muted); font-size: 12px; line-height: 1.5; }
+    .case-meta { display: flex; align-items: center; justify-content: space-between; gap: 10px; color: var(--faint); font-size: 10px; }
+    .advance-case { margin-top: 13px; width: 100%; }
+
+    .insight-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 18px; }
+    .insight-card { min-height: 360px; }
+    .donut-layout { display: grid; grid-template-columns: 190px 1fr; gap: 28px; align-items: center; margin-top: 25px; }
+    .donut { width: 180px; aspect-ratio: 1; position: relative; display: grid; place-items: center; border-radius: 50%; background: conic-gradient(var(--mint) 0 73%, #525a58 73% 88%, var(--amber) 88% 100%); }
+    .donut::after { content: ""; width: 125px; aspect-ratio: 1; border-radius: 50%; background: var(--card); }
+    .donut strong { position: absolute; z-index: 1; font-size: 34px; font-weight: 480; letter-spacing: -.05em; }
+    .legend-list { display: grid; gap: 14px; }
+    .legend-item { display: flex; align-items: center; justify-content: space-between; color: var(--muted); font-size: 13px; }
+    .legend-name { display: flex; align-items: center; gap: 9px; }
+    .legend-name i { width: 9px; height: 9px; border-radius: 50%; background: var(--mint); }
+    .locality-table { width: 100%; border-collapse: collapse; margin-top: 18px; }
+    .locality-table th, .locality-table td { text-align: left; padding: 13px 10px; border-bottom: 1px solid var(--line); font-size: 12px; }
+    .locality-table th { color: var(--faint); font-weight: 500; }
+    .locality-table td { color: var(--muted); }
+    .progress { height: 7px; overflow: hidden; border-radius: 99px; background: rgba(255,255,255,.08); }
+    .progress i { display: block; height: 100%; border-radius: inherit; background: var(--mint); }
+
+    .build-hero { padding: clamp(28px,5vw,68px); min-height: 405px; display: grid; grid-template-columns: 1.05fr .95fr; align-items: center; gap: 50px; }
+    .build-hero::before { content: ""; position: absolute; width: 500px; height: 500px; right: -220px; top: -230px; border-radius: 50%; background: rgba(51,230,181,.09); filter: blur(1px); }
+    .architecture { display: grid; gap: 10px; position: relative; }
+    .arch-row { display: grid; grid-template-columns: repeat(3,1fr); gap: 9px; }
+    .arch-node { padding: 14px; border-radius: 16px; color: var(--muted); background: rgba(255,255,255,.05); border: 1px solid var(--line); text-align: center; font-size: 12px; }
+    .arch-node.core { color: #0d231b; background: var(--mint); border-color: var(--mint); font-weight: 750; }
+    .arch-arrow { text-align: center; color: var(--mint); line-height: 1; }
+    .build-section { margin-top: 18px; }
+    .section-heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; padding: 22px 8px 16px; }
+    .section-heading p { margin: 0; color: var(--muted); max-width: 620px; font-size: 13px; line-height: 1.5; }
+    .stack-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 13px; }
+    .stack-card { min-height: 175px; padding: 21px; border-radius: 24px; background: var(--card); border: 1px solid rgba(255,255,255,.04); }
+    .stack-card .action-icon { margin-bottom: 30px; }
+    .stack-card b { display: block; margin-bottom: 6px; }
+    .stack-card span { display: block; color: var(--muted); font-size: 12px; line-height: 1.55; }
+    .stack-card em { display: inline-block; margin-top: 13px; color: var(--mint); font-style: normal; font-size: 11px; }
+    .schema-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 10px; }
+    .schema-table { padding: 18px; border-radius: 20px; background: rgba(255,255,255,.045); border: 1px solid var(--line); }
+    .schema-table b { color: var(--mint); font-size: 13px; }
+    .schema-table ul { margin: 13px 0 0; padding: 0; list-style: none; color: var(--muted); font-size: 11px; line-height: 1.8; }
+    .roadmap { display: grid; grid-template-columns: repeat(4,1fr); gap: 0; overflow: hidden; border-radius: 28px; border: 1px solid var(--line); }
+    .phase { padding: 24px; min-height: 245px; background: var(--card); border-right: 1px solid var(--line); }
+    .phase:last-child { border-right: 0; }
+    .phase small { color: var(--mint); font-weight: 800; letter-spacing: .08em; }
+    .phase h3 { margin-top: 28px; }
+    .phase ul { padding-left: 17px; color: var(--muted); font-size: 12px; line-height: 1.8; }
+    .cost-grid { display: grid; grid-template-columns: 1.1fr .9fr; gap: 18px; }
+    .cost-table { width: 100%; border-collapse: collapse; }
+    .cost-table td { padding: 15px 5px; border-bottom: 1px solid var(--line); color: var(--muted); font-size: 13px; }
+    .cost-table td:last-child { text-align: right; color: var(--mint); font-weight: 700; }
+    .dev-checklist { display: grid; gap: 10px; }
+    .check-item { display: grid; grid-template-columns: auto 1fr; gap: 11px; align-items: start; padding: 13px; border-radius: 16px; background: rgba(255,255,255,.045); }
+    .check { width: 22px; height: 22px; display: grid; place-items: center; border-radius: 50%; color: #08251b; background: var(--mint); font-size: 11px; font-weight: 900; }
+    .check-item b { display: block; font-size: 12px; }
+    .check-item span { display: block; margin-top: 3px; color: var(--faint); font-size: 11px; line-height: 1.4; }
+
+    .report-drawer, .profile-drawer {
+      position: fixed; z-index: 50; top: 0; right: 0; width: min(520px, 100%); height: 100vh; overflow-y: auto;
+      padding: 28px; background: #202526; border-left: 1px solid var(--line); box-shadow: -30px 0 90px rgba(0,0,0,.45);
+      transform: translateX(105%); transition: transform .35s cubic-bezier(.2,.8,.2,1);
+    }
+    .report-drawer.open, .profile-drawer.open { transform: none; }
+    .drawer-backdrop { position: fixed; z-index: 45; inset: 0; background: rgba(8,11,12,.65); opacity: 0; pointer-events: none; transition: .25s ease; backdrop-filter: blur(4px); }
+    .drawer-backdrop.open { opacity: 1; pointer-events: auto; }
+    .drawer-head { display: flex; justify-content: space-between; align-items: center; gap: 15px; margin-bottom: 25px; }
+    .drawer-head h2 { margin: 0; }
+    .stepper { display: flex; gap: 7px; margin: 25px 0; }
+    .stepper i { flex: 1; height: 4px; border-radius: 9px; background: rgba(255,255,255,.09); }
+    .stepper i.on { background: var(--mint); }
+    .report-step { display: none; }
+    .report-step.active { display: block; animation: viewIn .3s ease both; }
+    .upload-zone { min-height: 250px; display: grid; place-items: center; text-align: center; border: 1px dashed rgba(51,230,181,.35); border-radius: 24px; background: rgba(51,230,181,.045); cursor: pointer; }
+    .upload-zone .camera { width: 65px; height: 65px; display: grid; place-items: center; margin: 0 auto 15px; border-radius: 20px; color: #09251b; background: var(--mint); font-size: 25px; }
+    .upload-zone p { margin-bottom: 4px; }
+    .upload-zone small { color: var(--muted); }
+    .field { display: grid; gap: 7px; margin-bottom: 14px; }
+    .field label { color: var(--muted); font-size: 12px; }
+    .field input, .field select, .field textarea { padding: 13px 14px; }
+    .field textarea { min-height: 100px; resize: vertical; }
+    .choice-grid { display: grid; grid-template-columns: repeat(2,1fr); gap: 9px; }
+    .choice { padding: 15px; border: 1px solid var(--line); border-radius: 16px; color: var(--muted); background: rgba(255,255,255,.035); cursor: pointer; }
+    .choice.selected { color: var(--ink); border-color: var(--mint); background: rgba(51,230,181,.08); }
+    .location-capture { display: flex; align-items: center; gap: 12px; padding: 15px; border-radius: 17px; background: rgba(255,255,255,.045); }
+    .location-capture b { display: block; font-size: 13px; }
+    .location-capture span { color: var(--muted); font-size: 11px; }
+    .report-footer { position: sticky; bottom: -28px; display: flex; justify-content: space-between; gap: 12px; margin: 28px -28px -28px; padding: 18px 28px; background: rgba(32,37,38,.96); border-top: 1px solid var(--line); backdrop-filter: blur(12px); }
+
+    .profile-hero { position: relative; min-height: 275px; margin: -28px -28px 24px; border-radius: 0 0 28px 28px; background-size: cover; background-position: center; }
+    .profile-hero::after { content: ""; position: absolute; inset: 0; background: linear-gradient(to top, rgba(16,20,21,.92), transparent 65%); }
+    .profile-hero-copy { position: absolute; z-index: 1; left: 28px; right: 28px; bottom: 22px; display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; }
+    .profile-hero h2 { margin: 0; font-size: 33px; }
+    .profile-section { padding: 20px 0; border-bottom: 1px solid var(--line); }
+    .profile-section:last-child { border: 0; }
+    .profile-section h3 { font-size: 14px; }
+    .timeline { display: grid; gap: 0; }
+    .timeline-item { position: relative; display: grid; grid-template-columns: 26px 1fr; gap: 12px; padding: 0 0 20px; }
+    .timeline-item:not(:last-child)::before { content: ""; position: absolute; left: 10px; top: 20px; bottom: 0; width: 1px; background: var(--line); }
+    .timeline-dot { position: relative; z-index: 1; width: 21px; height: 21px; display: grid; place-items: center; border-radius: 50%; color: #08241b; background: var(--mint); font-size: 9px; }
+    .timeline-item b { display: block; font-size: 12px; }
+    .timeline-item span { display: block; margin-top: 3px; color: var(--muted); font-size: 11px; line-height: 1.45; }
+
+    .modal { position: fixed; z-index: 70; inset: 0; display: none; place-items: center; padding: 22px; background: rgba(8,11,12,.74); backdrop-filter: blur(7px); }
+    .modal.open { display: grid; }
+    .modal-card { width: min(430px,100%); padding: 27px; border-radius: 28px; background: #2a3030; border: 1px solid var(--line); box-shadow: var(--shadow); text-align: center; }
+    .scanner { width: 240px; aspect-ratio: 1; position: relative; margin: 20px auto; overflow: hidden; border-radius: 25px; background: #171b1c; border: 1px solid rgba(51,230,181,.28); }
+    .scanner::before { content: ""; position: absolute; inset: 23px; background: repeating-conic-gradient(#eaf7f2 0 25%, transparent 0 50%) 0 0/24px 24px; opacity: .78; }
+    .scanner::after { content: ""; position: absolute; left: 20px; right: 20px; height: 2px; top: 20px; background: var(--mint); box-shadow: 0 0 16px var(--mint); animation: scan 1.6s ease-in-out infinite alternate; }
+    @keyframes scan { to { transform: translateY(198px); } }
+    .scan-status { color: var(--mint); font-size: 13px; }
+
+    .tour-tip { position: fixed; z-index: 80; left: 50%; bottom: 28px; width: min(590px, calc(100% - 36px)); opacity: 0; pointer-events: none; transform: translate(-50%, 220%); padding: 18px; display: grid; grid-template-columns: auto 1fr auto; gap: 14px; align-items: center; background: #edf8f4; color: #18231f; border-radius: 22px; box-shadow: 0 28px 80px rgba(0,0,0,.4); transition: .35s ease; }
+    .tour-tip.open { opacity: 1; pointer-events: auto; transform: translate(-50%,0); }
+    .tour-number { width: 38px; height: 38px; display: grid; place-items: center; border-radius: 50%; background: var(--mint); font-weight: 850; }
+    .tour-tip b { display: block; font-size: 13px; }
+    .tour-tip span { display: block; margin-top: 3px; color: #5e6a66; font-size: 12px; line-height: 1.4; }
+    .tour-tip button { color: #11231c; border-color: rgba(0,0,0,.15); }
+    .toast { position: fixed; z-index: 90; left: 50%; top: 24px; opacity: 0; pointer-events: none; transform: translate(-50%,-220%); padding: 13px 18px; border-radius: 999px; color: #08231b; background: var(--mint); font-size: 13px; font-weight: 750; box-shadow: var(--shadow); transition: .3s ease; }
+    .toast.show { opacity: 1; transform: translate(-50%,0); }
+    .icon { width: 19px; height: 19px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+
+    @media (max-width: 1180px) {
+      .app-shell { width: min(100% - 28px, 1200px); }
+      .topbar { grid-template-columns: 220px 1fr 160px; border-radius: 30px; }
+      .brand-copy span, .admin-label span { display: none; }
+      .nav-btn { padding-inline: 12px; font-size: 13px; }
+      .map-card { grid-column: span 12; }
+      .trend-card, .coverage-card { grid-column: span 6; }
+      .spotlight-card { grid-column: span 7; }
+      .queue-card { grid-column: span 5; }
+      .animal-grid { grid-template-columns: repeat(3,1fr); }
+      .stack-grid, .schema-grid { grid-template-columns: repeat(2,1fr); }
+    }
+    @media (max-width: 850px) {
+      .app-shell { width: calc(100% - 18px); margin-top: 9px; }
+      .topbar { position: relative; top: 0; grid-template-columns: 1fr auto; padding: 12px 14px; border-radius: 25px; }
+      .nav { grid-column: 1 / -1; justify-content: flex-start; overflow-x: auto; padding-top: 10px; scrollbar-width: none; }
+      .nav::-webkit-scrollbar { display:none; }
+      .top-actions .pill-button, .admin-label { display: none; }
+      .walkthrough { margin-inline: 7px; }
+      .walkthrough .tour-progress { display: none; }
+      .page-head { align-items: flex-start; flex-direction: column; }
+      .page-head .button-row { width: 100%; }
+      .page-head .button-row button { flex: 1; }
+      .trend-card, .coverage-card, .spotlight-card, .queue-card { grid-column: span 12; }
+      .spotlight-layout, .explore-layout, .build-hero, .cost-grid { grid-template-columns: 1fr; }
+      .animal-grid { grid-template-columns: repeat(2,1fr); }
+      .ops-grid, .insight-grid { grid-template-columns: 1fr; }
+      .roadmap { grid-template-columns: repeat(2,1fr); }
+      .phase:nth-child(2) { border-right: 0; }
+      .phase { border-bottom: 1px solid var(--line); }
+      .donut-layout { grid-template-columns: 150px 1fr; }
+      .donut { width: 150px; }
+    }
+    @media (max-width: 560px) {
+      .brand-copy b { font-size: 16px; }
+      .qrb-mark { width: 48px; }
+      .top-actions { gap: 5px; }
+      .icon-button { width: 40px; height: 40px; }
+      .card { padding: 19px; border-radius: 25px; }
+      .map-card { min-height: auto; }
+      .map-stage { height: 350px; }
+      .mini-metrics, .profile-facts { grid-template-columns: 1fr 1fr; }
+      .mini-metrics .mini-metric:last-child { grid-column: span 2; }
+      .animal-grid { grid-template-columns: 1fr; }
+      .spotlight-layout { gap: 19px; }
+      .animal-photo { min-height: 245px; }
+      .stack-grid, .schema-grid, .roadmap { grid-template-columns: 1fr; }
+      .phase { border-right: 0; }
+      .arch-row { grid-template-columns: 1fr; }
+      .donut-layout { grid-template-columns: 1fr; justify-items: center; }
+      .choice-grid { grid-template-columns: 1fr; }
+      .tour-tip { grid-template-columns: auto 1fr; }
+      .tour-tip button { grid-column: 1/-1; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="brand" aria-label="QRB VaccSafe">
+        <div class="qrb-mark"><strong>qrb</strong><i></i></div>
+        <div class="brand-copy"><b>VaccSafe</b><span>Community animal network</span></div>
+      </div>
+      <nav class="nav" aria-label="Concept sections">
+        <button class="nav-btn active" data-view="overview">Overview</button>
+        <button class="nav-btn" data-view="explore">Explore</button>
+        <button class="nav-btn" data-view="animals">Animals</button>
+        <button class="nav-btn" data-view="operations">Care ops</button>
+        <button class="nav-btn" data-view="insights">Insights</button>
+        <button class="nav-btn build-link" data-view="build">How to build</button>
+      </nav>
+      <div class="top-actions">
+        <button class="pill-button" id="tourButton">5-minute tour</button>
+        <button class="icon-button" id="scanButton" aria-label="Scan QR" title="Scan QR">
+          <svg class="icon" viewBox="0 0 24 24"><path d="M4 8V4h4M16 4h4v4M20 16v4h-4M8 20H4v-4M8 8h3v3H8zM14 8h2v2h-2zM8 14h2v2H8zM13 13h3v3h-3z"/></svg>
+        </button>
+        <div class="admin-label"><div class="avatar">QA</div><span>QRB Admin</span></div>
+      </div>
+    </header>
+
+    <div class="walkthrough">
+      <strong>Concept walkthrough</strong>
+      <span>Follow one animal from first sighting to verified care.</span>
+      <span class="spacer"></span>
+      <div class="tour-progress" aria-hidden="true"><i class="on"></i><i></i><i></i><i></i><i></i></div>
+    </div>
+
+    <main>
+      <section class="view active" id="view-overview">
+        <div class="page-head">
+          <div><div class="eyebrow">Hyderabad pilot · live concept</div><h1>Every animal.<br>A living record.</h1><p class="subhead">One view for identity, health, sightings and care—built around the people already looking after community animals.</p></div>
+          <div class="button-row"><button class="ghost-button" data-view-link="build">See build plan</button><button class="primary-button report-trigger">+ Report an animal</button></div>
+        </div>
+
+        <div class="grid">
+          <article class="card map-card">
+            <div class="card-title"><div><h2>Community map</h2><p><span style="color:var(--mint)">● 342 recently verified</span><br>Last network update: 4 minutes ago</p></div><span class="tag">Banjara Hills pilot</span></div>
+            <div class="map-stage overview-map">
+              <svg class="map-svg" viewBox="0 0 700 430" preserveAspectRatio="none" aria-hidden="true">
+                <path class="water" d="M-20 345C140 315 210 360 350 330S550 270 730 300"/>
+                <path class="major" d="M-20 90C150 130 225 65 360 110s250 75 380 18"/><path class="major" d="M115-20c20 110 10 180 115 260s100 145 90 220"/><path class="major" d="M-30 250c130-30 210-4 330-45s245-75 430-30"/>
+                <path d="M40 25l600 370M5 175l670 110M190-20l290 470M520-20L380 450M40 395C200 250 360 290 690 60M0 330C120 200 230 230 365 115S590 20 720 35M55 80c90 55 80 155 200 190s190 10 390 105"/>
+                <path d="M85 0c80 80 30 145 100 215M330 0c-10 85 70 135 15 235M630 0c-70 90 10 160-60 250M0 150c100 15 135-45 230-20M280 420c65-120 165-100 250-190"/>
+              </svg>
+              <span class="map-label" style="left:12%;top:18%">Jubilee Hills</span><span class="map-label" style="left:58%;top:22%">Banjara Hills</span><span class="map-label" style="left:64%;top:72%">Somajiguda</span><span class="map-label" style="left:17%;top:67%">Film Nagar</span>
+              <button class="marker" style="left:41%;top:43%" data-animal="moti" title="Moti">🐕</button>
+              <button class="marker cluster" style="left:66%;top:35%" title="12 animals">12</button>
+              <button class="marker alert" style="left:72%;top:61%" data-animal="chutki" title="Chutki needs help">!</button>
+              <button class="marker" style="left:24%;top:57%" data-animal="kaali" title="Kaali">🐈</button>
+              <button class="marker cluster" style="left:34%;top:74%" title="8 animals">8</button>
+              <button class="marker" style="left:57%;top:78%" data-animal="gouri" title="Gouri">🐄</button>
+              <div class="map-tools"><button aria-label="Zoom in">+</button><button aria-label="Zoom out">−</button></div>
+              <div class="map-legend"><span>● Verified</span><span>● Needs help</span><span>12 Cluster</span></div>
+            </div>
+            <div class="mini-metrics">
+              <div class="mini-metric"><span class="muted">Registered animals</span><b>486</b></div>
+              <div class="mini-metric"><span class="muted">Open care cases</span><b>18</b></div>
+              <div class="mini-metric"><span class="muted">Active volunteers</span><b>42</b></div>
+            </div>
+          </article>
+
+          <article class="card trend-card">
+            <div class="card-title"><div><h2>Care activity</h2><p>Verified updates this week</p></div><span class="tag mint">+18%</span></div>
+            <div class="metric">126 <small>events</small></div>
+            <div class="chart-shell">
+              <svg viewBox="0 0 300 180" preserveAspectRatio="none" aria-label="Care activity trend">
+                <defs><linearGradient id="chartFade" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#33e6b5" stop-opacity=".42"/><stop offset="1" stop-color="#33e6b5" stop-opacity="0"/></linearGradient></defs>
+                <g class="chart-grid"><line x1="0" y1="35" x2="300" y2="35"/><line x1="0" y1="90" x2="300" y2="90"/><line x1="0" y1="145" x2="300" y2="145"/></g>
+                <path class="chart-area" d="M0 140C35 110 48 80 83 95s55-45 85-28 46-37 75-10 35-5 57-25V180H0z"/>
+                <path class="chart-line secondary" d="M0 135C30 150 55 70 90 115s58-3 83 22 45-52 72-25 32 9 55-12"/>
+                <path class="chart-line" d="M0 140C35 110 48 80 83 95s55-45 85-28 46-37 75-10 35-5 57-25"/>
+              </svg>
+              <div class="axis-row"><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span></div>
+            </div>
+          </article>
+
+          <article class="card coverage-card">
+            <div class="card-title"><div><h2>Coverage</h2><p>Vaccination by locality</p></div><span class="tag">June</span></div>
+            <div class="bars">
+              <div class="bar-wrap"><div class="bar" style="height:46%"><b>58%</b></div><span>Film<br>Nagar</span></div>
+              <div class="bar-wrap"><div class="bar" style="height:61%"><b>71%</b></div><span>Jubilee<br>Hills</span></div>
+              <div class="bar-wrap"><div class="bar hot" style="height:88%"><b>86%</b></div><span>Banjara<br>Hills</span></div>
+              <div class="bar-wrap"><div class="bar" style="height:69%"><b>74%</b></div><span>Somaji-<br>guda</span></div>
+            </div>
+          </article>
+
+          <article class="card spotlight-card">
+            <div class="spotlight-layout">
+              <div class="animal-photo photo-moti" role="img" aria-label="Community dog Moti"></div>
+              <div class="spotlight-copy"><span class="tag mint" style="width:max-content"><span class="dot"></span>Recently verified</span><h2 style="font-size:40px;margin-top:18px">Meet Moti</h2><p class="muted">A calm community dog cared for by residents near Road No. 12. His QR profile keeps every vaccination and sighting connected.</p><div class="profile-facts"><div><span>VaccSafe ID</span><b>VS-HYD-0011</b></div><div><span>Last seen</span><b>Today, 9:42 AM</b></div><div><span>Rabies vaccine</span><b>Valid until Feb 2027</b></div><div><span>Sterilisation</span><b>Verified · 2025</b></div></div><div class="button-row"><button class="primary-button profile-trigger" data-animal="moti">Open living record</button><button class="ghost-button scan-trigger">View QR</button></div></div>
+            </div>
+          </article>
+
+          <article class="card queue-card">
+            <div class="card-title"><div><h2>Needs attention</h2><p>Prioritised for QRB coordinators</p></div><span class="tag red">4 urgent</span></div>
+            <div class="queue-list">
+              <div class="queue-item"><div class="queue-icon">!</div><div><b>Injured dog · Somajiguda</b><small>Reported 12 min ago</small></div><span class="fine">P1</span></div>
+              <div class="queue-item"><div class="queue-icon amber">↻</div><div><b>Vaccination due · 7 animals</b><small>Jubilee Hills cluster</small></div><span class="fine">Due</span></div>
+              <div class="queue-item"><div class="queue-icon mint">✓</div><div><b>Clinic record to verify</b><small>Blue Cross partner update</small></div><span class="fine">6</span></div>
+              <div class="queue-item"><div class="queue-icon amber">⌖</div><div><b>Not seen for 14 days</b><small>Kaali · Film Nagar</small></div><span class="fine">Check</span></div>
+            </div>
+            <button class="ghost-button" style="width:100%;margin-top:15px" data-view-link="operations">Open care queue →</button>
+          </article>
+        </div>
+      </section>
+
+      <section class="view" id="view-explore">
+        <div class="page-head"><div><div class="eyebrow">Public experience</div><h1>Spot. Search.<br>Help nearby.</h1><p class="subhead">A citizen can contribute in under a minute—without learning a complicated system.</p></div><div class="button-row"><button class="ghost-button scan-trigger">▦ Scan a QR</button><button class="primary-button report-trigger">+ I spotted an animal</button></div></div>
+        <div class="explore-layout">
+          <article class="card explore-map">
+            <div class="card-title"><div><h2>Animals around you</h2><p>Approximate public locations protect animals and caregivers.</p></div><span class="tag mint">Near Banjara Hills</span></div>
+            <div class="map-stage">
+              <svg class="map-svg" viewBox="0 0 760 520" preserveAspectRatio="none" aria-hidden="true"><path class="water" d="M-20 390C200 350 260 450 470 370s160-50 330-25"/><path class="major" d="M-20 80c220 90 380-30 800 70M0 310c240-70 360 20 780-90M160-20c30 150-35 260 130 560M570-20c-80 150 60 300-30 560"/><path d="M0 160l760 170M0 470L720 20M40 0l400 520M250 0l-60 520M730 0L390 520M0 230c130 10 160-70 290-30s180 90 490 40M70 40c80 120 20 180 150 250s80 150 130 240M470 0c20 130-45 190 70 300s30 130 50 230"/></svg>
+              <span class="map-label" style="left:12%;top:16%">Jubilee Hills</span><span class="map-label" style="left:60%;top:18%">Banjara Hills</span><span class="map-label" style="left:60%;top:76%">Panjagutta</span>
+              <button class="marker" style="left:44%;top:42%" data-animal="moti">🐕</button><button class="marker" style="left:27%;top:50%" data-animal="kaali">🐈</button><button class="marker alert" style="left:70%;top:51%" data-animal="chutki">!</button><button class="marker cluster" style="left:61%;top:32%">12</button><button class="marker" style="left:52%;top:73%" data-animal="gouri">🐄</button><button class="marker cluster" style="left:29%;top:77%">8</button>
+              <div class="map-tools"><button>+</button><button>−</button><button title="My location">⌖</button></div><div class="map-legend"><span>Public view · locations are approximate</span></div>
+            </div>
+          </article>
+          <aside class="side-panel">
+            <article class="card"><div class="card-title"><div><h2>What do you need?</h2><p>Four simple starting points.</p></div></div><div style="display:grid;gap:10px"><div class="quick-action report-trigger"><div class="action-icon">＋</div><strong>I spotted an animal</strong><p>Photo, location and condition in under 60 seconds.</p></div><div class="quick-action scan-trigger"><div class="action-icon">▦</div><strong>Scan a QR</strong><p>Open the animal’s latest verified care record.</p></div><div class="quick-action" data-view-link="animals"><div class="action-icon">⌕</div><strong>Find an animal</strong><p>Search by ID, name, markings or locality.</p></div><div class="quick-action report-trigger"><div class="action-icon" style="background:var(--red)">!</div><strong>An animal needs help</strong><p>Raise a prioritised care case for QRB.</p></div></div></article>
+            <article class="card"><div class="card-title"><div><h3>Active neighbourhoods</h3><p>Animals verified in the last 30 days</p></div></div><div class="location-list"><div class="location-item"><div><b>Banjara Hills</b><br><span>34 volunteers</span></div><strong>126</strong></div><div class="location-item"><div><b>Jubilee Hills</b><br><span>21 volunteers</span></div><strong>89</strong></div><div class="location-item"><div><b>Film Nagar</b><br><span>12 volunteers</span></div><strong>64</strong></div></div></article>
+          </aside>
+        </div>
+      </section>
+
+      <section class="view" id="view-animals">
+        <div class="page-head"><div><div class="eyebrow">Persistent identity</div><h1>One profile.<br>Every update.</h1><p class="subhead">Search across animals, sightings and health records while preserving a chronological history.</p></div><button class="primary-button report-trigger">+ Register animal</button></div>
+        <div class="toolbar"><div class="search"><input id="animalSearch" type="search" placeholder="Search name, VaccSafe ID, locality or marking…" /></div><select id="speciesFilter"><option value="all">All species</option><option value="Dog">Dogs</option><option value="Cat">Cats</option><option value="Cow">Cows</option></select><select id="statusFilter"><option value="all">All statuses</option><option value="Verified">Recently verified</option><option value="Needs help">Needs help</option><option value="Check needed">Check needed</option></select></div>
+        <div class="animal-grid" id="animalGrid"></div>
+      </section>
+
+      <section class="view" id="view-operations">
+        <div class="page-head"><div><div class="eyebrow">Admin experience</div><h1>From report<br>to resolved care.</h1><p class="subhead">A visible workflow helps QRB coordinate volunteers, veterinarians and municipal partners.</p></div><div class="button-row"><button class="ghost-button">Export report</button><button class="primary-button report-trigger">+ Create care case</button></div></div>
+        <div class="mini-metrics" style="margin:0 0 18px"><div class="mini-metric"><span class="muted">Median response</span><b>48 min</b></div><div class="mini-metric"><span class="muted">Resolved this month</span><b>74</b></div><div class="mini-metric"><span class="muted">Partner vets online</span><b>3</b></div></div>
+        <div class="ops-grid" id="opsGrid"></div>
+      </section>
+
+      <section class="view" id="view-insights">
+        <div class="page-head"><div><div class="eyebrow">Google Sheet → live insight</div><h1>Measure care,<br>not just records.</h1><p class="subhead">A dynamic management view for QRB, partner clinics, donors and civic collaborators.</p></div><span class="tag mint"><span class="dot"></span>Synced 4 min ago</span></div>
+        <div class="insight-grid">
+          <article class="card insight-card"><div class="card-title"><div><h2>Vaccination status</h2><p>486 registered animals</p></div><span class="tag">All species</span></div><div class="donut-layout"><div class="donut"><strong>73%</strong></div><div class="legend-list"><div class="legend-item"><span class="legend-name"><i></i>Currently protected</span><b>355</b></div><div class="legend-item"><span class="legend-name"><i style="background:#525a58"></i>Record incomplete</span><b>73</b></div><div class="legend-item"><span class="legend-name"><i style="background:var(--amber)"></i>Due within 30 days</span><b>58</b></div></div></div></article>
+          <article class="card insight-card"><div class="card-title"><div><h2>Care outcomes</h2><p>Cases opened vs resolved</p></div><span class="tag mint">+24%</span></div><div class="chart-shell" style="height:245px"><svg viewBox="0 0 500 220" preserveAspectRatio="none"><g class="chart-grid"><line x1="0" y1="40" x2="500" y2="40"/><line x1="0" y1="105" x2="500" y2="105"/><line x1="0" y1="170" x2="500" y2="170"/></g><path class="chart-line secondary" d="M0 165C55 150 70 95 125 125s80-10 125 12 75-88 125-54 70-5 125-23"/><path class="chart-line" d="M0 185C55 176 78 145 125 155s82-55 125-25 73-66 125-42 80-62 125-35"/></svg><div class="axis-row"><span>Jan</span><span>Feb</span><span>Mar</span><span>Apr</span><span>May</span><span>Jun</span></div></div><div class="health-row"><span class="tag mint">— Resolved</span><span class="tag">— Opened</span></div></article>
+          <article class="card insight-card"><div class="card-title"><div><h2>Coverage by locality</h2><p>Where the next field drive matters</p></div><span class="tag">Looker-ready</span></div><table class="locality-table"><thead><tr><th>Locality</th><th>Animals</th><th>Vaccinated</th><th>Coverage</th></tr></thead><tbody><tr><td>Banjara Hills</td><td>126</td><td>108</td><td><div class="progress"><i style="width:86%"></i></div></td></tr><tr><td>Jubilee Hills</td><td>89</td><td>63</td><td><div class="progress"><i style="width:71%"></i></div></td></tr><tr><td>Somajiguda</td><td>78</td><td>58</td><td><div class="progress"><i style="width:74%"></i></div></td></tr><tr><td>Film Nagar</td><td>64</td><td>37</td><td><div class="progress"><i style="width:58%;background:var(--amber)"></i></div></td></tr></tbody></table></article>
+          <article class="card insight-card"><div class="card-title"><div><h2>Data quality</h2><p>Profiles needing administrator attention</p></div><span class="tag amber">31 checks</span></div><div class="queue-list" style="margin-top:30px"><div class="queue-item"><div class="queue-icon amber">◌</div><div><b>Missing multi-angle photo</b><small>16 animal profiles</small></div><strong>16</strong></div><div class="queue-item"><div class="queue-icon amber">⌖</div><div><b>Location not recently verified</b><small>More than 90 days old</small></div><strong>9</strong></div><div class="queue-item"><div class="queue-icon mint">↔</div><div><b>Possible duplicate profiles</b><small>Human review required</small></div><strong>6</strong></div></div></article>
+        </div>
+      </section>
+
+      <section class="view" id="view-build">
+        <article class="card build-hero">
+          <div><div class="eyebrow">Developer handoff</div><h1>Build small.<br>Prove value.<br>Grow safely.</h1><p class="subhead">A near-zero-cost pilot using QRB’s existing Google workflow—without adding a paid runtime AI dependency.</p><div class="button-row" style="margin-top:24px"><a class="primary-button" href="#build-stack" style="text-decoration:none">Review the stack</a><button class="ghost-button" data-view-link="overview">Return to concept</button></div></div>
+          <div class="architecture" aria-label="Recommended architecture">
+            <div class="arch-row"><div class="arch-node">Public mobile app</div><div class="arch-node">QR animal profile</div><div class="arch-node">Admin dashboard</div></div><div class="arch-arrow">↓ &nbsp;&nbsp;&nbsp;&nbsp; ↓ &nbsp;&nbsp;&nbsp;&nbsp; ↓</div><div class="arch-node core">Google Apps Script · API, permissions and automation</div><div class="arch-arrow">↓</div><div class="arch-row"><div class="arch-node">Google Sheets<br><span class="fine">records</span></div><div class="arch-node">Google Drive<br><span class="fine">photos</span></div><div class="arch-node">Looker Studio<br><span class="fine">reporting</span></div></div>
+          </div>
+        </article>
+
+        <div class="build-section" id="build-stack"><div class="section-heading"><div><div class="eyebrow">01 · Recommended stack</div><h2>Everything needed for the pilot</h2></div><p>Codex can produce the entire interface and Apps Script code. No LLM is required when the application is running.</p></div><div class="stack-grid"><div class="stack-card"><div class="action-icon">▤</div><b>Google Sheets</b><span>Initial database and operational source of truth.</span><em>₹0 · existing workflow</em></div><div class="stack-card"><div class="action-icon">⚙</div><b>Apps Script</b><span>Backend, public API, permissions, email and automation.</span><em>₹0 · quota based</em></div><div class="stack-card"><div class="action-icon">◫</div><b>HTML · CSS · JS</b><span>Responsive public app and admin operations dashboard.</span><em>₹0 · Codex-built</em></div><div class="stack-card"><div class="action-icon">⌁</div><b>MapLibre + OSM</b><span>Animal discovery map with approximate public locations.</span><em>₹0 · pilot use</em></div><div class="stack-card"><div class="action-icon">▦</div><b>QR browser tools</b><span>Stable profile links and mobile camera scanning.</span><em>₹0 · client-side</em></div><div class="stack-card"><div class="action-icon">▰</div><b>Google Drive</b><span>Animal photos and supporting treatment documents.</span><em>₹0 · within storage</em></div><div class="stack-card"><div class="action-icon">⌁</div><b>Chart.js</b><span>Fast operational charts inside the custom dashboard.</span><em>₹0 · open source</em></div><div class="stack-card"><div class="action-icon">↗</div><b>Looker Studio</b><span>Read-only reporting for management, donors and partners.</span><em>₹0 · Sheet connector</em></div></div></div>
+
+        <div class="build-section"><div class="section-heading"><div><div class="eyebrow">02 · Google Sheet model</div><h2>Eight clean tabs—not one giant table</h2></div><p>History should be appended as events. Existing animal records should not be overwritten whenever something changes.</p></div><article class="card"><div class="schema-grid"><div class="schema-table"><b>Animals</b><ul><li>AnimalID · Species · Name</li><li>Sex · Age band · Markings</li><li>Status · Locality · Visibility</li></ul></div><div class="schema-table"><b>Photos</b><ul><li>PhotoID · AnimalID</li><li>DriveURL · ViewAngle</li><li>UploadedAt · Verified</li></ul></div><div class="schema-table"><b>Updates</b><ul><li>UpdateID · AnimalID</li><li>Type · Date · Notes</li><li>ReporterID · Verification</li></ul></div><div class="schema-table"><b>MedicalEvents</b><ul><li>EventID · AnimalID</li><li>Vaccine · Batch · DueDate</li><li>VetID · CertificateURL</li></ul></div><div class="schema-table"><b>CareCases</b><ul><li>CaseID · AnimalID · Priority</li><li>Status · Assignee · Outcome</li><li>OpenedAt · ClosedAt</li></ul></div><div class="schema-table"><b>Users</b><ul><li>UserID · Email · Role</li><li>Locality · Organisation</li><li>Active · LastSeen</li></ul></div><div class="schema-table"><b>Locations</b><ul><li>LocationID · Locality</li><li>LatPublic · LngPublic</li><li>LatPrivate · LngPrivate</li></ul></div><div class="schema-table"><b>AuditLog</b><ul><li>ActionID · UserID</li><li>Action · EntityID</li><li>Timestamp · Before · After</li></ul></div></div></article></div>
+
+        <div class="build-section"><div class="section-heading"><div><div class="eyebrow">03 · Delivery roadmap</div><h2>A practical sequence for QRB</h2></div><p>The public app grows only after administrators can trust the underlying records and workflow.</p></div><div class="roadmap"><div class="phase"><small>WEEK 01</small><h3>Data foundation</h3><ul><li>Audit current Sheet</li><li>Map and clean columns</li><li>Create stable IDs</li><li>Define public/private fields</li></ul></div><div class="phase"><small>WEEKS 02–03</small><h3>Core web app</h3><ul><li>Search and profiles</li><li>QR retrieval</li><li>Timeline and updates</li><li>Admin permissions</li></ul></div><div class="phase"><small>WEEKS 04–05</small><h3>Field workflow</h3><ul><li>Fast sighting form</li><li>Photo and GPS</li><li>Care case assignment</li><li>Mobile QA</li></ul></div><div class="phase"><small>WEEK 06+</small><h3>Pilot and learn</h3><ul><li>100–300 animals</li><li>15–25 volunteers</li><li>Two vet partners</li><li>Measure care outcomes</li></ul></div></div></div>
+
+        <div class="build-section"><div class="section-heading"><div><div class="eyebrow">04 · Cost and guardrails</div><h2>Designed to stay near zero</h2></div><p>Google quotas are fine for a pilot. Heavy city-wide usage becomes the trigger for a database migration—not an assumption on day one.</p></div><div class="cost-grid"><article class="card"><table class="cost-table"><tbody><tr><td>Google Sheets database</td><td>₹0</td></tr><tr><td>Apps Script backend + hosting</td><td>₹0</td></tr><tr><td>Custom web interface</td><td>₹0 runtime</td></tr><tr><td>Charts, maps and QR libraries</td><td>₹0</td></tr><tr><td>Looker Studio reporting</td><td>₹0</td></tr><tr><td>Existing qrb-mc.com domain</td><td>Already owned</td></tr></tbody></table></article><article class="card"><div class="card-title"><div><h3>Non-negotiable build checks</h3><p>Small controls that prevent expensive problems.</p></div></div><div class="dev-checklist"><div class="check-item"><div class="check">✓</div><div><b>Separate public and admin data</b><span>Never publish the raw Google Sheet or private coordinates.</span></div></div><div class="check-item"><div class="check">✓</div><div><b>Append history, do not erase it</b><span>Every medical event and status change remains auditable.</span></div></div><div class="check-item"><div class="check">✓</div><div><b>Human-confirm possible duplicates</b><span>Photo matching may suggest; an authorised user decides.</span></div></div><div class="check-item"><div class="check">✓</div><div><b>Cache dashboards and watch quotas</b><span>Avoid re-reading the full Sheet on every interaction.</span></div></div></div></article></div></div>
+      </section>
+    </main>
+  </div>
+
+  <div class="drawer-backdrop" id="drawerBackdrop"></div>
+  <aside class="report-drawer" id="reportDrawer" aria-label="Report an animal">
+    <div class="drawer-head"><div><div class="eyebrow">Fast field report</div><h2 id="reportTitle">I spotted an animal</h2></div><button class="icon-button drawer-close" aria-label="Close">×</button></div>
+    <div class="stepper"><i class="on"></i><i></i><i></i></div>
+    <div class="report-step active" data-step="0"><div class="upload-zone" id="uploadZone"><div><div class="camera">⌁</div><p><strong>Take or add a photo</strong></p><small>Front or side view works best</small></div></div><div class="choice-grid" style="margin-top:15px"><button class="choice selected">Looks safe</button><button class="choice">Needs help</button></div></div>
+    <div class="report-step" data-step="1"><div class="field"><label>Animal type</label><select><option>Dog</option><option>Cat</option><option>Cow</option><option>Other</option></select></div><div class="field"><label>What did you observe?</label><select><option>Sighting</option><option>Injury or illness</option><option>Vaccination</option><option>Sterilisation</option><option>Missing / found</option></select></div><div class="field"><label>Short note (optional)</label><textarea placeholder="Colour, markings, behaviour, nearby landmark…"></textarea></div><div class="location-capture"><div class="action-icon">⌖</div><div><b>Location captured</b><span>Road No. 12, Banjara Hills · approximate public pin</span></div></div></div>
+    <div class="report-step" data-step="2"><span class="tag mint">Possible match found</span><div class="card" style="margin-top:14px;padding:15px"><div style="display:grid;grid-template-columns:90px 1fr;gap:15px;align-items:center"><div class="animal-photo photo-moti" style="min-height:100px;border-radius:16px"></div><div><h3 style="margin-bottom:4px">Is this Moti?</h3><p class="muted" style="font-size:12px;margin-bottom:9px">VS-HYD-0011 · seen 220 m away today</p><div class="health-row"><span class="tag mint">89% possible match</span></div></div></div></div><p class="fine" style="margin-top:13px">A person always confirms identity before histories are joined.</p></div>
+    <div class="report-footer"><button class="ghost-button" id="reportBack">Back</button><button class="primary-button" id="reportNext">Continue</button></div>
+  </aside>
+
+  <aside class="profile-drawer" id="profileDrawer" aria-label="Animal profile"><div id="profileContent"></div></aside>
+
+  <div class="modal" id="scanModal" role="dialog" aria-modal="true" aria-label="QR scanner"><div class="modal-card"><button class="icon-button" id="scanClose" style="margin-left:auto">×</button><div class="eyebrow">QR retrieval</div><h2 style="margin-top:8px">Point at an animal tag</h2><div class="scanner"></div><div class="scan-status" id="scanStatus">Looking for a VaccSafe QR…</div></div></div>
+
+  <div class="tour-tip" id="tourTip"><div class="tour-number">1</div><div><b>Network overview</b><span>See the animal map, active care queue and coverage gaps at a glance.</span></div><button class="ghost-button small-button" id="tourNext">Next →</button></div>
+  <div class="toast" id="toast">Saved</div>
+
+  <script>
+    const animals = [
+      {id:'moti',name:'Moti',vaccId:'VS-HYD-0011',species:'Dog',sex:'Male',age:'Approx. 4 years',locality:'Banjara Hills',status:'Verified',className:'photo-moti',lastSeen:'Today · 9:42 AM',vaccination:'Protected until Feb 2027',sterilisation:'Verified · Aug 2025',markings:'Tan coat, white chest, notched left ear',temperament:'Calm · community friendly'},
+      {id:'kaali',name:'Kaali',vaccId:'VS-HYD-0074',species:'Cat',sex:'Female',age:'Approx. 2 years',locality:'Film Nagar',status:'Check needed',className:'photo-cat',lastSeen:'14 days ago',vaccination:'Record incomplete',sterilisation:'Not confirmed',markings:'Black coat, white paws',temperament:'Cautious · feeder familiar'},
+      {id:'chutki',name:'Chutki',vaccId:'VS-HYD-0128',species:'Dog',sex:'Female',age:'Approx. 3 years',locality:'Somajiguda',status:'Needs help',className:'photo-dog2',lastSeen:'Today · 11:08 AM',vaccination:'Protected until Nov 2026',sterilisation:'Verified · Mar 2025',markings:'Brown coat, white muzzle',temperament:'Gentle · currently injured'},
+      {id:'gouri',name:'Gouri',vaccId:'VS-HYD-0192',species:'Cow',sex:'Female',age:'Approx. 6 years',locality:'Panjagutta',status:'Verified',className:'photo-cow',lastSeen:'Yesterday · 6:15 PM',vaccination:'Veterinary review complete',sterilisation:'Not applicable',markings:'White and brown patches, blue neck band',temperament:'Calm · roadside feeder familiar'},
+      {id:'sheru',name:'Sheru',vaccId:'VS-HYD-0214',species:'Dog',sex:'Male',age:'Approx. 5 years',locality:'Jubilee Hills',status:'Verified',className:'photo-moti',lastSeen:'Yesterday · 8:30 AM',vaccination:'Protected until Jan 2027',sterilisation:'Verified · 2024',markings:'Tan coat, dark muzzle',temperament:'Alert · friendly with feeders'},
+      {id:'mishti',name:'Mishti',vaccId:'VS-HYD-0247',species:'Cat',sex:'Female',age:'Approx. 1 year',locality:'Banjara Hills',status:'Verified',className:'photo-cat',lastSeen:'Today · 7:20 AM',vaccination:'First dose recorded',sterilisation:'Due for review',markings:'Grey tabby, green eyes',temperament:'Social · adoptable'}
+    ];
+
+    let cases = [
+      {id:'C-104',title:'Injured front paw',animal:'Chutki · VS-HYD-0128',place:'Somajiguda',priority:'Urgent',stage:'reported',time:'12 min ago'},
+      {id:'C-103',title:'Seven vaccinations due',animal:'Road No. 45 cluster',place:'Jubilee Hills',priority:'Scheduled',stage:'reported',time:'2 hrs ago'},
+      {id:'C-101',title:'Not seen for 14 days',animal:'Kaali · VS-HYD-0074',place:'Film Nagar',priority:'Check',stage:'reported',time:'Yesterday'},
+      {id:'C-099',title:'Clinic assessment underway',animal:'Brownie · VS-HYD-0091',place:'Banjara Hills',priority:'Assigned',stage:'assigned',time:'Today · 9:10 AM'},
+      {id:'C-096',title:'ABC drive · 11 dogs',animal:'Green Valley colony',place:'Banjara Hills',priority:'Assigned',stage:'assigned',time:'Today · 7:30 AM'},
+      {id:'C-092',title:'Rabies vaccination recorded',animal:'Moti · VS-HYD-0011',place:'Banjara Hills',priority:'Verified',stage:'resolved',time:'24 Jun'},
+      {id:'C-088',title:'Wound treatment completed',animal:'Laila · VS-HYD-0062',place:'Somajiguda',priority:'Closed',stage:'resolved',time:'21 Jun'}
+    ];
+
+    const timeline = {
+      moti:[['Today · 9:42 AM','Sighting verified','Healthy and resting near usual feeder point.'],['24 Jun 2026','Rabies vaccination','Nobivac Rabies · batch R-2461 · verified by partner vet.'],['12 Mar 2026','General health check','Weight stable. No visible injury or skin condition.'],['18 Aug 2025','Sterilisation recorded','ABC completion verified by QRB administrator.']],
+      kaali:[['14 Jun 2026','Last reported sighting','Seen near Film Nagar temple lane.'],['03 Apr 2026','Feeding update','Regular feeder confirmed healthy appetite.'],['12 Feb 2026','Profile created','Identity created from two community sightings.']],
+      chutki:[['Today · 11:08 AM','Help report opened','Possible front-paw injury. Volunteer assigned.'],['03 May 2026','Sighting verified','Healthy; staying within usual territory.'],['18 Nov 2025','Rabies vaccination','Vaccination verified by partner clinic.']],
+      gouri:[['Yesterday · 6:15 PM','Sighting verified','Near usual Panjagutta market area.'],['14 May 2026','Veterinary observation','Hoof and general condition checked.'],['22 Jan 2026','Profile created','Community animal identity established.']]
+    };
+
+    const navButtons = [...document.querySelectorAll('.nav-btn')];
+    const views = [...document.querySelectorAll('.view')];
+    function showView(name){
+      views.forEach(v=>v.classList.toggle('active',v.id===`view-${name}`));
+      navButtons.forEach(b=>b.classList.toggle('active',b.dataset.view===name));
+      window.scrollTo({top:0,behavior:'smooth'});
+    }
+    navButtons.forEach(b=>b.addEventListener('click',()=>showView(b.dataset.view)));
+    document.querySelectorAll('[data-view-link]').forEach(b=>b.addEventListener('click',()=>showView(b.dataset.viewLink)));
+
+    function statusTag(status){
+      const cls=status==='Verified'?'mint':status==='Needs help'?'red':'amber';
+      return `<span class="tag ${cls}"><span class="dot"></span>${status==='Verified'?'Recently verified':status}</span>`;
+    }
+    function renderAnimals(){
+      const q=(document.getElementById('animalSearch').value||'').toLowerCase();
+      const species=document.getElementById('speciesFilter').value;
+      const status=document.getElementById('statusFilter').value;
+      const filtered=animals.filter(a=>(species==='all'||a.species===species)&&(status==='all'||a.status===status)&&`${a.name} ${a.vaccId} ${a.locality} ${a.markings}`.toLowerCase().includes(q));
+      document.getElementById('animalGrid').innerHTML=filtered.map(a=>`<article class="card animal-card" data-animal="${a.id}"><div class="animal-photo ${a.className}"></div><div class="animal-card-body"><div class="animal-card-top"><div><h3>${a.name}</h3><p>${a.species} · ${a.sex} · ${a.locality}</p></div>${statusTag(a.status)}</div><div class="animal-card-foot"><span>${a.vaccId}</span><span>Last seen ${a.lastSeen.split('·')[0]}</span></div></div></article>`).join('')||`<article class="card" style="grid-column:1/-1;text-align:center"><h3>No matching animals</h3><p class="muted">Try a different ID, locality or filter.</p></article>`;
+      bindAnimalClicks();
+    }
+    ['animalSearch','speciesFilter','statusFilter'].forEach(id=>document.getElementById(id).addEventListener('input',renderAnimals));
+
+    const backdrop=document.getElementById('drawerBackdrop');
+    const profileDrawer=document.getElementById('profileDrawer');
+    const reportDrawer=document.getElementById('reportDrawer');
+    function closeDrawers(){ profileDrawer.classList.remove('open'); reportDrawer.classList.remove('open'); backdrop.classList.remove('open'); }
+    backdrop.addEventListener('click',closeDrawers);
+    document.querySelectorAll('.drawer-close').forEach(b=>b.addEventListener('click',closeDrawers));
+
+    function openProfile(id){
+      const a=animals.find(x=>x.id===id)||animals[0];
+      const events=timeline[a.id]||timeline.moti;
+      profileDrawer.innerHTML=`<div class="profile-hero ${a.className}"><button class="icon-button profile-close" aria-label="Close" style="position:absolute;z-index:2;right:18px;top:18px;background:rgba(20,24,24,.72)">×</button><div class="profile-hero-copy"><div>${statusTag(a.status)}<h2>${a.name}</h2><span class="muted">${a.species} · ${a.locality}</span></div><button class="ghost-button scan-trigger" style="background:rgba(20,24,24,.65)">▦ QR</button></div></div><div class="profile-section"><div class="profile-facts"><div><span>VaccSafe ID</span><b>${a.vaccId}</b></div><div><span>Last seen</span><b>${a.lastSeen}</b></div><div><span>Sex · age</span><b>${a.sex} · ${a.age}</b></div><div><span>Temperament</span><b>${a.temperament}</b></div><div><span>Vaccination</span><b>${a.vaccination}</b></div><div><span>Sterilisation</span><b>${a.sterilisation}</b></div></div><span class="fine">IDENTIFYING MARKS</span><p class="muted" style="margin:6px 0 0;font-size:13px">${a.markings}</p></div><div class="profile-section"><div class="card-title"><div><h3>Living history</h3><p>Verified events remain linked to one identity.</p></div><button class="ghost-button small-button report-trigger">+ Update</button></div><div class="timeline">${events.map((e,i)=>`<div class="timeline-item"><div class="timeline-dot">${i===0?'✓':'•'}</div><div><b>${e[1]}</b><span>${e[0]}<br>${e[2]}</span></div></div>`).join('')}</div></div><div class="button-row" style="padding-top:20px"><button class="primary-button report-trigger">Add sighting</button><button class="ghost-button">Flag a concern</button></div>`;
+      profileDrawer.classList.add('open'); backdrop.classList.add('open');
+      profileDrawer.querySelector('.profile-close').addEventListener('click',closeDrawers);
+      profileDrawer.querySelectorAll('.report-trigger').forEach(b=>b.addEventListener('click',()=>{profileDrawer.classList.remove('open');openReport();}));
+      profileDrawer.querySelectorAll('.scan-trigger').forEach(b=>b.addEventListener('click',()=>{closeDrawers();openScanner();}));
+    }
+    function bindAnimalClicks(){ document.querySelectorAll('[data-animal]').forEach(el=>{el.onclick=()=>openProfile(el.dataset.animal);}); }
+
+    let reportStep=0;
+    function setReportStep(step){
+      reportStep=Math.max(0,Math.min(2,step));
+      reportDrawer.querySelectorAll('.report-step').forEach((s,i)=>s.classList.toggle('active',i===reportStep));
+      reportDrawer.querySelectorAll('.stepper i').forEach((s,i)=>s.classList.toggle('on',i<=reportStep));
+      document.getElementById('reportBack').style.visibility=reportStep===0?'hidden':'visible';
+      document.getElementById('reportNext').textContent=reportStep===2?'Confirm match & submit':'Continue';
+    }
+    function openReport(){ closeDrawers(); setReportStep(0); reportDrawer.classList.add('open'); backdrop.classList.add('open'); }
+    document.querySelectorAll('.report-trigger').forEach(b=>b.addEventListener('click',openReport));
+    reportDrawer.querySelector('.drawer-close').addEventListener('click',closeDrawers);
+    reportDrawer.querySelectorAll('.choice').forEach(b=>b.addEventListener('click',()=>{reportDrawer.querySelectorAll('.choice').forEach(x=>x.classList.remove('selected'));b.classList.add('selected');}));
+    document.getElementById('uploadZone').addEventListener('click',()=>{document.getElementById('uploadZone').innerHTML='<div><div class="camera">✓</div><p><strong>Photo ready</strong></p><small>Clear side view · 1.8 MB</small></div>';});
+    document.getElementById('reportBack').addEventListener('click',()=>setReportStep(reportStep-1));
+    document.getElementById('reportNext').addEventListener('click',()=>{if(reportStep<2){setReportStep(reportStep+1);}else{closeDrawers();showToast('Sighting added to Moti’s living record');}});
+
+    const scanModal=document.getElementById('scanModal');
+    let scanTimer;
+    function openScanner(){ scanModal.classList.add('open'); document.getElementById('scanStatus').textContent='Looking for a VaccSafe QR…'; clearTimeout(scanTimer); scanTimer=setTimeout(()=>{document.getElementById('scanStatus').textContent='QR found · VS-HYD-0011'; setTimeout(()=>{scanModal.classList.remove('open');openProfile('moti');},650);},1300); }
+    document.getElementById('scanButton').addEventListener('click',openScanner);
+    document.querySelectorAll('.scan-trigger').forEach(b=>b.addEventListener('click',openScanner));
+    document.getElementById('scanClose').addEventListener('click',()=>scanModal.classList.remove('open'));
+    scanModal.addEventListener('click',e=>{if(e.target===scanModal)scanModal.classList.remove('open');});
+
+    function renderCases(){
+      const stages=[['reported','Reported'],['assigned','Assigned'],['resolved','Resolved']];
+      document.getElementById('opsGrid').innerHTML=stages.map(([key,label],stageIndex)=>{const list=cases.filter(c=>c.stage===key);return `<section class="ops-column"><div class="ops-heading"><b>${label}</b><span class="count">${list.length}</span></div><div class="case-list">${list.map(c=>`<article class="case-card"><div class="case-card-top"><span class="tag ${c.priority==='Urgent'?'red':c.priority==='Verified'||c.priority==='Closed'?'mint':'amber'}">${c.priority}</span><span class="fine">${c.id}</span></div><h3>${c.title}</h3><p>${c.animal}<br>${c.place}</p><div class="case-meta"><span>${c.time}</span><span>${key==='reported'?'Unassigned':key==='assigned'?'QRB field team':'Outcome logged'}</span></div>${stageIndex<2?`<button class="ghost-button small-button advance-case" data-case="${c.id}">${stageIndex===0?'Assign care →':'Mark resolved →'}</button>`:''}</article>`).join('')}</div></section>`}).join('');
+      document.querySelectorAll('.advance-case').forEach(b=>b.addEventListener('click',()=>{const c=cases.find(x=>x.id===b.dataset.case);c.stage=c.stage==='reported'?'assigned':'resolved';c.priority=c.stage==='assigned'?'Assigned':'Closed';renderCases();showToast(c.stage==='assigned'?'Case assigned to field team':'Care outcome recorded');}));
+    }
+
+    const tourSteps=[
+      {view:'overview',title:'Network overview',copy:'See the animal map, active care queue and coverage gaps at a glance.'},
+      {view:'explore',title:'Public participation',copy:'Citizens start with four simple actions. Reporting a sighting takes under one minute.'},
+      {view:'animals',title:'Persistent identity',copy:'Every QR opens one living profile with health, sightings and verified history.'},
+      {view:'operations',title:'Care operations',copy:'Reports become assigned cases, then measurable care outcomes.'},
+      {view:'build',title:'Developer handoff',copy:'The final page explains the architecture, Google Sheet model, stack, cost and delivery roadmap.'}
+    ];
+    let tourIndex=0;
+    const tourTip=document.getElementById('tourTip');
+    function showTourStep(){const s=tourSteps[tourIndex];showView(s.view);tourTip.querySelector('.tour-number').textContent=tourIndex+1;tourTip.querySelector('b').textContent=s.title;tourTip.querySelector('span').textContent=s.copy;document.getElementById('tourNext').textContent=tourIndex===tourSteps.length-1?'Finish':'Next →';document.querySelectorAll('.tour-progress i').forEach((x,i)=>x.classList.toggle('on',i<=tourIndex));tourTip.classList.add('open');}
+    document.getElementById('tourButton').addEventListener('click',()=>{tourIndex=0;showTourStep();});
+    document.getElementById('tourNext').addEventListener('click',()=>{if(tourIndex<tourSteps.length-1){tourIndex++;showTourStep();}else{tourTip.classList.remove('open');showToast('Walkthrough complete · ready for QRB developers');}});
+    function showToast(message){const t=document.getElementById('toast');t.textContent=message;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2600);}
+
+    document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeDrawers();scanModal.classList.remove('open');tourTip.classList.remove('open');}});
+    renderAnimals(); renderCases(); bindAnimalClicks();
+  </script>
+</body>
+</html>
+
