@@ -1,0 +1,1016 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Time Travel — Multi-Agent Premortem Intelligence</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg-deep:#080c18;--bg-card:#0f1628;--bg-card-hover:#162040;
+  --accent-cyan:#00e5ff;--accent-red:#ff3b6b;--accent-amber:#ffd166;
+  --accent-purple:#b066ff;--accent-green:#7cff6b;
+  --text-primary:#e0e6f0;--text-muted:#5a6a8a;--border:#1a2744;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{
+  font-family:'Inter',sans-serif;background:var(--bg-deep);color:var(--text-primary);
+  line-height:1.6;overflow-x:hidden;
+  background-image:radial-gradient(circle at 1px 1px,rgba(0,229,255,.06) 1px,transparent 0);
+  background-size:40px 40px;
+}
+.container{max-width:1200px;margin:0 auto;padding:0 24px}
+
+/* HERO */
+#hero{
+  min-height:90vh;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  text-align:center;position:relative;padding:60px 24px;
+}
+#hero::before{
+  content:'';position:absolute;top:50%;left:50%;width:600px;height:600px;
+  background:radial-gradient(circle,rgba(0,229,255,.08) 0%,transparent 70%);
+  transform:translate(-50%,-50%);pointer-events:none;
+}
+.hero-title{
+  font-family:'Orbitron',sans-serif;font-size:clamp(2.5rem,8vw,5rem);font-weight:900;
+  letter-spacing:.15em;text-transform:uppercase;
+  background:linear-gradient(135deg,var(--accent-cyan),var(--accent-purple));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  background-clip:text;margin-bottom:16px;
+}
+.hero-subtitle{
+  font-family:'Orbitron',sans-serif;font-size:clamp(.85rem,2vw,1.1rem);
+  color:var(--accent-cyan);letter-spacing:.3em;text-transform:uppercase;margin-bottom:24px;
+}
+.hero-desc{font-size:1.1rem;color:var(--text-muted);max-width:640px;margin-bottom:40px}
+.hero-cta{
+  font-family:'Orbitron',sans-serif;font-size:.85rem;letter-spacing:.2em;
+  padding:14px 36px;background:transparent;border:1px solid var(--accent-cyan);
+  color:var(--accent-cyan);cursor:pointer;text-transform:uppercase;
+  transition:all .3s;position:relative;overflow:hidden;
+}
+.hero-cta:hover{background:rgba(0,229,255,.1);box-shadow:0 0 30px rgba(0,229,255,.3)}
+
+/* PROCESS STRIP */
+#process{padding:60px 24px;border-top:1px solid var(--border);border-bottom:1px solid var(--border)}
+.process-title{
+  font-family:'Orbitron',sans-serif;font-size:.75rem;letter-spacing:.3em;
+  color:var(--text-muted);text-align:center;margin-bottom:32px;text-transform:uppercase;
+}
+.process-steps{display:flex;align-items:center;justify-content:center;gap:0;flex-wrap:wrap}
+.process-step{
+  display:flex;flex-direction:column;align-items:center;gap:8px;
+  padding:12px 20px;position:relative;min-width:120px;
+}
+.process-step .step-icon{
+  width:48px;height:48px;border-radius:50%;border:2px solid var(--border);
+  display:flex;align-items:center;justify-content:center;transition:all .4s;
+}
+.process-step.active .step-icon{border-color:var(--accent-cyan);box-shadow:0 0 20px rgba(0,229,255,.4)}
+.process-step.done .step-icon{border-color:var(--accent-green);box-shadow:0 0 15px rgba(124,255,107,.3)}
+.process-step .step-icon svg{width:22px;height:22px;fill:var(--text-muted);transition:fill .4s}
+.process-step.active .step-icon svg{fill:var(--accent-cyan)}
+.process-step.done .step-icon svg{fill:var(--accent-green)}
+.process-step .step-label{font-size:.7rem;letter-spacing:.15em;color:var(--text-muted);text-transform:uppercase;transition:color .4s}
+.process-step.active .step-label{color:var(--accent-cyan)}
+.process-step.done .step-label{color:var(--accent-green)}
+.process-connector{width:40px;height:2px;background:var(--border);margin-bottom:28px;transition:background .4s}
+.process-connector.done{background:var(--accent-green)}
+
+/* SCENARIO CARDS */
+#scenarios{padding:80px 24px}
+.section-title{
+  font-family:'Orbitron',sans-serif;font-size:1.4rem;letter-spacing:.2em;
+  text-align:center;margin-bottom:12px;text-transform:uppercase;
+}
+.section-sub{text-align:center;color:var(--text-muted);margin-bottom:48px;font-size:.95rem}
+.scenario-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:24px;max-width:1100px;margin:0 auto}
+.scenario-card{
+  background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:32px;
+  cursor:pointer;transition:all .3s;position:relative;overflow:hidden;
+}
+.scenario-card:hover{border-color:var(--accent-cyan);transform:translateY(-4px);box-shadow:0 8px 40px rgba(0,229,255,.1)}
+.scenario-card .card-icon{width:48px;height:48px;margin-bottom:16px}
+.scenario-card .card-icon svg{width:48px;height:48px}
+.scenario-card h3{font-family:'Orbitron',sans-serif;font-size:1rem;letter-spacing:.1em;margin-bottom:4px}
+.scenario-card .card-sub{font-size:.8rem;color:var(--accent-cyan);margin-bottom:12px}
+.scenario-card .card-desc{font-size:.85rem;color:var(--text-muted);margin-bottom:16px}
+.scenario-card .card-tags{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px}
+.scenario-card .tag{
+  font-size:.65rem;padding:4px 10px;border-radius:20px;border:1px solid var(--border);
+  color:var(--text-muted);letter-spacing:.05em;
+}
+.scenario-card .card-btn{
+  font-family:'Orbitron',sans-serif;font-size:.65rem;letter-spacing:.2em;
+  padding:10px 20px;background:transparent;border:1px solid var(--accent-cyan);
+  color:var(--accent-cyan);cursor:pointer;text-transform:uppercase;width:100%;
+  transition:all .3s;
+}
+.scenario-card .card-btn:hover{background:rgba(0,229,255,.1)}
+
+/* MISSION CONTROL */
+#mission{padding:40px 24px;display:none}
+.mission-header{
+  display:flex;align-items:center;justify-content:space-between;margin-bottom:32px;
+  padding-bottom:16px;border-bottom:1px solid var(--border);
+}
+.mission-title{font-family:'Orbitron',sans-serif;font-size:1rem;letter-spacing:.15em}
+.mission-back{
+  font-family:'Orbitron',sans-serif;font-size:.6rem;letter-spacing:.2em;
+  padding:8px 16px;background:transparent;border:1px solid var(--border);
+  color:var(--text-muted);cursor:pointer;text-transform:uppercase;transition:all .3s;
+}
+.mission-back:hover{border-color:var(--accent-cyan);color:var(--accent-cyan)}
+.stage-container{min-height:60vh}
+.advance-btn{
+  font-family:'Orbitron',sans-serif;font-size:.7rem;letter-spacing:.2em;
+  padding:14px 32px;background:rgba(0,229,255,.1);border:1px solid var(--accent-cyan);
+  color:var(--accent-cyan);cursor:pointer;text-transform:uppercase;
+  display:block;margin:40px auto 0;transition:all .3s;
+}
+.advance-btn:hover{background:rgba(0,229,255,.2);box-shadow:0 0 30px rgba(0,229,255,.3)}
+
+/* STAGE 1: PLAN */
+.plan-grid{display:grid;grid-template-columns:1fr 280px;gap:24px}
+@media(max-width:768px){.plan-grid{grid-template-columns:1fr}}
+.plan-terminal{
+  background:#0a0e14;border:1px solid var(--border);border-radius:8px;
+  padding:24px;font-family:'JetBrains Mono',monospace;font-size:.8rem;
+  line-height:1.8;color:#8ba4c4;overflow-x:auto;
+}
+.plan-terminal .plan-key{color:var(--accent-cyan)}
+.plan-terminal .plan-val{color:var(--text-primary)}
+.plan-terminal .plan-head{color:var(--accent-amber);font-weight:700}
+.ai-patterns{background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:20px}
+.ai-patterns h4{
+  font-family:'Orbitron',sans-serif;font-size:.65rem;letter-spacing:.2em;
+  color:var(--text-muted);margin-bottom:16px;text-transform:uppercase;
+}
+.pattern-row{display:flex;align-items:center;gap:10px;padding:6px 0;font-size:.75rem}
+.pattern-dot{
+  width:10px;height:10px;border-radius:50%;border:1px solid var(--border);flex-shrink:0;
+}
+.pattern-dot.fired{background:var(--accent-red);border-color:var(--accent-red);box-shadow:0 0 8px rgba(255,59,107,.5)}
+.pattern-label{color:var(--text-muted)}
+.pattern-label.fired{color:var(--text-primary)}
+.patterns-verdict{
+  margin-top:12px;padding-top:12px;border-top:1px solid var(--border);
+  font-size:.7rem;color:var(--accent-red);font-weight:600;
+}
+
+/* STAGE 2: PERSONAS */
+.persona-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:16px}
+.persona-card{
+  background:var(--bg-card);border:1px solid var(--border);border-radius:10px;
+  padding:20px;opacity:0;transform:translateY(30px);
+  animation:cardIn .5s ease forwards;
+}
+@keyframes cardIn{to{opacity:1;transform:translateY(0)}}
+.persona-card .p-header{display:flex;align-items:center;gap:12px;margin-bottom:12px}
+.persona-card .p-avatar{
+  width:44px;height:44px;border-radius:50%;border:2px solid var(--accent-cyan);
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;
+}
+.persona-card .p-avatar svg{width:22px;height:22px;fill:var(--accent-cyan)}
+.persona-card .p-name{font-family:'Orbitron',sans-serif;font-size:.7rem;letter-spacing:.1em}
+.persona-card .p-role{font-size:.7rem;color:var(--text-muted)}
+.persona-card .p-quote{
+  font-size:.8rem;font-style:italic;color:var(--accent-cyan);
+  margin-bottom:14px;padding-left:12px;border-left:2px solid var(--accent-cyan);
+  opacity:.8;
+}
+.persona-card .p-status{
+  font-family:'Orbitron',sans-serif;font-size:.55rem;letter-spacing:.2em;
+  color:var(--accent-green);text-align:center;padding:6px;
+  border:1px solid rgba(124,255,107,.3);border-radius:4px;
+}
+.radar-wrap{margin:12px auto;width:100px;height:100px}
+.radar-wrap svg{width:100%;height:100%}
+
+/* STAGE 3-5: TIMELINES */
+.timeline-header{
+  font-family:'Orbitron',sans-serif;font-size:2rem;letter-spacing:.2em;
+  text-align:center;margin-bottom:8px;
+}
+.timeline-header.t3{color:var(--accent-amber)}
+.timeline-header.t6{color:var(--accent-red)}
+.timeline-header.t12{color:#ff1a44}
+.timeline-sub{text-align:center;color:var(--text-muted);font-size:.85rem;margin-bottom:32px}
+.narrative-card{
+  background:var(--bg-card);border:1px solid var(--border);border-radius:8px;
+  padding:20px;margin-bottom:12px;animation:cardIn .4s ease forwards;opacity:0;
+}
+.narrative-card .n-header{display:flex;align-items:center;gap:10px;margin-bottom:10px;cursor:pointer}
+.narrative-card .n-avatar{
+  width:32px;height:32px;border-radius:50%;border:1.5px solid var(--accent-cyan);
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;
+}
+.narrative-card .n-avatar svg{width:16px;height:16px;fill:var(--accent-cyan)}
+.narrative-card .n-name{font-family:'Orbitron',sans-serif;font-size:.65rem;letter-spacing:.1em}
+.narrative-card .n-role{font-size:.65rem;color:var(--text-muted)}
+.narrative-card .n-text{font-size:.85rem;color:#b0bdd0;line-height:1.7}
+.narrative-card .n-chevron{margin-left:auto;color:var(--text-muted);transition:transform .3s;font-size:.8rem}
+.narrative-card.collapsed .n-text{display:none}
+.narrative-card.collapsed .n-chevron{transform:rotate(-90deg)}
+
+/* STAGE 6: RISK TRIAGE */
+.triage-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px}
+@media(max-width:900px){.triage-grid{grid-template-columns:1fr}}
+.triage-col{background:var(--bg-card);border-radius:10px;padding:20px;border:1px solid var(--border)}
+.triage-col.confirmed{border-color:rgba(255,59,107,.3)}
+.triage-col.inflated{border-color:rgba(255,209,102,.3)}
+.triage-col.buried{border-color:rgba(176,102,255,.3)}
+.triage-col h3{
+  font-family:'Orbitron',sans-serif;font-size:.7rem;letter-spacing:.2em;
+  margin-bottom:16px;text-transform:uppercase;
+}
+.triage-col.confirmed h3{color:var(--accent-red)}
+.triage-col.inflated h3{color:var(--accent-amber)}
+.triage-col.buried h3{color:var(--accent-purple)}
+.risk-item{padding:12px 0;border-bottom:1px solid var(--border)}
+.risk-item:last-child{border:none}
+.risk-item .risk-name{font-size:.85rem;font-weight:600;margin-bottom:6px}
+.risk-item .risk-meta{font-size:.75rem;color:var(--text-muted);margin-bottom:8px}
+.severity-bars{display:flex;gap:4px;margin-top:6px}
+.sev-bar{
+  display:flex;flex-direction:column;align-items:center;gap:2px;flex:1;
+}
+.sev-bar .bar-track{width:100%;height:4px;background:rgba(255,255,255,.05);border-radius:2px}
+.sev-bar .bar-fill{height:100%;border-radius:2px;transition:width .8s}
+.sev-bar .bar-label{font-size:.5rem;color:var(--text-muted);letter-spacing:.05em}
+.risk-item .risk-detail{font-size:.75rem;color:var(--text-muted);margin-top:6px;line-height:1.5}
+.risk-item .risk-detail strong{color:var(--text-primary)}
+.buried-special{
+  border-left:3px solid var(--accent-purple);padding-left:16px;margin-top:8px;
+}
+
+/* STAGE 7: CONFIDENCE */
+.confidence-grid{display:grid;grid-template-columns:1fr 1fr;gap:32px;align-items:start}
+@media(max-width:768px){.confidence-grid{grid-template-columns:1fr}}
+.gauge-wrap{display:flex;flex-direction:column;align-items:center;gap:16px}
+.gauge-container{position:relative;width:200px;height:200px}
+.gauge-container svg{width:200px;height:200px;transform:rotate(-90deg)}
+.gauge-container .gauge-bg{fill:none;stroke:rgba(255,255,255,.05);stroke-width:12}
+.gauge-container .gauge-unmit{fill:none;stroke:var(--accent-red);stroke-width:12;stroke-linecap:round;transition:stroke-dasharray 1.5s ease}
+.gauge-container .gauge-mit{fill:none;stroke:var(--accent-green);stroke-width:12;stroke-linecap:round;transition:stroke-dasharray 1.5s ease}
+.gauge-center{
+  position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;
+}
+.gauge-center .gauge-num{font-family:'Orbitron',sans-serif;font-size:2rem;font-weight:700}
+.gauge-center .gauge-label{font-size:.6rem;color:var(--text-muted);letter-spacing:.15em;text-transform:uppercase}
+.gauge-legend{display:flex;gap:24px;justify-content:center;font-size:.7rem}
+.gauge-legend span{display:flex;align-items:center;gap:6px}
+.gauge-legend .dot{width:8px;height:8px;border-radius:50%}
+.exec-section{background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:24px}
+.exec-section h3{
+  font-family:'Orbitron',sans-serif;font-size:.7rem;letter-spacing:.2em;
+  color:var(--accent-cyan);margin-bottom:16px;text-transform:uppercase;
+}
+.exec-q{
+  padding:12px 0;border-bottom:1px solid var(--border);font-size:.85rem;
+  line-height:1.6;display:flex;gap:10px;
+}
+.exec-q:last-child{border:none}
+.exec-q .q-num{
+  font-family:'Orbitron',sans-serif;font-size:.7rem;color:var(--accent-cyan);
+  flex-shrink:0;margin-top:2px;
+}
+.exec-q:last-child .q-num{color:var(--accent-purple)}
+.exec-q:last-child{color:var(--accent-purple);font-weight:500}
+.mitigations-list{margin-top:16px}
+.mit-item{
+  display:flex;align-items:start;gap:10px;padding:10px 0;
+  border-bottom:1px solid var(--border);font-size:.8rem;
+}
+.mit-item:last-child{border:none}
+.mit-dot{width:8px;height:8px;border-radius:50%;background:var(--accent-green);flex-shrink:0;margin-top:6px}
+
+/* STAGE 8: IMPACT */
+.impact-grid{display:grid;grid-template-columns:1fr auto 1fr;gap:24px;align-items:start}
+@media(max-width:900px){.impact-grid{grid-template-columns:1fr;}.impact-delta{order:-1}}
+.impact-col{background:var(--bg-card);border-radius:10px;padding:24px;border:1px solid var(--border)}
+.impact-col.without{border-color:rgba(255,59,107,.3)}
+.impact-col.with-tt{border-color:rgba(124,255,107,.3)}
+.impact-col h3{
+  font-family:'Orbitron',sans-serif;font-size:.65rem;letter-spacing:.2em;
+  margin-bottom:16px;text-transform:uppercase;
+}
+.impact-col.without h3{color:var(--accent-red)}
+.impact-col.with-tt h3{color:var(--accent-green)}
+.impact-col .impact-total{
+  font-family:'Orbitron',sans-serif;font-size:1.6rem;margin-bottom:16px;
+}
+.impact-col.without .impact-total{color:var(--accent-red)}
+.impact-col.with-tt .impact-total{color:var(--accent-green)}
+.impact-col ul{list-style:none;padding:0}
+.impact-col li{
+  padding:8px 0;border-bottom:1px solid var(--border);font-size:.8rem;
+  color:#b0bdd0;display:flex;align-items:start;gap:8px;
+}
+.impact-col li:last-child{border:none}
+.impact-col li::before{content:'';width:6px;height:6px;border-radius:50%;flex-shrink:0;margin-top:8px}
+.impact-col.without li::before{background:var(--accent-red)}
+.impact-col.with-tt li::before{background:var(--accent-green)}
+.impact-col .final-state{
+  margin-top:16px;padding-top:12px;border-top:1px solid var(--border);
+  font-size:.8rem;font-style:italic;color:var(--text-muted);
+}
+.impact-delta{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:32px 16px;text-align:center;
+}
+.delta-amount{
+  font-family:'Orbitron',sans-serif;font-size:clamp(1.8rem,4vw,2.8rem);
+  font-weight:900;color:var(--accent-green);margin-bottom:8px;
+  text-shadow:0 0 40px rgba(124,255,107,.4);
+}
+.delta-label{font-size:.8rem;color:var(--text-muted);margin-bottom:24px}
+.delta-conf{
+  font-family:'Orbitron',sans-serif;font-size:.7rem;letter-spacing:.15em;
+  color:var(--accent-cyan);margin-bottom:8px;
+}
+.delta-verdict{font-size:.85rem;color:var(--text-primary);font-weight:500;max-width:220px}
+
+/* FOOTER */
+footer{
+  text-align:center;padding:60px 24px;border-top:1px solid var(--border);margin-top:60px;
+}
+footer .footer-tagline{
+  font-family:'Orbitron',sans-serif;font-size:.8rem;letter-spacing:.15em;
+  color:var(--accent-cyan);margin-bottom:12px;
+}
+footer .footer-author{font-size:.8rem;color:var(--text-muted)}
+footer a{color:var(--accent-cyan);text-decoration:none}
+
+/* UTILITIES */
+.fade-in{animation:fadeIn .5s ease forwards;opacity:0}
+@keyframes fadeIn{to{opacity:1}}
+.glow-pulse{animation:glowPulse 2s ease-in-out infinite}
+@keyframes glowPulse{0%,100%{box-shadow:0 0 10px rgba(0,229,255,.2)}50%{box-shadow:0 0 25px rgba(0,229,255,.5)}}
+.hidden{display:none!important}
+</style>
+</head>
+<body>
+
+<section id="hero">
+  <div class="hero-title">Time Travel</div>
+  <div class="hero-subtitle">Multi-Agent Premortem Intelligence</div>
+  <p class="hero-desc">Send stakeholder personas into the future. Bring back structured failure analysis. Rewrite the plan before reality does.</p>
+  <button class="hero-cta" onclick="document.getElementById('scenarios').scrollIntoView({behavior:'smooth'})">Select a Scenario</button>
+</section>
+
+<section id="process">
+  <div class="container">
+    <div class="process-title">How It Works</div>
+    <div class="process-steps" id="processSteps"></div>
+  </div>
+</section>
+
+<section id="scenarios">
+  <div class="container">
+    <h2 class="section-title">Choose Your Mission</h2>
+    <p class="section-sub">Select a scenario to watch Time Travel in action</p>
+    <div class="scenario-grid" id="scenarioGrid"></div>
+  </div>
+</section>
+
+<section id="mission" class="container">
+  <div class="mission-header">
+    <div class="mission-title" id="missionTitle"></div>
+    <button class="mission-back" onclick="backToScenarios()">← Back to Scenarios</button>
+  </div>
+  <div class="stage-container" id="stageContainer"></div>
+</section>
+
+<footer>
+  <div class="footer-tagline">A Multi-Agent System that predicts and corrects your path before you fail.</div>
+  <p class="footer-author">Built by <a href="https://chrisamansood.github.io/concepts/" target="_blank">Chrisaman Sood</a></p>
+</footer>
+
+<script>
+// ─── ICON SVGs ───────────────────────────────────────────────────
+const ICONS = {
+  dollar: `<svg viewBox="0 0 24 24"><path d="M12 2v2m0 16v2M7 12a5 5 0 0 1 5-5c1.5 0 3 .5 3 2s-1.5 2-3 3-3 1-3 3 1.5 2 3 2a5 5 0 0 0 5-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>`,
+  code: `<svg viewBox="0 0 24 24"><path d="M8 18l-6-6 6-6M16 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+  shield: `<svg viewBox="0 0 24 24"><path d="M12 2l8 4v6c0 5.5-3.8 10.7-8 12-4.2-1.3-8-6.5-8-12V6l8-4z" fill="none" stroke="currentColor" stroke-width="2"/></svg>`,
+  eye: `<svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12z" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="2"/></svg>`,
+  users: `<svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="9" cy="7" r="4" fill="none" stroke="currentColor" stroke-width="2"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" fill="none" stroke="currentColor" stroke-width="2"/></svg>`,
+  gear: `<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="2"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" fill="none" stroke="currentColor" stroke-width="2"/></svg>`,
+  scale: `<svg viewBox="0 0 24 24"><path d="M12 3v18M3 7l4-4 4 4M13 7l4-4 4 4M3 7v6a4 4 0 0 0 8 0V7M13 7v6a4 4 0 0 0 8 0V7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+  pen: `<svg viewBox="0 0 24 24"><path d="M12 20h9M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" fill="none" stroke="currentColor" stroke-width="2"/></svg>`,
+  target: `<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="6" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="2" fill="none" stroke="currentColor" stroke-width="2"/></svg>`,
+  headset: `<svg viewBox="0 0 24 24"><path d="M3 18v-6a9 9 0 0 1 18 0v6" fill="none" stroke="currentColor" stroke-width="2"/><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3v5zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3v5z" fill="none" stroke="currentColor" stroke-width="2"/></svg>`,
+  contract: `<svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z" fill="none" stroke="currentColor" stroke-width="2"/><path d="M14 2v6h6M8 13h8M8 17h8M8 9h2" fill="none" stroke="currentColor" stroke-width="2"/></svg>`,
+  lock: `<svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4" fill="none" stroke="currentColor" stroke-width="2"/></svg>`,
+  tower: `<svg viewBox="0 0 24 24"><path d="M12 2L2 22h20L12 2zM12 6v10M8 18h8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+  flame: `<svg viewBox="0 0 24 24"><path d="M12 2c0 4-4 6-4 10a4 4 0 0 0 8 0c0-4-4-6-4-10z" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 18a2 2 0 0 0 2-2c0-2-2-3-2-5-0 2-2 3-2 5a2 2 0 0 0 2 2z" fill="none" stroke="currentColor" stroke-width="2"/></svg>`,
+  server: `<svg viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="8" rx="2" ry="2" fill="none" stroke="currentColor" stroke-width="2"/><rect x="2" y="14" width="20" height="8" rx="2" ry="2" fill="none" stroke="currentColor" stroke-width="2"/><line x1="6" y1="6" x2="6.01" y2="6" stroke="currentColor" stroke-width="2"/><line x1="6" y1="18" x2="6.01" y2="18" stroke="currentColor" stroke-width="2"/></svg>`,
+  signal: `<svg viewBox="0 0 24 24"><path d="M2 20h.01M7 20v-4M12 20V10M17 20V4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+  community: `<svg viewBox="0 0 24 24"><circle cx="12" cy="5" r="3" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="4" cy="12" r="2.5" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="20" cy="12" r="2.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 8v4M8 14l-2-1M16 14l2-1" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>`,
+};
+const PROCESS_ICONS = [
+  `<svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z" fill="none" stroke="currentColor" stroke-width="2"/><path d="M14 2v6h6" fill="none" stroke="currentColor" stroke-width="2"/></svg>`,
+  `<svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="9" cy="7" r="4" fill="none" stroke="currentColor" stroke-width="2"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" fill="none" stroke="currentColor" stroke-width="2"/></svg>`,
+  `<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="2"/><polyline points="12 6 12 12 16 14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>`,
+  `<svg viewBox="0 0 24 24"><path d="M22 12h-4l-3 9L9 3l-3 9H2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+  `<svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" fill="none" stroke="currentColor" stroke-width="2"/></svg>`,
+];
+const PROCESS_LABELS = ['Plan','Personas','Timelines','Classify','Report'];
+const SEVERITY_KEYS = ['T','U','B','O','F','S'];
+const SEVERITY_LABELS = ['Trust','User','Blind','Ops','Fin','Strat'];
+const SEV_COLORS = ['#ff3b6b','#ff8c42','#ffd166','#b066ff','#00e5ff','#7cff6b'];
+
+// ─── SCENARIO DATA ───────────────────────────────────────────────
+const SCENARIOS = {
+phoenix: {
+  id:'phoenix',title:'Project Phoenix',subtitle:'AI-First Developer Replacement',
+  icon:'flame',color:'#ff3b6b',
+  synopsis:'A SaaS company bets everything on replacing 60% of engineers with AI agents. The board is excited. The engineers are not.',
+  tags:['Enterprise','AI Transformation','Workforce'],
+  plan:{
+    company:'TechForge Inc.',detail:'B2B SaaS · $50M ARR · 200 Engineers',
+    goal:'Replace 60% of engineering team with AI coding agents within 12 months.',
+    phases:[
+      {name:'Phase 1',time:'Month 1–3',desc:'AI pair programming pilot across 2 teams.'},
+      {name:'Phase 2',time:'Month 4–7',desc:'Shift routine development to AI agents. Begin headcount optimization.'},
+      {name:'Phase 3',time:'Month 8–12',desc:'Full AI-first engineering. Reduce team to 80 engineers.'},
+    ],
+    targets:['50% engineering cost reduction','Same feature velocity maintained','AI handles 70% of code commits'],
+    whyNow:'Competitors are already doing it. Board pushing for efficiency. VC benchmark shows 2.5x revenue-per-engineer at AI-first companies.',
+    patterns:[true,false,true,true,true,true,true,true],
+  },
+  personas:[
+    {id:'money',name:'Skeptical-Money',role:'CFO',icon:'dollar',
+     radar:{trust:1,userPain:0,blindSpot:1,opsLoad:1,financial:3,strategic:2},
+     firstLine:'Walk me through what we get back, and when.',
+     t3:'Pilot costs running 40% over budget. AI tooling licenses we didn\'t forecast. The "50% savings" slide hasn\'t been updated since the board deck. Nobody\'s tracking actual cost-per-commit.',
+     t6:'Severance for round one: $2.1M. But we\'re hiring contractors at 2x the hourly rate of the engineers we let go. I asked for net savings math. Got a pivot to "velocity metrics."',
+     t12:'Total spend is higher than pre-plan. We saved on salaries but we\'re bleeding on contractors, bug bounties, and CTO replacement search. The board doesn\'t ask about Phoenix anymore.'},
+    {id:'dev',name:'Frustrated-End-User',role:'Senior Developer',icon:'code',
+     radar:{trust:2,userPain:3,blindSpot:2,opsLoad:2,financial:0,strategic:1},
+     firstLine:'Did anyone ask us?',
+     t3:'Three of us got the same recruiter message this week. Nobody says it out loud, but the best engineers are already interviewing. AI handles unit tests fine. Everything else? We\'re reviewing and rewriting.',
+     t6:'They laid off 120 people. The rest of us do double shifts reviewing AI output. Two critical prod bugs this month — both in AI-generated code that passed automated tests but broke undocumented business rules.',
+     t12:'I left four months ago. From what I hear, they\'re hiring back — as contractors, at higher rates. The product hasn\'t shipped a major feature in two quarters.'},
+    {id:'vp',name:'Change-Resister',role:'VP Engineering',icon:'shield',
+     radar:{trust:2,userPain:1,blindSpot:3,opsLoad:1,financial:1,strategic:3},
+     firstLine:'I\'ve seen this before.',
+     t3:'I raised the knowledge-transfer risk in the kickoff. Got told "the AI has the codebase." It doesn\'t have the tribal knowledge. The workarounds. The "don\'t touch this module" wisdom.',
+     t6:'The CTO is reframing. "AI-augmented" replaced "AI-first" in internal comms. The board deck still says AI-first. Nobody\'s updated the slide.',
+     t12:'The CTO resigned. Officially "new opportunities." Actually because the board wanted someone who\'d recommit to AI-first, and she couldn\'t do that honestly.'},
+    {id:'auditor',name:'AI-Optimism Auditor',role:'Pattern Detector',icon:'eye',
+     radar:{trust:1,userPain:0,blindSpot:3,opsLoad:0,financial:2,strategic:3},
+     firstLine:'Let\'s count the unfalsifiable claims.',
+     t3:'Six of eight AI-pattern heuristics fired. "50% cost reduction" with "same velocity" — that\'s a training-data average, not a forecast. The "competitors doing it" claim cites a press release, not results.',
+     t6:'The team quietly moved the goalposts. "Feature velocity maintained" now means "we shipped something." The bar was "same roadmap pace." I count four unfalsifiable claims in the quarterly update.',
+     t12:'The plan delivered 12% cost reduction. It promised 50%. The delta isn\'t explained. The board has moved on and nobody\'s doing the postmortem.'},
+    {id:'sec',name:'Security-Architect',role:'Security Lead',icon:'lock',
+     radar:{trust:3,userPain:1,blindSpot:2,opsLoad:2,financial:2,strategic:1},
+     firstLine:'What\'s the threat model?',
+     t3:'AI agents have read access to the entire codebase including API keys and customer data schemas. Nobody\'s done a threat model for context-window leakage.',
+     t6:'First incident: AI-generated code exposed an internal API without authentication. Caught by a customer\'s security team, not ours. Their CISO wants a formal response.',
+     t12:'Three security incidents traceable to AI code. One required customer notification. Security now reviews all AI output — adding the human step the plan was supposed to eliminate.'},
+    {id:'csm',name:'Customer-Success',role:'CS Manager',icon:'users',
+     radar:{trust:3,userPain:2,blindSpot:3,opsLoad:1,financial:3,strategic:3},
+     firstLine:'Have you told the top 5 accounts about this?',
+     t3:'None of the top accounts know about Phoenix. If they find out their product is maintained by AI with 3 months of context, the renewal conversations will change.',
+     t6:'Account #2 escalated. Quality dropped on custom integrations. "Your engineers used to understand our setup." I couldn\'t tell them we let those engineers go.',
+     t12:'Three of our top ten accounts are in churn discussions. Not one single incident — accumulated small regressions. They can feel the difference even if they can\'t name it.'},
+    {id:'ops',name:'Ops-Engineer',role:'DevOps Lead',icon:'gear',
+     radar:{trust:0,userPain:2,blindSpot:1,opsLoad:3,financial:1,strategic:0},
+     firstLine:'What\'s the rollback plan when this misbehaves at 2am?',
+     t3:'AI generates code faster than we can deploy it. Our CI/CD pipeline wasn\'t built for this volume. We\'re merging 3x the PRs with the same review capacity.',
+     t6:'On-call is brutal. AI-generated services have no runbooks because nobody wrote them. When something breaks at 2am, there\'s no institutional knowledge of why it was built that way.',
+     t12:'We now require "human-authored documentation" for every AI service. This adds the overhead the plan said AI would eliminate. Back to square one with extra steps.'},
+  ],
+  risks:{
+    confirmed:[
+      {name:'Knowledge drain before AI replaces judgment',severity:[3,2,3,2,2,3],likelihood:'High',urgency:'Block',
+       tripwire:'>15% senior IC attrition in Q1-Q2',changeMind:'Pilot shows AI handling complex refactors across 3+ codebases without human review',
+       mitigation:'Retention bonuses for top 20 ICs tied to 18-month knowledge transfer milestones'},
+      {name:'AI-generated security vulnerabilities',severity:[3,3,2,2,2,1],likelihood:'High',urgency:'Block',
+       tripwire:'First customer-reported security incident from AI-authored code',changeMind:'6-month pilot with zero security findings in AI-generated code after adversarial review',
+       mitigation:'Mandatory security review gate for all AI-generated code touching auth, data, or API surfaces'},
+      {name:'Top-account trust erosion from quality regression',severity:[3,2,3,1,3,3],likelihood:'Medium',urgency:'Block',
+       tripwire:'Any top-10 account raises quality concerns in QBR',changeMind:'Two consecutive quarters of stable or improved CSAT in top-10 segment',
+       mitigation:'Top-account briefings before Phase 2; dedicated human engineer per top-5 account'},
+    ],
+    inflated:[{name:'Competitors steal AI methodology',why:'Nobody wants a half-built AI dev pipeline. The methodology isn\'t the moat — the engineers were.'}],
+    buried:[{name:'The board pushed this because a VC portfolio company did it',
+      whyHidden:'Not because TechForge\'s codebase or team complexity supports it. Naming this means questioning the board\'s judgment directly.',
+      howSurface:'Ask in the next review: "If the board hadn\'t seen [competitor]\'s announcement, would we be doing this at this pace?"'}],
+  },
+  confidence:{unmitigated:15,mitigated:35},
+  execQuestions:[
+    'Which specific engineering functions has the AI demonstrably replaced in the pilot — and which has it not?',
+    'What\'s the contractual exposure if our top 3 accounts discover their product is maintained by AI agents with 4 months of context?',
+    'If the board hadn\'t seen the competitor\'s announcement, would we be doing this at this pace?',
+  ],
+  impact:{
+    without:{total:'$8.2M',items:['Severance costs: $2.1M for 120 engineers','Contractor rehiring at 2x rates: $3.4M','Lost account revenue from 3 churning accounts: $1.8M','CTO replacement search and interim leadership: $0.9M'],finalState:'Feature velocity down 40%. Three top accounts in churn. Hiring back the people you fired, at higher rates.'},
+    withTT:{total:'$8.2M Saved',items:['Paused full rollout after pilot data showed 12% real savings, not 50%','Retained senior engineers with selective AI augmentation for boilerplate','15% headcount optimization through attrition, not layoffs','Zero account churn risk — top accounts briefed and reassured'],finalState:'18% sustainable cost reduction. Feature velocity maintained. Senior talent retained as AI supervisors.'},
+    delta:{amount:'$8.2M',label:'in avoidable losses prevented',conf:'15% → 72%',verdict:'Time Travel turned a likely catastrophe into a measured, data-driven optimization.'},
+  },
+},
+sovereign: {
+  id:'sovereign',title:'Sovereign Compute',subtitle:'National AI Infrastructure',
+  icon:'server',color:'#ffd166',
+  synopsis:'An emerging economy commits $4.2B to build 5 hyperscale data centers. The plan forgot about water, energy, and talent.',
+  tags:['Government','Infrastructure','Environmental'],
+  plan:{
+    company:'Republic of Meridian',detail:'Emerging Economy · Sovereign Wealth Fund',
+    goal:'Build 5 hyperscale AI data centers in 24 months to become a regional AI hub.',
+    phases:[
+      {name:'Phase 1',time:'Month 1–6',desc:'Land acquisition, permits, and DC #1 groundbreaking.'},
+      {name:'Phase 2',time:'Month 7–16',desc:'DC #1-3 construction. Begin international talent recruitment.'},
+      {name:'Phase 3',time:'Month 17–24',desc:'DC #4-5 construction. Full operations and FDI attraction.'},
+    ],
+    targets:['Attract $10B in foreign direct investment','Create 50,000 tech jobs','8x national AI compute capacity'],
+    whyNow:'Regional competitors are investing heavily. The window of opportunity for first-mover advantage is 18 months.',
+    patterns:[true,true,true,true,true,true,true,true],
+  },
+  personas:[
+    {id:'money',name:'Skeptical-Money',role:'Finance Minister',icon:'dollar',
+     radar:{trust:1,userPain:0,blindSpot:1,opsLoad:1,financial:3,strategic:2},
+     firstLine:'Walk me through what we get back, and when.',
+     t3:'Phase 1 land acquisition is 60% over budget. Agricultural land premiums weren\'t modeled. The $10B FDI projection has zero signed LOIs — it\'s the advisor\'s estimate, not commitments.',
+     t6:'First DC costs: $1.8B for one facility. The plan budgeted $840M each. We\'ve committed $2.4B total and have one DC at 30% capacity. The sovereign fund board is asking for a revised timeline.',
+     t12:'Two FDI commitments withdrawn citing ESG concerns. $4.2B committed, two facilities partially complete. Recovery timeline: three years minimum. The finance committee wants an independent audit.'},
+    {id:'reg',name:'Regulator',role:'Environmental Agency',icon:'scale',
+     radar:{trust:3,userPain:3,blindSpot:2,opsLoad:3,financial:3,strategic:3},
+     firstLine:'Show me the documentation.',
+     t3:'Water assessment filed. Five hyperscale DCs need 18M liters/day. The aquifer supports 12M across all current users. Agricultural communities filed formal objections yesterday.',
+     t6:'First DC drawing 3x projected water. Cooling systems spec\'d for temperate climate models — our 45°C summers weren\'t factored. Emergency desalination talks started.',
+     t12:'International ESG monitors downgraded our sovereign rating. Water diversion from agricultural land made international news. Environmental groups are organized. A decade of development branding damaged.'},
+    {id:'grid',name:'Ops-Engineer',role:'National Grid Operator',icon:'gear',
+     radar:{trust:0,userPain:2,blindSpot:1,opsLoad:3,financial:2,strategic:1},
+     firstLine:'What\'s the rollback plan when this misbehaves at 2am?',
+     t3:'Grid analysis complete. Peak compute for 5 DCs needs 2.4 GW. Current surplus: 800 MW. The plan assumed "grid upgrades will be sequenced" — no budget or timeline exists for this.',
+     t6:'DC #1 at 30% utilization caused two brown-outs in the adjacent industrial zone. We\'re running diesel backup for a "clean tech" initiative. The irony isn\'t lost.',
+     t12:'Grid upgrade for DC #2 is 14 months behind. Can\'t power both facilities at peak simultaneously. The AI hub runs at reduced capacity during summer — exactly when cooling demand peaks.'},
+    {id:'local',name:'Frustrated-End-User',role:'Local Tech Community',icon:'community',
+     radar:{trust:2,userPain:3,blindSpot:2,opsLoad:0,financial:1,strategic:2},
+     firstLine:'Did anyone ask us?',
+     t3:'The plan promises 50,000 tech jobs. Postings require 5+ years hyperscale DC experience. Maybe 200 people in-country have those skills. The rest will be hired from abroad.',
+     t6:'Visa process takes 8 months. Foreign talent isn\'t arriving as planned. Local engineers hired for support roles, not the AI research positions the plan promised. Community forums are angry.',
+     t12:'Of 12,000 jobs created: 8,000 construction/facilities, 3,200 foreign hires, 800 local tech workers in operations. The "50,000 tech jobs" headline hasn\'t aged well.'},
+    {id:'press',name:'Journalist',role:'Tech Analyst',icon:'pen',
+     radar:{trust:3,userPain:0,blindSpot:0,opsLoad:0,financial:1,strategic:3},
+     firstLine:'How is this different from what X already does?',
+     t3:'Launch press conference was impressive. When I asked "how does this differ from [neighbor]\'s AI city," the minister cited scale, not differentiation. That\'s an expensive bet on being bigger, not better.',
+     t6:'Writing a follow-up. Water protests are organized. Construction behind schedule. The differentiation story still hasn\'t materialized. The plan reads identical to three other national AI strategies in the region.',
+     t12:'My article title: "Meridian\'s $4B Bet on Being Second." The comparison to the neighboring nation\'s modest, phased approach is unflattering. They have 2 DCs at 85%. Meridian has 2 at 30%.'},
+    {id:'competitor',name:'Competitor-Strategist',role:'Rival Nation Advisor',icon:'target',
+     radar:{trust:0,userPain:0,blindSpot:0,opsLoad:0,financial:2,strategic:3},
+     firstLine:'Where\'s the gap they\'re leaving open?',
+     t3:'Meridian is committing $4.2B upfront before proving demand. Our approach — build 2, prove utilization, then expand — looks conservative. But their capital exposure is 6x ours with zero revenue.',
+     t6:'Their talent pipeline stalled. We\'re quietly hiring the foreign specialists who applied to Meridian but won\'t wait 8 months for visas. Thank you for the recruitment pipeline.',
+     t12:'Meridian\'s stranded capacity is our sales pitch. "Our DCs run at 85%. Theirs sit at 30%." Enterprises are choosing operational data centers over ambitious blueprints.'},
+    {id:'auditor',name:'AI-Optimism Auditor',role:'Pattern Detector',icon:'eye',
+     radar:{trust:1,userPain:0,blindSpot:3,opsLoad:0,financial:2,strategic:3},
+     firstLine:'Let\'s count the unfalsifiable claims.',
+     t3:'This plan hit 7 of 8 AI-pattern indicators. "$10B FDI", "50,000 jobs", "18-month window" — suspiciously round, urgent, and generic. Replace "Meridian" with any country name and it reads identically.',
+     t6:'The "why now" framing — "competitors investing heavily, window is 18 months" — is competitive anxiety dressed as strategy. The window doesn\'t close. Compute demand is growing, not peaking.',
+     t12:'The plan was a template. The execution was a template. The failure modes are a template. This is what happens when national strategy is generated by the same models everyone uses.'},
+  ],
+  risks:{
+    confirmed:[
+      {name:'Water-table depletion exceeds aquifer capacity',severity:[3,3,2,3,3,3],likelihood:'High',urgency:'Block',
+       tripwire:'Agricultural water allocation reduced by >10% in DC-adjacent districts',changeMind:'Independent hydrogeological study confirming aquifer can sustain 18M L/day with recharge',
+       mitigation:'Commission independent water study; co-invest in desalination before DC construction begins'},
+      {name:'Energy grid capacity gap: 2.4 GW needed, 800 MW available',severity:[2,2,1,3,3,2],likelihood:'High',urgency:'Block',
+       tripwire:'First brown-out in DC-adjacent industrial zones',changeMind:'Grid upgrade contract signed and funded with 18-month completion guarantee',
+       mitigation:'Sequence grid upgrade ahead of DC #2 construction; budget $800M for grid infrastructure'},
+      {name:'Talent pipeline requires 3x stated timeline',severity:[1,2,3,2,2,2],likelihood:'High',urgency:'Patch-fast',
+       tripwire:'<20% local hires in first 6 months of recruitment',changeMind:'Visa fast-track program operational within 90 days; 500+ qualified applicants in pipeline',
+       mitigation:'Launch visa fast-track; partner with 3 universities for accelerated DC engineering programs'},
+    ],
+    inflated:[{name:'Competitor nation locks up all cloud demand first',why:'Compute demand is growing globally, not zero-sum. Being second doesn\'t mean losing — it means learning from the first mover\'s mistakes.'}],
+    buried:[{name:'The sovereign wealth fund advisor who proposed this plan is shortlisted to build DC #1',
+      whyHidden:'Naming this conflict of interest means auditing the procurement process. The advisor drafted the national strategy and stands to win the largest construction contract.',
+      howSurface:'Ask: "Is the firm that proposed this plan also bidding on the construction contracts?"'}],
+  },
+  confidence:{unmitigated:20,mitigated:40},
+  execQuestions:[
+    'What is the water consumption per MW-hour for these facilities, and has the agricultural ministry signed off on the diversion?',
+    'Of the 50,000 jobs projected, how many require skills that exist in-country today — and what is the realistic visa timeline?',
+    'Is the firm that proposed this plan also bidding on the construction contracts?',
+  ],
+  impact:{
+    without:{total:'$4.2B exposed',items:['$4.2B committed across 5 DCs — only 2 partially completed','ESG sovereign rating downgraded 2 notches','$1.8B in FDI commitments withdrawn','Water crisis triggers agricultural protests and international coverage'],finalState:'Only 2 of 5 data centers built, running at 30% capacity. Sovereign credibility damaged. 3-year recovery timeline.'},
+    withTT:{total:'$2.6B Saved',items:['Phased to 2 DCs with full environmental impact study completed first','Grid upgrade sequenced before DC construction — brown-outs avoided','Desalination plant co-invested — water crisis prevented','Transparent procurement audit — advisor conflict addressed'],finalState:'2 data centers operational at 85% capacity. $1.6B invested strategically. ESG rating maintained. FDI retained.'},
+    delta:{amount:'$2.6B',label:'in stranded assets avoided',conf:'20% → 68%',verdict:'Time Travel converted a sovereign-scale gamble into a phased, evidence-driven investment.'},
+  },
+},
+netoptima: {
+  id:'netoptima',title:'NetOptima',subtitle:'Telecom Network AI Optimization',
+  icon:'signal',color:'#00e5ff',
+  synopsis:'A Tier-1 operator deploys AI to optimize 25,000 cell sites. The AI optimizes for metrics. It forgets about people.',
+  tags:['Telecom','Network','AI Operations'],
+  plan:{
+    company:'NovaTel',detail:'Tier-1 Mobile Operator · 40M Subscribers · 25,000 Cell Sites',
+    goal:'Deploy AI-driven RAN optimization to replace manual network planning across all cell sites.',
+    phases:[
+      {name:'Phase 1',time:'Month 1–3',desc:'AI model training and deployment to 200 test cell sites.'},
+      {name:'Phase 2',time:'Month 4–6',desc:'Expand to all 25,000 sites. Full autonomous optimization.'},
+      {name:'Phase 3',time:'Month 7–12',desc:'Decommission manual planning team. AI-only operations.'},
+    ],
+    targets:['30% capex reduction in network planning','15% improvement in spectral efficiency','99.99% availability maintained'],
+    whyNow:'5G rollout costs are 3x over budget. Manual planning can\'t scale to 25,000 sites. Industry analysts project AI-optimized networks as standard by 2027.',
+    patterns:[false,false,true,true,true,true,false,true],
+  },
+  personas:[
+    {id:'money',name:'Skeptical-Money',role:'CFO',icon:'dollar',
+     radar:{trust:1,userPain:0,blindSpot:1,opsLoad:1,financial:3,strategic:2},
+     firstLine:'Walk me through what we get back, and when.',
+     t3:'AI tooling license: $2.4M/year — not in original budget. Training data prep: $600K contractor spend. We\'re $3M in before the first cell site is optimized. The 30% savings clock hasn\'t started.',
+     t6:'Outage SLA penalties: $4.5M. Regulatory fine exposure: $2.1M estimated. Vendor dispute legal costs: $800K. We\'re $7.4M negative on a plan that was supposed to save money.',
+     t12:'Net position: 8% capex savings, offset by $7.4M in penalties and legal costs. We spent more than we saved. The board one-pager for this initiative needs creative framing.'},
+    {id:'eng',name:'Frustrated-End-User',role:'Network Engineer',icon:'code',
+     radar:{trust:2,userPain:3,blindSpot:2,opsLoad:2,financial:0,strategic:1},
+     firstLine:'Did anyone ask us?',
+     t3:'The AI recommends configs that look right on paper but ignore local terrain. We flagged three that would have interfered with hospital equipment. Nobody thanked us — they asked why we\'re "resisting automation."',
+     t6:'After the outage, they want us to review AI decisions in real-time. That\'s our old job, but on the AI\'s schedule. We\'re working harder to supervise the system that was supposed to replace us.',
+     t12:'Three of our best planners left for competitors who are implementing AI more carefully. Irony: those competitors now have our 15-year veterans AND a smarter AI approach.'},
+    {id:'noc',name:'Ops-Engineer',role:'NOC Lead',icon:'gear',
+     radar:{trust:1,userPain:2,blindSpot:3,opsLoad:3,financial:1,strategic:0},
+     firstLine:'What\'s the rollback plan when this misbehaves at 2am?',
+     t3:'AI optimized spectral efficiency on 200 test sites. Looks good on dashboards. But it reduced power on 12 rural towers — our monitoring only tracks signal strength, not edge-of-cell experience.',
+     t6:'Cup final weekend. AI recognized "high traffic" but load-balanced across sectors instead of adding capacity. It doesn\'t know what a cup final is. 2-hour outage, 2M subscribers affected.',
+     t12:'Running hybrid mode — AI suggests, humans approve. It\'s slower than manual planning was. NOC team undersized because three planners left, and replacements have never touched this network.'},
+    {id:'vendor',name:'Vendor/Partner-PM',role:'AI Vendor Lead',icon:'contract',
+     radar:{trust:2,userPain:0,blindSpot:2,opsLoad:1,financial:3,strategic:2},
+     firstLine:'We didn\'t sign up for that timeline.',
+     t3:'NovaTel wants optimization across 25,000 sites. Our model trained on 3,000 in flat terrain. We didn\'t sign up for mountainous rural deployment. Accuracy guarantees don\'t cover this topology.',
+     t6:'After the outage, NovaTel blames our model. We blame their data quality. Both partially right. Our contract has no SLA for "AI decision quality" — only uptime. This goes to arbitration.',
+     t12:'In arbitration. NovaTel claims $7.4M damages. We\'re counter-claiming incomplete training data. Contract didn\'t define "sufficient data quality." Both legal teams are expensive.'},
+    {id:'reg',name:'Regulator',role:'Telecom Authority',icon:'scale',
+     radar:{trust:2,userPain:3,blindSpot:0,opsLoad:2,financial:3,strategic:2},
+     firstLine:'Show me the documentation.',
+     t3:'Received 43 rural coverage complaints. Investigation: 12 cell sites had power reduced by AI. NovaTel\'s license requires 98% population coverage. Formal explanation requested.',
+     t6:'Outage report: 2M subscribers, 2 hours, peak event. Reportable incident under our framework. Considering mandatory reporting requirements for AI-driven network decisions.',
+     t12:'New regulation: AI systems making autonomous network decisions must file quarterly impact reports. NovaTel is the reason this rule exists. Their compliance cost: $400K/year.'},
+    {id:'support',name:'Support-Lead',role:'CS Operations',icon:'headset',
+     radar:{trust:2,userPain:3,blindSpot:1,opsLoad:3,financial:1,strategic:0},
+     firstLine:'What happens to the support queue at week 4?',
+     t3:'Rural complaint tickets up 34% since AI went live in test clusters. Customers don\'t know it\'s AI — they just know signal is weaker. We\'re fielding calls with no script because nobody told support.',
+     t6:'Post-outage: 12,000 tickets in 48 hours. Normal weekly volume: 3,000. Pulled every available agent. #NovaTelDown trended for 6 hours. Social media team didn\'t have a response plan.',
+     t12:'Volumes normalized, but NPS dropped 8 points in affected areas. Trust doesn\'t recover at network-restoration speed. Brand damage outlasts outages.'},
+    {id:'sec',name:'Security-Architect',role:'Network Security',icon:'lock',
+     radar:{trust:3,userPain:0,blindSpot:3,opsLoad:1,financial:2,strategic:2},
+     firstLine:'What\'s the threat model?',
+     t3:'The AI model ingests real-time network topology: cell configs, frequency allocations, subscriber density. If this model is compromised, an adversary has a complete infrastructure map.',
+     t6:'Flagged: vendor\'s training pipeline accesses topology data classified as critical infrastructure. Nobody consulted security before sharing it. Data sovereignty review initiated.',
+     t12:'National security review completed. AI vendor must obtain critical infrastructure clearance. Adds 6 months to every model update. The "agile AI optimization" pitch is anything but agile.'},
+  ],
+  risks:{
+    confirmed:[
+      {name:'Rural coverage degradation violates license obligations',severity:[2,3,2,2,3,2],likelihood:'High',urgency:'Block',
+       tripwire:'Rural complaint tickets up >20% in AI-optimized clusters within 60 days',changeMind:'AI model demonstrates coverage-constrained optimization maintaining 98% population coverage across all terrain types',
+       mitigation:'Hardcode license coverage thresholds as inviolable AI constraints before any deployment'},
+      {name:'AI model lacks event-awareness — no concept of demand spikes',severity:[3,3,3,3,3,2],likelihood:'High',urgency:'Block',
+       tripwire:'First abnormal traffic spike (sports, holiday, emergency) handled incorrectly by AI',changeMind:'Model training includes 3+ years of event-traffic data with demonstrated correct response in simulation',
+       mitigation:'Mandate event-awareness training data and simulation testing before go-live; human override during flagged events'},
+      {name:'Vendor contract has no SLA for AI decision quality',severity:[2,1,2,1,3,2],likelihood:'Medium',urgency:'Block',
+       tripwire:'First disputed AI decision causing subscriber impact with no contractual remedy',changeMind:'Vendor agrees to decision-quality SLA with defined accuracy thresholds and penalty clauses',
+       mitigation:'Renegotiate vendor contract to include AI decision quality metrics before Phase 2'},
+    ],
+    inflated:[{name:'Competitors deploy AI RAN first and gain spectral advantage',why:'RF physics are network-specific. Their optimization doesn\'t transfer to our topology. Being second means learning from their mistakes.'}],
+    buried:[{name:'CTO committed to "AI-first network operations" at investor day',
+      whyHidden:'Rolling back means admitting the strategy was premature on a recorded earnings call. Nobody on the executive team will name this constraint because it implies the CTO misspoke publicly.',
+      howSurface:'Ask: "Is there a path to revise the AI-first commitment without triggering a governance issue?"'}],
+  },
+  confidence:{unmitigated:25,mitigated:45},
+  execQuestions:[
+    'Does the AI model\'s training data include event-traffic patterns (sports finals, holidays, emergencies), or only steady-state baselines?',
+    'If the regulator flags a coverage violation, who is contractually liable — us or the AI vendor?',
+    'Is there a path to revise the "AI-first" commitment from investor day without triggering a governance issue?',
+  ],
+  impact:{
+    without:{total:'$7.4M lost',items:['SLA penalties from 2-hour outage: $4.5M','Regulatory fine and mandatory reporting: $2.1M','Vendor arbitration legal costs: $800K','3 senior network planners lost to competitors'],finalState:'Rolled back to hybrid. 8% capex savings, not 30%. Institutional knowledge gone. Regulator watching.'},
+    withTT:{total:'$7.4M Saved',items:['Hybrid model from day one — AI recommends, humans approve','Event-awareness training data mandated before go-live','Coverage thresholds hardcoded as AI constraints — zero violations','Vendor SLA renegotiated to include AI decision quality'],finalState:'18% real, sustainable capex savings. Zero outages. Regulatory compliance maintained. Senior planners retained as AI supervisors.'},
+    delta:{amount:'$7.4M',label:'in fines and losses avoided',conf:'25% → 70%',verdict:'Time Travel preserved network reliability, regulatory standing, and institutional expertise.'},
+  },
+},
+};
+
+// ─── STATE ───────────────────────────────────────────────────────
+let state = {view:'home', scenario:null, stage:0};
+const stageToProcess = [0,1,2,2,2,3,4,4];
+
+// ─── RENDER ──────────────────────────────────────────────────────
+function init(){
+  renderProcessStrip();
+  renderScenarioCards();
+}
+
+function renderProcessStrip(){
+  const el = document.getElementById('processSteps');
+  let html = '';
+  PROCESS_LABELS.forEach((label,i) => {
+    if(i > 0) html += `<div class="process-connector" data-ci="${i}"></div>`;
+    html += `<div class="process-step" data-si="${i}"><div class="step-icon">${PROCESS_ICONS[i]}</div><div class="step-label">${label}</div></div>`;
+  });
+  el.innerHTML = html;
+}
+
+function updateProcessStrip(){
+  const activeIdx = state.view === 'mission' ? stageToProcess[state.stage] : -1;
+  document.querySelectorAll('.process-step').forEach((el,i) => {
+    el.classList.toggle('active', i === activeIdx);
+    el.classList.toggle('done', i < activeIdx);
+  });
+  document.querySelectorAll('.process-connector').forEach((el,i) => {
+    el.classList.toggle('done', i < activeIdx);
+  });
+}
+
+function renderScenarioCards(){
+  const grid = document.getElementById('scenarioGrid');
+  grid.innerHTML = Object.values(SCENARIOS).map(s => `
+    <div class="scenario-card" onclick="enterScenario('${s.id}')" style="--card-accent:${s.color}">
+      <div class="card-icon" style="color:${s.color}">${ICONS[s.icon]}</div>
+      <h3>${s.title}</h3>
+      <div class="card-sub">${s.subtitle}</div>
+      <p class="card-desc">${s.synopsis}</p>
+      <div class="card-tags">${s.tags.map(t=>`<span class="tag">${t}</span>`).join('')}</div>
+      <button class="card-btn">Enter Scenario →</button>
+    </div>
+  `).join('');
+}
+
+function enterScenario(id){
+  state = {view:'mission', scenario:id, stage:0};
+  document.getElementById('scenarios').style.display = 'none';
+  document.getElementById('mission').style.display = 'block';
+  document.getElementById('missionTitle').textContent = SCENARIOS[id].title + ' — ' + SCENARIOS[id].subtitle;
+  renderStage();
+  updateProcessStrip();
+  document.getElementById('mission').scrollIntoView({behavior:'smooth'});
+}
+
+function backToScenarios(){
+  state = {view:'home', scenario:null, stage:0};
+  document.getElementById('scenarios').style.display = '';
+  document.getElementById('mission').style.display = 'none';
+  updateProcessStrip();
+  document.getElementById('scenarios').scrollIntoView({behavior:'smooth'});
+}
+
+function advanceStage(){
+  if(state.stage < 7) { state.stage++; renderStage(); updateProcessStrip(); }
+  document.getElementById('stageContainer').scrollIntoView({behavior:'smooth'});
+}
+
+function renderStage(){
+  const s = SCENARIOS[state.scenario];
+  const c = document.getElementById('stageContainer');
+  const renderers = [renderPlan,renderPersonas,renderTimeline.bind(null,'t3','T + 3 Months','Early signals','t3'),renderTimeline.bind(null,'t6','T + 6 Months','Breaking promises','t6'),renderTimeline.bind(null,'t12','T + 12 Months','Mature outcome','t12'),renderRiskTriage,renderConfidence,renderImpact];
+  c.innerHTML = '';
+  c.innerHTML = renderers[state.stage](s);
+  if(state.stage === 1) animatePersonaCards();
+  if(state.stage === 6) animateGauge(s);
+}
+
+// ─── STAGE RENDERERS ─────────────────────────────────────────────
+function renderPlan(s){
+  const p = s.plan;
+  const patternNames = ['Vague success criteria','Buzzword density','Suspiciously round numbers','Generic recommendations','Missing trade-offs','Confidence without evidence','Plurals without specifics','Training-data averages'];
+  const fired = p.patterns.filter(Boolean).length;
+  return `
+    <div class="plan-grid">
+      <div class="plan-terminal">
+        <div><span class="plan-head"># ${p.company}</span></div>
+        <div><span class="plan-key">Detail:</span> <span class="plan-val">${p.detail}</span></div>
+        <br><div><span class="plan-head">## Goal</span></div>
+        <div><span class="plan-val">${p.goal}</span></div>
+        <br><div><span class="plan-head">## Phases</span></div>
+        ${p.phases.map(ph=>`<div><span class="plan-key">${ph.name} (${ph.time}):</span> <span class="plan-val">${ph.desc}</span></div>`).join('')}
+        <br><div><span class="plan-head">## Targets</span></div>
+        ${p.targets.map(t=>`<div><span class="plan-val">• ${t}</span></div>`).join('')}
+        <br><div><span class="plan-head">## Why Now</span></div>
+        <div><span class="plan-val">${p.whyNow}</span></div>
+      </div>
+      <div class="ai-patterns">
+        <h4>AI-Pattern Detection</h4>
+        ${patternNames.map((n,i)=>`<div class="pattern-row"><span class="pattern-dot ${p.patterns[i]?'fired':''}"></span><span class="pattern-label ${p.patterns[i]?'fired':''}">${n}</span></div>`).join('')}
+        <div class="patterns-verdict">${fired} of 8 patterns fired${fired>=3?' — AI-Optimism Auditor auto-included':''}</div>
+      </div>
+    </div>
+    <button class="advance-btn" onclick="advanceStage()">[ Initiate Time Travel ]</button>`;
+}
+
+function makeRadar(r){
+  const keys = ['trust','userPain','blindSpot','opsLoad','financial','strategic'];
+  const angles = keys.map((_,i) => (Math.PI*2*i/6) - Math.PI/2);
+  const cx=50, cy=50, R=38;
+  const bgPts = angles.map(a => `${cx+R*Math.cos(a)},${cy+R*Math.sin(a)}`).join(' ');
+  const midPts = angles.map(a => `${cx+(R*.66)*Math.cos(a)},${cy+(R*.66)*Math.sin(a)}`).join(' ');
+  const innerPts = angles.map(a => `${cx+(R*.33)*Math.cos(a)},${cy+(R*.33)*Math.sin(a)}`).join(' ');
+  const dataPts = angles.map((a,i) => {
+    const v = r[keys[i]]/3;
+    return `${cx+R*v*Math.cos(a)},${cy+R*v*Math.sin(a)}`;
+  }).join(' ');
+  const labels = ['T','U','B','O','F','S'];
+  const labelEls = angles.map((a,i) => {
+    const lx = cx + (R+12)*Math.cos(a);
+    const ly = cy + (R+12)*Math.sin(a);
+    return `<text x="${lx}" y="${ly}" text-anchor="middle" dominant-baseline="middle" fill="#5a6a8a" font-size="7" font-family="Orbitron">${labels[i]}</text>`;
+  }).join('');
+  return `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+    <polygon points="${bgPts}" fill="none" stroke="#1a2744" stroke-width=".5"/>
+    <polygon points="${midPts}" fill="none" stroke="#1a2744" stroke-width=".3"/>
+    <polygon points="${innerPts}" fill="none" stroke="#1a2744" stroke-width=".3"/>
+    ${angles.map(a=>`<line x1="${cx}" y1="${cy}" x2="${cx+R*Math.cos(a)}" y2="${cy+R*Math.sin(a)}" stroke="#1a2744" stroke-width=".3"/>`).join('')}
+    <polygon points="${dataPts}" fill="rgba(0,229,255,.15)" stroke="var(--accent-cyan)" stroke-width="1.5"/>
+    ${labelEls}
+  </svg>`;
+}
+
+function renderPersonas(s){
+  return `
+    <div class="persona-grid">
+      ${s.personas.map((p,i) => `
+        <div class="persona-card" style="animation-delay:${i*150}ms">
+          <div class="p-header">
+            <div class="p-avatar" style="color:var(--accent-cyan)">${ICONS[p.icon]}</div>
+            <div><div class="p-name">${p.name}</div><div class="p-role">${p.role}</div></div>
+          </div>
+          <div class="p-quote">"${p.firstLine}"</div>
+          <div class="radar-wrap">${makeRadar(p.radar)}</div>
+          <div class="p-status">DISPATCHED</div>
+        </div>
+      `).join('')}
+    </div>
+    <button class="advance-btn" onclick="advanceStage()">[ Advance to T+3 ]</button>`;
+}
+
+function animatePersonaCards(){
+  document.querySelectorAll('.persona-card').forEach((card,i) => {
+    card.style.animationDelay = `${i*150}ms`;
+  });
+}
+
+function renderTimeline(key,title,sub,horizon,s){
+  const cls = key === 't3' ? 't3' : key === 't6' ? 't6' : 't12';
+  const nextLabels = {t3:'Advance to T+6', t6:'Advance to T+12', t12:'View Risk Analysis'};
+  return `
+    <div class="timeline-header ${cls}">${title}</div>
+    <div class="timeline-sub">${sub}</div>
+    ${s.personas.map((p,i) => `
+      <div class="narrative-card ${i>2?'collapsed':''} fade-in" style="animation-delay:${i*80}ms" onclick="this.classList.toggle('collapsed')">
+        <div class="n-header">
+          <div class="n-avatar" style="color:var(--accent-cyan)">${ICONS[p.icon]}</div>
+          <div><div class="n-name">${p.name}</div><div class="n-role">${p.role}</div></div>
+          <span class="n-chevron">▾</span>
+        </div>
+        <div class="n-text">${p[horizon]}</div>
+      </div>
+    `).join('')}
+    <button class="advance-btn" onclick="advanceStage()">[ ${nextLabels[key]} ]</button>`;
+}
+
+function sevBar(scores){
+  return `<div class="severity-bars">${scores.map((v,i) => `
+    <div class="sev-bar">
+      <div class="bar-track"><div class="bar-fill" style="width:${v/3*100}%;background:${SEV_COLORS[i]}"></div></div>
+      <div class="bar-label">${SEVERITY_KEYS[i]}</div>
+    </div>`).join('')}</div>`;
+}
+
+function renderRiskTriage(s){
+  return `
+    <div class="triage-grid">
+      <div class="triage-col confirmed">
+        <h3>Confirmed</h3>
+        ${s.risks.confirmed.map(r => `
+          <div class="risk-item">
+            <div class="risk-name">${r.name}</div>
+            <div class="risk-meta">${r.likelihood} · ${r.urgency}</div>
+            ${sevBar(r.severity)}
+            <div class="risk-detail"><strong>Tripwire:</strong> ${r.tripwire}</div>
+            <div class="risk-detail"><strong>Mitigation:</strong> ${r.mitigation}</div>
+          </div>
+        `).join('')}
+      </div>
+      <div class="triage-col inflated">
+        <h3>Inflated</h3>
+        ${s.risks.inflated.map(r => `
+          <div class="risk-item">
+            <div class="risk-name">${r.name}</div>
+            <div class="risk-detail">${r.why}</div>
+          </div>
+        `).join('')}
+      </div>
+      <div class="triage-col buried">
+        <h3>Buried</h3>
+        ${s.risks.buried.map(r => `
+          <div class="risk-item">
+            <div class="risk-name">${r.name}</div>
+            <div class="buried-special">
+              <div class="risk-detail"><strong>Why nobody names it:</strong> ${r.whyHidden}</div>
+              <div class="risk-detail" style="margin-top:8px"><strong>How to surface:</strong> ${r.howSurface}</div>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+    <button class="advance-btn" onclick="advanceStage()">[ View Confidence Report ]</button>`;
+}
+
+function renderConfidence(s){
+  const circ = 2 * Math.PI * 80;
+  return `
+    <div class="confidence-grid">
+      <div>
+        <div class="gauge-wrap">
+          <div class="gauge-container">
+            <svg viewBox="0 0 200 200">
+              <circle class="gauge-bg" cx="100" cy="100" r="80"/>
+              <circle class="gauge-unmit" cx="100" cy="100" r="80" stroke-dasharray="0 ${circ}" data-target="${s.confidence.unmitigated/100*circ}"/>
+              <circle class="gauge-mit" cx="100" cy="100" r="80" stroke-dasharray="0 ${circ}" data-target="${s.confidence.mitigated/100*circ}"/>
+            </svg>
+            <div class="gauge-center">
+              <div class="gauge-num" id="gaugeNum">0%</div>
+              <div class="gauge-label">Confidence</div>
+            </div>
+          </div>
+          <div class="gauge-legend">
+            <span><span class="dot" style="background:var(--accent-red)"></span> Unmitigated ${s.confidence.unmitigated}%</span>
+            <span><span class="dot" style="background:var(--accent-green)"></span> Mitigated ${s.confidence.mitigated}%</span>
+          </div>
+        </div>
+        <div class="mitigations-list" style="margin-top:32px;background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:20px;">
+          <h3 style="font-family:Orbitron;font-size:.7rem;letter-spacing:.2em;color:var(--accent-green);margin-bottom:12px;text-transform:uppercase">Top Mitigations</h3>
+          ${s.risks.confirmed.map(r => `<div class="mit-item"><span class="mit-dot"></span><span>${r.mitigation}</span></div>`).join('')}
+        </div>
+      </div>
+      <div class="exec-section">
+        <h3>3 Questions Before Approving</h3>
+        ${s.execQuestions.map((q,i) => `<div class="exec-q"><span class="q-num">${String(i+1).padStart(2,'0')}</span><span>${q}</span></div>`).join('')}
+      </div>
+    </div>
+    <button class="advance-btn" onclick="advanceStage()">[ See the Impact ]</button>`;
+}
+
+function animateGauge(s){
+  setTimeout(() => {
+    const circ = 2*Math.PI*80;
+    const unmitEl = document.querySelector('.gauge-unmit');
+    const mitEl = document.querySelector('.gauge-mit');
+    const numEl = document.getElementById('gaugeNum');
+    if(!unmitEl) return;
+    const unmitDash = s.confidence.unmitigated/100*circ;
+    const mitDash = s.confidence.mitigated/100*circ;
+    unmitEl.style.strokeDasharray = `${unmitDash} ${circ}`;
+    setTimeout(() => {
+      mitEl.style.strokeDasharray = `${mitDash} ${circ}`;
+    }, 800);
+    let current = 0;
+    const target = s.confidence.mitigated;
+    const step = () => {
+      current += 1;
+      if(current > target) current = target;
+      numEl.textContent = current + '%';
+      if(current < target) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  }, 200);
+}
+
+function renderImpact(s){
+  const imp = s.impact;
+  return `
+    <div style="text-align:center;margin-bottom:32px">
+      <div class="timeline-header" style="color:var(--accent-green)">Impact Analysis</div>
+      <div class="timeline-sub">What Time Travel prevented</div>
+    </div>
+    <div class="impact-grid">
+      <div class="impact-col without">
+        <h3>Without Time Travel</h3>
+        <div class="impact-total">${imp.without.total}</div>
+        <ul>${imp.without.items.map(i=>`<li><span>${i}</span></li>`).join('')}</ul>
+        <div class="final-state">"${imp.without.finalState}"</div>
+      </div>
+      <div class="impact-delta">
+        <div class="delta-amount">${imp.delta.amount}</div>
+        <div class="delta-label">${imp.delta.label}</div>
+        <div class="delta-conf">${imp.delta.conf}</div>
+        <div class="delta-verdict">${imp.delta.verdict}</div>
+      </div>
+      <div class="impact-col with-tt">
+        <h3>With Time Travel</h3>
+        <div class="impact-total">${imp.withTT.total}</div>
+        <ul>${imp.withTT.items.map(i=>`<li><span>${i}</span></li>`).join('')}</ul>
+        <div class="final-state">"${imp.withTT.finalState}"</div>
+      </div>
+    </div>
+    <button class="advance-btn" onclick="backToScenarios()">[ Back to Scenarios ]</button>`;
+}
+
+// ─── INIT ────────────────────────────────────────────────────────
+init();
+</script>
+</body>
+</html>

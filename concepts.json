@@ -57,5 +57,20 @@
     "status": "Live",
     "path": "vaccsafe-community-animal-network/",
     "color": "#33E6B5"
+  },
+  {
+    "id": "time-travel",
+    "title": "Time Travel",
+    "subtitle": "Multi-Agent Premortem Intelligence",
+    "description": "A cinematic walkthrough of how autonomous agents project stakeholder failures across future timelines, classify risks, and rewrite plans before reality does — demonstrated through three real-world scenarios.",
+    "tags": [
+      "Multi-Agent",
+      "Premortem",
+      "Risk Analysis",
+      "Decision Intelligence"
+    ],
+    "status": "Live",
+    "path": "time-travel/",
+    "color": "#00e5ff"
   }
 ]
