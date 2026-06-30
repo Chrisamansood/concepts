@@ -72,5 +72,20 @@
     "status": "Live",
     "path": "time-travel/",
     "color": "#00e5ff"
+  },
+  {
+    "id": "saarthi-live-mission",
+    "title": "Saarthi",
+    "subtitle": "The Decision Charioteer",
+    "description": "A live multi-agent orchestration walkthrough where Saarthi decomposes an unresolved AI platform decision, spawns specialist agents, runs parallel work, rejects weak claims through a visible quality gate, and returns an auditable 60/90/120-day evaluation path.",
+    "tags": [
+      "Multi-Agent",
+      "Orchestration",
+      "Decision Intelligence",
+      "Quality Gates"
+    ],
+    "status": "Live",
+    "path": "saarthi-live-mission/",
+    "color": "#FFB000"
   }
 ]
