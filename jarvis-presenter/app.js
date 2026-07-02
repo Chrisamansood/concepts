@@ -1,11 +1,28 @@
 import { FilesetResolver, HandLandmarker } from "./vendor/tasks-vision/vision_bundle.mjs";
 import { OneEuroFilter } from "./one-euro-filter.js";
+import { createAppState } from "./core/app-state.js";
+import { createCommandBus } from "./core/command-bus.js";
+import { createLandmarkRecorder, recordingToJson } from "./gestures/landmark-recorder.js";
+import { deterministicTrace, replayLandmarks } from "./gestures/landmark-replay.js";
+import { createProfile, derivePinchThresholds } from "./gestures/calibration.js";
+import { createProfileStorage } from "./core/profile-storage.js";
+import { createSpeechAdapter } from "./voice/speech-adapter.js";
+import { createVoiceController } from "./voice/voice-controller.js";
+import { parseCommand } from "./voice/command-parser.js";
+import { createDiagramScene, updateDiagramScene } from "./presentation/diagram-model.js";
+import { renderDiagram } from "./presentation/diagram-renderer.js";
+import { createPalmNavigationController } from "./gestures/palm-navigation.js";
 
 const captureBtn = document.getElementById("captureBtn");
 const slidesBtn = document.getElementById("slidesBtn");
 const slidesInput = document.getElementById("slidesInput");
 const handBtn = document.getElementById("handBtn");
 const voiceBtn = document.getElementById("voiceBtn");
+const voiceCommandsBtn = document.getElementById("voiceCommandsBtn");
+const voiceDiagnostic = document.getElementById("voiceDiagnostic");
+const voiceDiagnosticState = document.getElementById("voiceDiagnosticState");
+const voiceDiagnosticTranscript = document.getElementById("voiceDiagnosticTranscript");
+const voiceDiagnosticError = document.getElementById("voiceDiagnosticError");
 const actionNotice = document.getElementById("actionNotice");
 const clearBtn = document.getElementById("clearBtn");
 const undoBtn = document.getElementById("undoBtn");
@@ -22,7 +39,7 @@ const commandBtn = document.getElementById("commandBtn");
 const toolButtons = [...document.querySelectorAll("[data-tool]")];
 const radialMenu = document.getElementById("radialMenu");
 const radialItems = [...document.querySelectorAll(".radial-item")];
-const radialCore = document.querySelector(".radial-core");
+const radialCoreLabel = document.querySelector(".radial-core-label");
 const swatches = [...document.querySelectorAll("[data-color]")];
 const mirrorInput = document.getElementById("mirrorInput");
 const stabilityInput = document.getElementById("stabilityInput");
@@ -63,10 +80,35 @@ const predictionReadout = document.getElementById("predictionReadout");
 const primeDelayReadout = document.getElementById("primeDelayReadout");
 const voiceReadout = document.getElementById("voiceReadout");
 const heardText = document.getElementById("heardText");
+const commandAudit = document.getElementById("commandAudit");
+const replayLab = document.getElementById("replayLab");
+const replayFixtureSelect = document.getElementById("replayFixtureSelect");
+const replaySpeedSelect = document.getElementById("replaySpeedSelect");
+const replayRunBtn = document.getElementById("replayRunBtn");
+const recordLandmarksBtn = document.getElementById("recordLandmarksBtn");
+const stopLandmarksBtn = document.getElementById("stopLandmarksBtn");
+const replayReport = document.getElementById("replayReport");
+const profileSelect = document.getElementById("profileSelect");
+const calibrateBtn = document.getElementById("calibrateBtn");
+const renameProfileBtn = document.getElementById("renameProfileBtn");
+const exportProfileBtn = document.getElementById("exportProfileBtn");
+const importProfileBtn = document.getElementById("importProfileBtn");
+const resetProfileBtn = document.getElementById("resetProfileBtn");
+const profileImportInput = document.getElementById("profileImportInput");
+const profileStatus = document.getElementById("profileStatus");
+const calibrationWizard = document.getElementById("calibrationWizard");
+const calibrationTitle = document.getElementById("calibrationTitle");
+const calibrationInstruction = document.getElementById("calibrationInstruction");
+const calibrationProgress = document.getElementById("calibrationProgress");
+const calibrationChoiceRow = document.getElementById("calibrationChoiceRow");
+const calibrationDominantHand = document.getElementById("calibrationDominantHand");
+const calibrationNextBtn = document.getElementById("calibrationNextBtn");
+const calibrationCancelBtn = document.getElementById("calibrationCancelBtn");
+const diagramOverlay = document.getElementById("diagramOverlay");
+const diagramDraftPreview = document.getElementById("diagramDraftPreview");
 
 const drawCtx = drawCanvas.getContext("2d");
 const previewCtx = previewCanvas.getContext("2d");
-const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 
 const Gesture = {
   NONE: "NONE",
@@ -103,6 +145,8 @@ let lastPoint = null;
 let recognition = null;
 let voiceOn = false;
 let voiceShouldRun = false;
+let voiceMode = "off";
+let voicePreflightPassed = false;
 let handLandmarker = null;
 let handLandmarkerPromise = null;
 let cameraStream = null;
@@ -119,6 +163,8 @@ let pendingState = State.IDLE;
 let pendingFrames = 0;
 let handSeenFrames = 0;
 let lastHandAt = 0;
+let replayClock = null;
+let replayContext = null;
 let stateEnteredAt = performance.now();
 let gestureStartPoint = null;
 let gestureLastPoint = null;
@@ -127,6 +173,7 @@ let gestureAnimationId = null;
 let positionHistory = [];
 let radialCenter = null;
 let radialSelectedTool = "pen";
+let menuPinchFrames = 0;
 let canvasHistory = [];
 let redoHistory = [];
 let lastSwipeAt = 0;
@@ -138,6 +185,9 @@ let panY = 0;
 let pinchZoomStart = null;
 let panStart = null;
 let lastSlideSwipeAt = 0;
+let slideSwipeArmed = true;
+let slideSwipeReleaseFrames = 0;
+let slideSwipeCandidateUntil = 0;
 let slideDeck = [];
 let currentSlideIndex = 0;
 let slideMode = false;
@@ -153,6 +203,49 @@ let zoomCandidateFrames = 0;
 let lastPrimaryWrist = null;
 let palmMenuBlockedUntil = 0;
 let palmHoldAnchor = null;
+let missingInferenceFrames = 0;
+let drawingHandLostAt = null;
+let returnStableFrames = 0;
+let menuPinchActive = false;
+let calibrationStep = 0;
+let calibrationSamples = { pinchRatios: [], palmSpreads: [], movementX: [], movementY: [] };
+let draftDiagram = null;
+let committedDiagram = null;
+let diagramHistory = [];
+let diagramRedoHistory = [];
+
+const profileStorage = createProfileStorage();
+let activeProfile = createProfile();
+const palmNavigation = createPalmNavigationController();
+
+const appState = createAppState({ activeTool, activeColor });
+const commandBus = createCommandBus({
+  allowedTypes: [
+    "tool.select",
+    "color.select",
+    "overlay.undo",
+    "overlay.redo",
+    "presentation.next",
+    "presentation.previous",
+    "zoom.reset",
+    "control.lock",
+    "control.unlock",
+    "diagram.prepare",
+    "diagram.present",
+    "diagram.hide",
+    "diagram.highlight"
+  ]
+});
+const landmarkRecorder = createLandmarkRecorder();
+
+function gestureNow() {
+  return replayClock === null ? performance.now() : replayClock;
+}
+
+function recordReplaySignal(type, detail = {}) {
+  if (!replayContext) return;
+  replayContext.signals.push({ type, t: gestureNow(), ...detail });
+}
 
 const pointFilters = {
   cursor: {
@@ -249,6 +342,7 @@ function setZoom(nextScale, center = stageCenter()) {
   clampPan();
   applySourceTransform();
   setStatus(`Zoom ${zoomScale.toFixed(1)}x`);
+  recordReplaySignal("zoom.change", { scale: Number(zoomScale.toFixed(3)) });
 }
 
 function resetZoom() {
@@ -317,6 +411,7 @@ function canvasSnapshot() {
 
 function updateHistoryReadout() {
   historyReadout.textContent = `${canvasHistory.length}/20`;
+  appState.update({ canUndo: canvasHistory.length > 0, canRedo: redoHistory.length > 0 });
 }
 
 function restoreCanvasSnapshot(snapshot) {
@@ -335,7 +430,14 @@ function pushCanvasHistory() {
   updateHistoryReadout();
 }
 
-function undoDrawing() {
+function applyUndoDrawing() {
+  if (diagramHistory.length) {
+    diagramRedoHistory.push(committedDiagram ? structuredClone(committedDiagram) : null);
+    committedDiagram = diagramHistory.pop();
+    renderCurrentDiagram();
+    setStatus("Undo diagram");
+    return;
+  }
   const current = canvasSnapshot();
   const previous = canvasHistory.pop();
   if (!previous || !current) {
@@ -349,7 +451,14 @@ function undoDrawing() {
   setStatus("Undo");
 }
 
-function redoDrawing() {
+function applyRedoDrawing() {
+  if (diagramRedoHistory.length) {
+    diagramHistory.push(committedDiagram ? structuredClone(committedDiagram) : null);
+    committedDiagram = diagramRedoHistory.pop();
+    renderCurrentDiagram();
+    setStatus("Redo diagram");
+    return;
+  }
   const current = canvasSnapshot();
   const next = redoHistory.pop();
   if (!next || !current) {
@@ -455,7 +564,7 @@ function drawLaser(ctx, point, persistent = false, from = null) {
     return;
   }
 
-  const now = performance.now();
+  const now = gestureNow();
   laserPositions.push({ ...point, timestamp: now });
   laserPositions = laserPositions.filter((entry) => now - entry.timestamp <= 400).slice(-15);
 
@@ -737,7 +846,7 @@ function resetFilters() {
   positionHistory = [];
 }
 
-function pointFromLandmark(landmark, timestamp = performance.now(), mode = "cursor") {
+function pointFromLandmark(landmark, timestamp = gestureNow(), mode = "cursor") {
   const filterSet = pointFilters[mode] || pointFilters.cursor;
   const raw = screenPointFromLandmark(landmark);
   filterSet.history.push({ ...raw, timestamp });
@@ -787,7 +896,18 @@ function isPrecisionPinch(hand) {
   const middle = isFingerExtended(hand, 12, 10, 9);
   const ring = isFingerExtended(hand, 16, 14, 13);
   const pinky = isFingerExtended(hand, 20, 18, 17);
-  return pinchRatio < 0.42 && [middle, ring, pinky].filter(Boolean).length <= 1;
+  return pinchRatio < activeProfile.thresholds.pinchEnter && [middle, ring, pinky].filter(Boolean).length <= 1;
+}
+
+function isMenuSelectionPinch(hand) {
+  const palmWidth = Math.max(0.001, landmarkDistance(hand[5], hand[17]));
+  const ratio = landmarkDistance(hand[8], hand[4]) / palmWidth;
+  if (menuPinchActive) {
+    if (ratio > activeProfile.thresholds.pinchExit) menuPinchActive = false;
+  } else if (ratio < activeProfile.thresholds.menuPinchEnter) {
+    menuPinchActive = true;
+  }
+  return menuPinchActive;
 }
 
 function classifyGesture(hand) {
@@ -840,7 +960,7 @@ function layoutRadialMenu() {
 
 function clampMenuPoint(point) {
   const rect = stage.getBoundingClientRect();
-  const margin = 124;
+  const margin = Math.ceil((radialMenu.offsetWidth || 286) / 2) + 18;
   return {
     x: Math.min(Math.max(point.x, margin), Math.max(margin, rect.width - margin)),
     y: Math.min(Math.max(point.y, margin), Math.max(margin, rect.height - margin))
@@ -850,13 +970,15 @@ function clampMenuPoint(point) {
 function openRadialMenu(point) {
   radialCenter = clampMenuPoint(point);
   radialSelectedTool = activeTool;
-  radialCore.textContent = toolReadout.textContent;
+  menuPinchFrames = 0;
+  if (radialCoreLabel) radialCoreLabel.textContent = toolReadout.textContent;
   radialMenu.style.left = `${radialCenter.x}px`;
   radialMenu.style.top = `${radialCenter.y}px`;
   radialMenu.classList.add("open");
   radialMenu.setAttribute("aria-hidden", "false");
-  updateRadialSelection(point);
+  radialItems.forEach((item) => item.classList.remove("menu-hot"));
   setStatus("Tool menu open");
+  recordReplaySignal("menu.open");
 }
 
 function closeRadialMenu() {
@@ -864,6 +986,7 @@ function closeRadialMenu() {
   radialMenu.setAttribute("aria-hidden", "true");
   radialItems.forEach((item) => item.classList.remove("menu-hot"));
   radialCenter = null;
+  menuPinchFrames = 0;
 }
 
 function updateRadialSelection(point) {
@@ -879,7 +1002,7 @@ function updateRadialSelection(point) {
 
 function selectRadialTool() {
   if (!radialSelectedTool) return;
-  selectTool(radialSelectedTool);
+  selectTool(radialSelectedTool, "gesture");
   closeRadialMenu();
   transitionTo(State.TRACKING, true);
 }
@@ -887,7 +1010,8 @@ function selectRadialTool() {
 function transitionTo(nextState, force = false) {
   if (!force && nextState === gestureState) return;
   gestureState = nextState;
-  stateEnteredAt = performance.now();
+  stateEnteredAt = gestureNow();
+  recordReplaySignal(`state.${nextState}`);
   setGestureStateLabel(stateLabel(nextState));
   updateGestureIndicator(nextState);
 
@@ -945,13 +1069,14 @@ function updateTwoHandMode(hands, handedness = []) {
   if (validPair) {
     twoHandCandidateFrames += 1;
     twoHandLostFrames = 0;
-    if (!twoHandMode && twoHandCandidateFrames >= 6) {
+    if (!twoHandMode && twoHandCandidateFrames >= activeProfile.timing.twoHandConfirmFrames) {
       twoHandMode = true;
       clearGestureDrawingState();
       resetFilters();
       hideGestureCursor();
       setGestureStateLabel("Two hands");
       setStatus("Two-hand controls ready");
+      recordReplaySignal("two-hand.enter");
     }
   } else {
     twoHandCandidateFrames = 0;
@@ -966,6 +1091,7 @@ function updateTwoHandMode(hands, handedness = []) {
         resetFilters();
         transitionTo(State.TRACKING, true);
         setStatus("Single-hand controls ready");
+        recordReplaySignal("two-hand.exit");
       }
     }
   }
@@ -973,7 +1099,11 @@ function updateTwoHandMode(hands, handedness = []) {
   return { validPair, active: twoHandMode };
 }
 
-function selectPrimaryHand(hands) {
+function selectPrimaryHand(hands, handedness = []) {
+  if (activeProfile.dominantHand !== "Auto") {
+    const preferred = hands.find((hand, index) => handednessLabel(handedness[index]) === activeProfile.dominantHand);
+    if (preferred) return preferred;
+  }
   if (hands.length === 1) {
     lastPrimaryWrist = hands[0][0];
     return hands[0];
@@ -997,11 +1127,11 @@ function isClapGesture(hands) {
   if (hands.length < 2) return false;
   const left = palmCenter(hands[0]);
   const right = palmCenter(hands[1]);
-  return landmarkDistance(left, right) < 0.16 && isOpenPalm(hands[0]) && isOpenPalm(hands[1]);
+  return landmarkDistance(left, right) < activeProfile.thresholds.clapDistance && isOpenPalm(hands[0]) && isOpenPalm(hands[1]);
 }
 
 function handleClapEvent() {
-  const now = performance.now();
+  const now = gestureNow();
 
   if (now - lastClapAt < 500) {
     window.clearTimeout(clapTimer);
@@ -1079,7 +1209,7 @@ function trackPointerSwipe(hand, timestamp) {
   positionHistory.push({ ...wristPoint, timestamp });
   positionHistory = positionHistory.filter((point) => timestamp - point.timestamp <= 220);
 
-  if (performance.now() - lastSwipeAt < 400 || positionHistory.length < 3) return;
+  if (gestureNow() - lastSwipeAt < 400 || positionHistory.length < 3) return;
 
   const first = positionHistory[0];
   const last = positionHistory[positionHistory.length - 1];
@@ -1087,13 +1217,13 @@ function trackPointerSwipe(hand, timestamp) {
   const velocityX = (last.x - first.x) / elapsedSeconds;
   const velocityY = (last.y - first.y) / elapsedSeconds;
 
-  if (Math.abs(velocityX) > 800 && Math.abs(velocityY) < 200) {
-    lastSwipeAt = performance.now();
+  if (Math.abs(velocityX) > Math.max(800, activeProfile.thresholds.swipeVelocity) && Math.abs(velocityY) < 200) {
+    lastSwipeAt = gestureNow();
     positionHistory = [];
     if (velocityX < 0) {
-      undoDrawing();
+      undoDrawing("gesture");
     } else {
-      redoDrawing();
+      redoDrawing("gesture");
     }
   }
 }
@@ -1104,11 +1234,16 @@ function setSlideMode(enabled) {
   slideImage.classList.toggle("active", enabled && slideSourceType === "images");
   pptxCanvas.classList.toggle("active", enabled && slideSourceType === "pptx");
   slideReadout.textContent = enabled && slideDeck.length ? `${currentSlideIndex + 1}/${slideDeck.length}` : "Off";
+  appState.update({
+    slideIndex: enabled ? currentSlideIndex : 0,
+    slideCount: enabled ? slideDeck.length : 0
+  });
 }
 
 async function showSlide(index) {
   if (!slideDeck.length) return;
   currentSlideIndex = Math.min(slideDeck.length - 1, Math.max(0, index));
+  appState.update({ slideIndex: currentSlideIndex, slideCount: slideDeck.length });
 
   if (slideSourceType === "pptx") {
     if (!pptxViewer || pptxRendering) return;
@@ -1127,6 +1262,8 @@ async function showSlide(index) {
     return;
   }
 
+  const targetSlide = slideDeck[currentSlideIndex];
+  if (!targetSlide) return;
   slideImage.style.opacity = "0";
   window.setTimeout(() => {
     slideImage.onload = () => {
@@ -1136,48 +1273,63 @@ async function showSlide(index) {
     };
     slideImage.onerror = () => {
       slideImage.style.opacity = "1";
-      setStatus(`Could not load ${slideDeck[currentSlideIndex].name}`);
+      setStatus(`Could not load ${targetSlide.name}`);
       slideImage.onload = null;
       slideImage.onerror = null;
     };
-    slideImage.src = slideDeck[currentSlideIndex].url;
+    slideImage.src = targetSlide.url;
   }, 90);
   slideReadout.textContent = `${currentSlideIndex + 1}/${slideDeck.length}`;
   setStatus(`Slide ${currentSlideIndex + 1} / ${slideDeck.length}`);
 }
 
-function nextSlide() {
+function applyNextSlide() {
   if (!slideMode || currentSlideIndex >= slideDeck.length - 1) return;
   void showSlide(currentSlideIndex + 1);
 }
 
-function previousSlide() {
+function applyPreviousSlide() {
   if (!slideMode || currentSlideIndex <= 0) return;
   void showSlide(currentSlideIndex - 1);
 }
 
 function trackSlideSwipe(hand, timestamp) {
-  if (!slideMode || sourceVideo.srcObject || performance.now() - lastSlideSwipeAt < 600) return false;
+  if (!slideMode || sourceVideo.srcObject || !slideSwipeArmed) return false;
   const center = screenPointFromLandmark(palmCenter(hand));
   slideSwipeHistory.push({ ...center, timestamp });
-  slideSwipeHistory = slideSwipeHistory.filter((point) => timestamp - point.timestamp <= 240);
+  slideSwipeHistory = slideSwipeHistory.filter((point) => timestamp - point.timestamp <= 320);
 
   if (slideSwipeHistory.length < 3) return false;
 
   const first = slideSwipeHistory[0];
   const last = slideSwipeHistory[slideSwipeHistory.length - 1];
   const elapsedSeconds = Math.max(0.001, (last.timestamp - first.timestamp) / 1000);
+  const travelX = last.x - first.x;
+  const travelY = last.y - first.y;
   const velocityX = (last.x - first.x) / elapsedSeconds;
   const velocityY = (last.y - first.y) / elapsedSeconds;
 
-  if (Math.abs(velocityX) > 600 && Math.abs(velocityY) < 200) {
-    lastSlideSwipeAt = performance.now();
-    palmMenuBlockedUntil = lastSlideSwipeAt + 900;
+  if (Math.abs(travelX) >= 26 && Math.abs(travelX) > Math.abs(travelY) * 1.25) {
+    slideSwipeCandidateUntil = gestureNow() + 700;
+    palmMenuBlockedUntil = Math.max(palmMenuBlockedUntil, slideSwipeCandidateUntil);
+    setGestureStateLabel("Swipe detected");
+  }
+
+  if (
+    Math.abs(travelX) >= 54
+    && Math.abs(velocityX) > 420
+    && Math.abs(travelX) > Math.abs(travelY) * 1.4
+    && Math.abs(velocityY) < Math.abs(velocityX) * 0.7
+  ) {
+    lastSlideSwipeAt = gestureNow();
+    slideSwipeArmed = false;
+    slideSwipeReleaseFrames = 0;
+    palmMenuBlockedUntil = lastSlideSwipeAt + 1200;
     slideSwipeHistory = [];
     if (velocityX < 0) {
-      nextSlide();
+      nextSlide("gesture");
     } else {
-      previousSlide();
+      previousSlide("gesture");
     }
     return true;
   }
@@ -1271,10 +1423,11 @@ function clearDrawing() {
   drawCtx.clearRect(0, 0, rect.width, rect.height);
   clearPreview();
   setStatus("Overlay cleared");
+  recordReplaySignal("overlay.clear");
 }
 
 function handleClearHold() {
-  const now = performance.now();
+  const now = gestureNow();
   if (clearHoldStartedAt === null) {
     clearHoldStartedAt = now;
     clearHoldArmed = true;
@@ -1297,6 +1450,19 @@ function processHands(hands, timestamp, handedness = []) {
   const handMode = updateTwoHandMode(hands, handedness);
 
   if (!hands.length) {
+    missingInferenceFrames += 1;
+    returnStableFrames = 0;
+    if (gestureState === State.DRAWING && drawingHandLostAt === null) drawingHandLostAt = gestureNow();
+    if (gestureState === State.DRAWING && missingInferenceFrames >= 2) {
+      hideGestureCursor();
+      setGestureStateLabel("Tracking interrupted");
+      recordReplaySignal("drawing.suspended", { missingFrames: missingInferenceFrames });
+    }
+    if (gestureState === State.DRAWING && drawingHandLostAt !== null && gestureNow() - drawingHandLostAt >= 150) {
+      finishDrawing(gestureLastPoint || gestureStartPoint);
+      transitionTo(State.TRACKING, true);
+      recordReplaySignal("drawing.tracking-loss-stop");
+    }
     clapActive = false;
     pinchZoomStart = null;
     panStart = null;
@@ -1305,7 +1471,7 @@ function processHands(hands, timestamp, handedness = []) {
       hideGestureCursor();
       return;
     }
-    if (performance.now() - lastHandAt > 500) {
+    if (gestureNow() - lastHandAt > 500) {
       transitionTo(State.IDLE);
       handReadout.textContent = "Searching";
       hideGestureCursor();
@@ -1313,9 +1479,27 @@ function processHands(hands, timestamp, handedness = []) {
     return;
   }
 
+  if (missingInferenceFrames >= 2) {
+    if (gestureState === State.DRAWING) {
+      finishDrawing(gestureLastPoint || gestureStartPoint);
+      transitionTo(State.TRACKING, true);
+      recordReplaySignal("drawing.tracking-loss-stop");
+    }
+    returnStableFrames += 1;
+    if (returnStableFrames < activeProfile.timing.handReturnFrames) {
+      handReadout.textContent = "Stabilizing";
+      hideGestureCursor();
+      return;
+    }
+    resetFilters();
+  }
+  missingInferenceFrames = 0;
+  drawingHandLostAt = null;
+  returnStableFrames = Math.min(returnStableFrames, activeProfile.timing.handReturnFrames);
+
   if (!onboarding.hidden) dismissOnboarding();
   handSeenFrames += 1;
-  lastHandAt = performance.now();
+  lastHandAt = gestureNow();
 
   if (handMode.active) {
     handReadout.textContent = handMode.validPair ? "Two hands" : "Releasing";
@@ -1372,8 +1556,17 @@ function processHands(hands, timestamp, handedness = []) {
     return;
   }
 
-  const hand = selectPrimaryHand(hands);
-  const gesture = classifyGesture(hand);
+  const hand = selectPrimaryHand(hands, handedness);
+  captureCalibrationSample(hand);
+  let gesture = classifyGesture(hand);
+  if (gestureState === State.MENU) {
+    if (isMenuSelectionPinch(hand)) {
+      menuPinchFrames += 1;
+      if (menuPinchFrames >= 2) gesture = Gesture.PINCH;
+    } else {
+      menuPinchFrames = 0;
+    }
+  }
   const cursorPoint = pointFromLandmark(hand[5], timestamp, "cursor");
   const drawingPoint = pointFromLandmark(hand[8], timestamp, "draw");
   const target = stableTargetState(gesture);
@@ -1385,15 +1578,25 @@ function processHands(hands, timestamp, handedness = []) {
   }
 
   if (gesture === Gesture.PALM) {
-    if (trackSlideSwipe(hand, timestamp)) {
+    const palmResult = palmNavigation.observePalm(
+      screenPointFromLandmark(palmCenter(hand)),
+      timestamp,
+      { enabled: slideMode && !sourceVideo.srcObject }
+    );
+    if (palmResult.action) {
+      if (palmResult.action === "NEXT") nextSlide("gesture");
+      else previousSlide("gesture");
       palmHoldAnchor = null;
       transitionTo(State.TRACKING, true);
-      setGestureStateLabel("Slide changed");
+      setGestureStateLabel(palmResult.action === "NEXT" ? "Next slide" : "Previous slide");
+      setStatus(palmResult.action === "NEXT" ? "Next slide" : "Previous slide");
+      recordReplaySignal("palm-navigation.commit", { action: palmResult.action });
       hideGestureCursor();
       return;
     }
   } else {
-    slideSwipeHistory = [];
+    const release = palmNavigation.observeNonPalm();
+    if (release.rearmed) setGestureStateLabel("Swipe ready");
   }
 
   if (gestureState === State.MENU) {
@@ -1413,7 +1616,7 @@ function processHands(hands, timestamp, handedness = []) {
   }
 
   if (gestureState === State.COOLDOWN) {
-    if (performance.now() - stateEnteredAt >= 80) transitionTo(State.TRACKING, true);
+    if (gestureNow() - stateEnteredAt >= 80) transitionTo(State.TRACKING, true);
     return;
   }
 
@@ -1456,18 +1659,9 @@ function runStateBehavior(cursorPoint, drawingPoint, gesture = Gesture.NONE) {
   if (gestureState === State.PAUSED) {
     panStart = null;
     setPausedCursor(cursorPoint);
-    if (!palmHoldAnchor) palmHoldAnchor = { ...cursorPoint };
-    const palmMovement = Math.hypot(cursorPoint.x - palmHoldAnchor.x, cursorPoint.y - palmHoldAnchor.y);
-    if (palmMovement > 34) {
-      palmHoldAnchor = { ...cursorPoint };
-      stateEnteredAt = performance.now();
-      palmMenuBlockedUntil = Math.max(palmMenuBlockedUntil, performance.now() + 220);
-      setGestureStateLabel("Palm moving");
-    }
     if (
       gesture === Gesture.PALM
-      && performance.now() >= palmMenuBlockedUntil
-      && performance.now() - stateEnteredAt >= 500
+      && palmNavigation.menuReady(gestureNow(), activeProfile.timing.menuHoldMs)
     ) {
       openRadialMenu(cursorPoint);
       transitionTo(State.MENU, true);
@@ -1481,21 +1675,21 @@ function runStateBehavior(cursorPoint, drawingPoint, gesture = Gesture.NONE) {
       selectRadialTool();
       return;
     }
-    if (gesture === Gesture.FIST || gesture === Gesture.OTHER || gesture === Gesture.NONE) {
+    if (gesture === Gesture.FIST || gesture === Gesture.NONE) {
       closeRadialMenu();
       transitionTo(State.TRACKING, true);
       return;
     }
-    updateRadialSelection(gesture === Gesture.INDEX_ONLY ? drawingPoint : cursorPoint);
+    updateRadialSelection([Gesture.INDEX_ONLY, Gesture.PEACE, Gesture.OTHER].includes(gesture) ? drawingPoint : cursorPoint);
     return;
   }
 
   if (gestureState === State.PRIMING) {
     panStart = null;
-    const progress = Math.min(1, (performance.now() - stateEnteredAt) / Math.max(1, primeDelayMs));
+    const progress = Math.min(1, (gestureNow() - stateEnteredAt) / Math.max(1, primeDelayMs));
     gestureCursor.style.setProperty("--prime-progress", `${progress * 360}deg`);
     updateGestureCursor(drawingPoint, "priming");
-    if (performance.now() - stateEnteredAt >= primeDelayMs) {
+    if (gestureNow() - stateEnteredAt >= primeDelayMs) {
       startDrawing(drawingPoint);
       transitionTo(State.DRAWING, true);
     }
@@ -1513,6 +1707,7 @@ function startDrawing(point) {
   if (activeTool !== "laser") pushCanvasHistory();
   if (activeTool === "eraser") eraseAt(point);
   if (activeTool === "laser") drawLaser(previewCtx, point);
+  recordReplaySignal("drawing.start", { tool: activeTool });
 }
 
 function finishDrawing(point) {
@@ -1525,6 +1720,7 @@ function finishDrawing(point) {
   pendingState = State.TRACKING;
   pendingFrames = 0;
   resetFilters();
+  recordReplaySignal("drawing.stop", { tool: activeTool });
 }
 
 function drawActiveTool(point) {
@@ -1543,6 +1739,208 @@ function drawActiveTool(point) {
   gestureLastPoint = point;
 }
 
+function processLandmarkFrame({ landmarks = [], handedness = [] }, timestamp, { record = true } = {}) {
+  if (record) {
+    landmarkRecorder.capture({
+      landmarks,
+      handedness,
+      classifications: landmarks.map((hand) => classifyGesture(hand))
+    }, timestamp);
+  }
+  processHands(landmarks, timestamp, handedness);
+}
+
+function resetGesturePipelineForReplay() {
+  window.clearTimeout(clapTimer);
+  clapTimer = null;
+  clapActive = false;
+  clearHoldStartedAt = null;
+  clearHoldArmed = false;
+  gestureLocked = false;
+  handSeenFrames = 0;
+  lastHandAt = -Infinity;
+  pendingState = State.IDLE;
+  pendingFrames = 0;
+  twoHandMode = false;
+  twoHandCandidateFrames = 0;
+  twoHandLostFrames = 0;
+  zoomCandidateFrames = 0;
+  pinchZoomStart = null;
+  panStart = null;
+  lastPrimaryWrist = null;
+  lastSwipeAt = -Infinity;
+  lastSlideSwipeAt = -Infinity;
+  slideSwipeArmed = true;
+  slideSwipeReleaseFrames = 0;
+  slideSwipeCandidateUntil = 0;
+  palmMenuBlockedUntil = 0;
+  palmHoldAnchor = null;
+  missingInferenceFrames = 0;
+  drawingHandLostAt = null;
+  returnStableFrames = 0;
+  menuPinchActive = false;
+  palmNavigation.reset();
+  slideSwipeHistory = [];
+  positionHistory = [];
+  resetFilters();
+  transitionTo(State.IDLE, true);
+}
+
+async function runReplayFixture(recording, speed = 0) {
+  const previous = {
+    tool: activeTool,
+    mirror: mirrorMovement,
+    slideMode,
+    slideDeck,
+    slideSourceType,
+    slideIndex: currentSlideIndex,
+    sourceStream: sourceVideo.srcObject,
+    zoomScale,
+    panX,
+    panY
+  };
+  const setup = recording.metadata?.setup || {};
+  const transparentSlide = "data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=";
+
+  try {
+    return await replayLandmarks(recording, {
+      speed,
+      beforeReplay(_fixture, trace) {
+        replayContext = trace;
+        replayClock = 0;
+        mirrorMovement = recording.environment?.mirror !== false;
+        sourceVideo.srcObject = null;
+        if (setup.slideMode) {
+          slideDeck = [
+            { name: "Replay slide 1", url: transparentSlide },
+            { name: "Replay slide 2", url: transparentSlide }
+          ];
+          slideSourceType = "images";
+          currentSlideIndex = 0;
+          setSlideMode(true);
+        } else {
+          setSlideMode(false);
+        }
+        resetZoom();
+        resetGesturePipelineForReplay();
+        if (setup.tool && validTools.has(setup.tool)) applyToolSelection(setup.tool);
+      },
+      processFrame(frame) {
+        replayClock = frame.t;
+        processLandmarkFrame(frame, frame.t, { record: false });
+      }
+    });
+  } finally {
+    replayClock = null;
+    replayContext = null;
+    mirrorMovement = previous.mirror;
+    slideDeck = previous.slideDeck;
+    slideSourceType = previous.slideSourceType;
+    currentSlideIndex = previous.slideIndex;
+    sourceVideo.srcObject = previous.sourceStream;
+    setSlideMode(previous.slideMode);
+    zoomScale = previous.zoomScale;
+    panX = previous.panX;
+    panY = previous.panY;
+    applySourceTransform();
+    applyToolSelection(previous.tool);
+    resetGesturePipelineForReplay();
+  }
+}
+
+function summarizeReplayRuns(recording, reports) {
+  return {
+    fixtureId: recording.fixtureId,
+    passed: reports.every((report) => report.passed),
+    deterministic: new Set(reports.map(deterministicTrace)).size === 1,
+    runs: reports.map((report, index) => ({
+      run: index + 1,
+      passed: report.passed,
+      frameCount: report.frameCount,
+      commands: report.commands,
+      missingCommands: report.missingCommands,
+      missingSignals: report.missingSignals,
+      forbiddenViolations: report.forbiddenViolations,
+      forbiddenSignalViolations: report.forbiddenSignalViolations
+    })),
+    signals: reports[0]?.signals || []
+  };
+}
+
+async function runReplayThreeTimes(recording, speed = 0) {
+  const reports = [];
+  for (let index = 0; index < 3; index += 1) reports.push(await runReplayFixture(recording, speed));
+  return summarizeReplayRuns(recording, reports);
+}
+
+function downloadRecording(recording) {
+  const blob = new Blob([recordingToJson(recording)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `${recording.fixtureId}.json`;
+  link.click();
+  window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+async function initializeReplayLab() {
+  const enabled = new URLSearchParams(window.location.search).get("debugReplay") === "1";
+  if (!enabled || !replayLab) return;
+  replayLab.hidden = false;
+  const { coreFixtures } = await import("./tests/replay/core-fixtures.js?v=phase5-isolated-fix2");
+  coreFixtures.forEach((fixture, index) => {
+    const option = document.createElement("option");
+    option.value = String(index);
+    option.textContent = fixture.fixtureId;
+    replayFixtureSelect.append(option);
+  });
+
+  replayRunBtn.addEventListener("click", async () => {
+    const fixture = coreFixtures[Number(replayFixtureSelect.value) || 0];
+    replayRunBtn.disabled = true;
+    replayReport.textContent = `Running ${fixture.fixtureId} three times...`;
+    try {
+      const summary = await runReplayThreeTimes(fixture, Number(replaySpeedSelect.value));
+      replayReport.textContent = JSON.stringify(summary, null, 2);
+    } catch (error) {
+      replayReport.textContent = `Replay failed: ${String(error?.message || error)}`;
+    } finally {
+      replayRunBtn.disabled = false;
+    }
+  });
+
+  recordLandmarksBtn.addEventListener("click", () => {
+    if (!handModeOn) {
+      replayReport.textContent = "Start Hand Control before recording landmarks.";
+      return;
+    }
+    const fixtureId = `live-landmarks-${new Date().toISOString().replace(/[:.]/g, "-")}`;
+    landmarkRecorder.start({
+      fixtureId,
+      environment: {
+        mirror: mirrorMovement,
+        cameraWidth: cameraVideo.videoWidth,
+        cameraHeight: cameraVideo.videoHeight
+      },
+      metadata: { lighting: "unspecified", posture: "unspecified", hand: "unspecified", cameraDistance: "unspecified" }
+    });
+    recordLandmarksBtn.disabled = true;
+    stopLandmarksBtn.disabled = false;
+    replayReport.textContent = `Recording ${fixtureId}. No image or audio is stored.`;
+  });
+
+  stopLandmarksBtn.addEventListener("click", () => {
+    const recording = landmarkRecorder.stop();
+    recordLandmarksBtn.disabled = false;
+    stopLandmarksBtn.disabled = true;
+    if (!recording) return;
+    downloadRecording(recording);
+    replayReport.textContent = `Exported ${recording.frames.length} landmark frames. No image or audio was included.`;
+  });
+
+  window.jarvisReplay = Object.freeze({ coreFixtures, runFixture: runReplayFixture, runThreeTimes: runReplayThreeTimes });
+}
+
 function runGestureLoop() {
   if (!handModeOn || !handLandmarker || cameraVideo.readyState < 2) {
     if (handModeOn) gestureAnimationId = window.requestAnimationFrame(runGestureLoop);
@@ -1554,7 +1952,7 @@ function runGestureLoop() {
     try {
       const timestamp = performance.now();
       const results = handLandmarker.detectForVideo(cameraVideo, timestamp);
-      processHands(results.landmarks || [], timestamp, results.handedness || []);
+      processLandmarkFrame(results, timestamp);
     } catch (error) {
       console.warn("Hand tracking frame failed", error);
       setStatus("Hand tracking recovering");
@@ -1598,6 +1996,14 @@ async function startHandControl() {
     twoHandLostFrames = 0;
     zoomCandidateFrames = 0;
     lastPrimaryWrist = null;
+    slideSwipeArmed = true;
+    slideSwipeReleaseFrames = 0;
+    slideSwipeCandidateUntil = 0;
+    slideSwipeHistory = [];
+    palmNavigation.reset();
+    missingInferenceFrames = 0;
+    drawingHandLostAt = null;
+    returnStableFrames = 0;
     resetFilters();
     transitionTo(State.TRACKING, true);
     handBtn.textContent = "Stop Hand Control";
@@ -1644,6 +2050,14 @@ function stopHandControl() {
   twoHandLostFrames = 0;
   zoomCandidateFrames = 0;
   lastPrimaryWrist = null;
+  slideSwipeArmed = true;
+  slideSwipeReleaseFrames = 0;
+  slideSwipeCandidateUntil = 0;
+  slideSwipeHistory = [];
+  palmNavigation.reset();
+  missingInferenceFrames = 0;
+  drawingHandLostAt = null;
+  returnStableFrames = 0;
   clearGestureDrawingState();
   hideGestureCursor();
   cameraStream?.getTracks().forEach((track) => track.stop());
@@ -1684,12 +2098,12 @@ function commitShape(to) {
   if (activeTool === "spotlight") drawSpotlight(drawCtx, startPoint, to);
 }
 
-function selectTool(tool) {
+function applyToolSelection(tool) {
   const toolChanged = activeTool !== tool;
   activeTool = tool;
   toolButtons.forEach((button) => button.classList.toggle("active", button.dataset.tool === tool));
   toolReadout.textContent = tool.charAt(0).toUpperCase() + tool.slice(1);
-  if (radialCore) radialCore.textContent = toolReadout.textContent;
+  if (radialCoreLabel) radialCoreLabel.textContent = toolReadout.textContent;
   if (tool !== "laser") laserPositions = [];
   clearPreview();
   if (toolChanged) {
@@ -1700,15 +2114,128 @@ function selectTool(tool) {
   }
   updateGestureIndicator();
   setStatus(`${toolReadout.textContent} online`);
+  appState.update({ activeTool });
 }
 
-function selectColor(color) {
+function applyColorSelection(color) {
   activeColor = color;
   swatches.forEach((button) => button.classList.toggle("active", button.dataset.color === color));
   gestureCursor.style.setProperty("--cursor-color", activeColor);
   gestureIndicator.style.setProperty("--active-color", activeColor);
   setStatus("Color updated");
+  appState.update({ activeColor });
 }
+
+function dispatchPresentationCommand(type, payload = {}, source = "ui") {
+  const result = commandBus.dispatch({ type, source, payload, risk: "normal" });
+  if (result.status !== "accepted") {
+    console.warn("Command rejected", result.event);
+    setStatus(result.event?.reason || "Command rejected");
+  }
+  return result;
+}
+
+function selectTool(tool, source = "ui") {
+  return dispatchPresentationCommand("tool.select", { tool }, source);
+}
+
+function selectColor(color, source = "ui") {
+  return dispatchPresentationCommand("color.select", { color }, source);
+}
+
+function undoDrawing(source = "ui") {
+  return dispatchPresentationCommand("overlay.undo", {}, source);
+}
+
+function redoDrawing(source = "ui") {
+  return dispatchPresentationCommand("overlay.redo", {}, source);
+}
+
+function nextSlide(source = "ui") {
+  return dispatchPresentationCommand("presentation.next", {}, source);
+}
+
+function previousSlide(source = "ui") {
+  return dispatchPresentationCommand("presentation.previous", {}, source);
+}
+
+function renderCurrentDiagram() {
+  renderDiagram(diagramOverlay, committedDiagram);
+}
+
+function pushDiagramHistory() {
+  diagramHistory.push(committedDiagram ? structuredClone(committedDiagram) : null);
+  diagramHistory = diagramHistory.slice(-20);
+  diagramRedoHistory = [];
+}
+
+function prepareDiagram(templateId) {
+  draftDiagram = createDiagramScene(templateId);
+  diagramDraftPreview.textContent = `${draftDiagram.name} ready — ${draftDiagram.nodes.map((node) => node.label).join(" → ")}`;
+  setStatus("Diagram ready");
+}
+
+function presentDiagram() {
+  if (!draftDiagram) throw new Error("Prepare a diagram first");
+  pushDiagramHistory();
+  committedDiagram = updateDiagramScene(draftDiagram, { type: "commit" });
+  draftDiagram = structuredClone(committedDiagram);
+  renderCurrentDiagram();
+  setStatus("Diagram presented");
+}
+
+function hideDiagram() {
+  if (!committedDiagram) throw new Error("No diagram is visible");
+  pushDiagramHistory();
+  committedDiagram = updateDiagramScene(committedDiagram, { type: "hide" });
+  renderCurrentDiagram();
+  setStatus("Diagram hidden");
+}
+
+function highlightDiagram(label) {
+  if (!committedDiagram) throw new Error("Present a diagram first");
+  committedDiagram = updateDiagramScene(committedDiagram, { type: "highlight", label });
+  draftDiagram = structuredClone(committedDiagram);
+  renderCurrentDiagram();
+  setStatus(label ? `Highlighting ${label}` : "Complete diagram");
+}
+
+const validTools = new Set(["pen", "arrow", "circle", "spotlight", "laser", "eraser"]);
+const validColors = new Set(swatches.map((button) => button.dataset.color));
+
+commandBus.register("tool.select", ({ payload }) => {
+  if (!validTools.has(payload.tool)) throw new Error("Unknown drawing tool");
+  applyToolSelection(payload.tool);
+});
+commandBus.register("color.select", ({ payload }) => {
+  if (!validColors.has(payload.color)) throw new Error("Unknown drawing color");
+  applyColorSelection(payload.color);
+});
+commandBus.register("overlay.undo", applyUndoDrawing);
+commandBus.register("overlay.redo", applyRedoDrawing);
+commandBus.register("presentation.next", applyNextSlide);
+commandBus.register("presentation.previous", applyPreviousSlide);
+commandBus.register("zoom.reset", resetZoom);
+commandBus.register("control.lock", () => setGestureLocked(true));
+commandBus.register("control.unlock", () => setGestureLocked(false));
+commandBus.register("diagram.prepare", ({ payload }) => prepareDiagram(payload.templateId));
+commandBus.register("diagram.present", presentDiagram);
+commandBus.register("diagram.hide", hideDiagram);
+commandBus.register("diagram.highlight", ({ payload }) => highlightDiagram(payload.label ?? null));
+
+const commandAuditEnabled = new URLSearchParams(window.location.search).get("debugCommands") === "1";
+if (commandAudit && commandAuditEnabled) commandAudit.hidden = false;
+commandBus.subscribe((event) => {
+  if (replayContext && event.commandSource === "gesture") {
+    replayContext.commands.push({ type: event.commandType, status: event.status, t: gestureNow() });
+  }
+  if (!commandAudit || !commandAuditEnabled) return;
+  const item = document.createElement("li");
+  item.textContent = `${event.order}. ${event.commandType || "invalid"} — ${event.status}`;
+  commandAudit.querySelector("ol")?.prepend(item);
+  const entries = commandAudit.querySelectorAll("li");
+  for (let index = 8; index < entries.length; index += 1) entries[index].remove();
+});
 
 async function startCapture() {
   if (!navigator.mediaDevices?.getDisplayMedia) {
@@ -1784,124 +2311,90 @@ function handlePointerUp(event) {
   lastPoint = null;
 }
 
-function applyVoiceCommand(rawText) {
-  const text = rawText.toLowerCase();
+function applyVoiceCommand(rawText, source = "voice") {
   heardText.textContent = rawText;
-  const colorMap = [
-    ["red", "#ff3b6b"],
-    ["blue", "#00e5ff"],
-    ["cyan", "#00e5ff"],
-    ["yellow", "#ffd166"],
-    ["green", "#7cff6b"],
-    ["white", "#ffffff"],
-    ["orange", "#ff8a2a"]
-  ];
-
-  if (text.includes("clear")) {
-    clearDrawing();
-    return;
-  }
-  if (text.includes("undo")) {
-    undoDrawing();
-    return;
-  }
-  if (text.includes("redo")) {
-    redoDrawing();
-    return;
-  }
-  for (const [word, color] of colorMap) {
-    if (text.includes(word)) selectColor(color);
-  }
-  if (text.includes("arrow")) {
-    selectTool("arrow");
-    drawCommandShape("arrow");
-  } else if (text.includes("circle")) {
-    selectTool("circle");
-    drawCommandShape("circle");
-  } else if (text.includes("spotlight") || text.includes("highlight")) {
-    selectTool("spotlight");
-    drawCommandShape("spotlight");
-  } else if (text.includes("erase") || text.includes("eraser")) {
-    selectTool("eraser");
-    eraseCommandArea();
-  } else if (text.includes("laser") || text.includes("pointer")) {
-    selectTool("laser");
-  } else if (text.includes("draw") || text.includes("pen")) {
-    selectTool("pen");
-  } else {
-    setStatus("Command not mapped");
-  }
+  const parsed = parseCommand(rawText, { live: source === "voice" });
+  if (parsed.status === "ignored") { setStatus("Say Jarvis before a voice command"); return parsed; }
+  if (parsed.status !== "matched") { setStatus("Command not recognized"); return parsed; }
+  return dispatchPresentationCommand(parsed.command.type, parsed.command.payload, source);
 }
 
-function startVoice() {
-  if (!SpeechRecognition) {
-    setStatus("Voice unsupported. Use Chrome or type a command.");
-    voiceReadout.textContent = "Unavailable";
-    return;
+const speechAdapter = createSpeechAdapter(window);
+const voiceController = createVoiceController({
+  adapter: speechAdapter,
+  onInterim(text) {
+    heardText.textContent = text;
+    voiceDiagnosticTranscript.textContent = `Hearing: ${text}`;
+    voiceReadout.textContent = "Hearing";
+  },
+  onFinal(text) {
+    voiceDiagnosticTranscript.textContent = `Chrome heard: “${text}”`;
+    if (voiceMode === "preflight") {
+      if (text.toLowerCase().replace(/[^a-z\s]/g, " ").replace(/\s+/g, " ").trim() === "jarvis test microphone") {
+        voicePreflightPassed = true;
+        voiceCommandsBtn.disabled = false;
+        voiceDiagnostic.classList.add("ready");
+        voiceDiagnosticState.textContent = "Microphone test passed";
+        voiceDiagnosticError.textContent = "";
+        setStatus("Microphone test passed — voice commands can now be started");
+        voiceMode = "off";
+        voiceController.stop();
+      } else {
+        voiceDiagnosticState.textContent = "Microphone heard a different phrase";
+        voiceDiagnosticError.textContent = "Please say exactly: Jarvis test microphone";
+      }
+      return;
+    }
+    if (voiceMode === "commands") applyVoiceCommand(text, "voice");
+  },
+  onState(state, error) {
+    voiceOn = state === "LISTENING" || state === "STARTING";
+    voiceBtn.classList.toggle("listening", voiceOn && voiceMode === "preflight");
+    voiceCommandsBtn.classList.toggle("listening", voiceOn && voiceMode === "commands");
+    voiceBtn.textContent = voiceOn && voiceMode === "preflight" ? "Stop Microphone Test" : "Test Microphone";
+    voiceCommandsBtn.textContent = voiceOn && voiceMode === "commands" ? "Stop Voice Commands" : "Start Voice Commands";
+    voiceReadout.textContent = state === "ERROR" ? "Fallback" : state === "LISTENING" ? "On" : state.charAt(0) + state.slice(1).toLowerCase();
+    if (state === "ERROR") {
+      voiceDiagnosticState.textContent = "Microphone test failed";
+      voiceDiagnosticError.textContent = `Chrome recognition error: ${error}. Typed commands remain available.`;
+      setStatus(`Voice unavailable (${error}). Gestures and typed commands remain ready.`);
+    }
+    if (state === "LISTENING") {
+      voiceDiagnosticState.textContent = voiceMode === "preflight" ? "Listening for test phrase" : "Voice commands listening";
+      voiceDiagnosticError.textContent = "";
+      setStatus(voiceMode === "preflight" ? "Say: Jarvis test microphone" : "Voice online — say Jarvis before each command");
+    }
   }
+});
 
+function startVoicePreflight() {
+  voiceMode = "preflight";
   voiceShouldRun = true;
-  recognition = new SpeechRecognition();
-  recognition.continuous = true;
-  recognition.interimResults = true;
-  recognition.lang = "en-US";
-  recognition.onstart = () => {
-    voiceOn = true;
-    voiceBtn.classList.add("listening");
-    voiceBtn.textContent = "Stop Voice";
-    voiceReadout.textContent = "On";
-    setStatus("Voice online");
-  };
-  recognition.onend = () => {
-    if (voiceShouldRun) {
-      window.setTimeout(() => {
-        try {
-          recognition.start();
-        } catch (error) {
-          setStatus("Voice restart failed");
-        }
-      }, 350);
-      return;
-    }
-    voiceOn = false;
-    voiceBtn.classList.remove("listening");
-    voiceBtn.textContent = "Start Voice";
-    voiceReadout.textContent = "Off";
-  };
-  recognition.onerror = (event) => {
-    if (event.error === "not-allowed" || event.error === "service-not-allowed") {
-      voiceShouldRun = false;
-      setStatus("Microphone permission blocked");
-      return;
-    }
-    if (event.error === "no-speech") {
-      setStatus("Listening");
-      return;
-    }
-    setStatus(`Voice ${event.error}`);
-  };
-  recognition.onresult = (event) => {
-    const result = event.results[event.results.length - 1];
-    const latest = result[0].transcript.trim();
-    heardText.textContent = latest;
-    if (result.isFinal) applyVoiceCommand(latest);
-  };
-  try {
-    recognition.start();
-  } catch (error) {
-    setStatus("Voice already starting");
-  }
+  voiceDiagnostic.classList.remove("ready");
+  voiceDiagnosticState.textContent = "Starting microphone test";
+  voiceDiagnosticTranscript.textContent = "Say: “Jarvis test microphone”";
+  if (!voiceController.start()) setStatus("Voice unsupported. Typed commands remain ready.");
+}
+
+function startVoiceCommands() {
+  if (!voicePreflightPassed) return;
+  voiceMode = "commands";
+  voiceShouldRun = true;
+  voiceDiagnosticState.textContent = "Starting voice commands";
+  if (!voiceController.start()) setStatus("Voice unsupported. Typed commands remain ready.");
 }
 
 function stopVoice() {
   voiceShouldRun = false;
-  recognition?.stop();
+  voiceMode = "off";
+  voiceController.stop();
+  voiceDiagnosticState.textContent = voicePreflightPassed ? "Microphone test passed" : "Microphone stopped";
 }
 
 function runTypedCommand() {
   const command = commandInput.value.trim();
   if (!command) return;
-  applyVoiceCommand(command);
+  applyVoiceCommand(command, "keyboard");
   commandInput.select();
 }
 
@@ -1992,14 +2485,148 @@ function initializeOnboarding() {
   onboarding.hidden = seen;
 }
 
+const calibrationSteps = [
+  ["Camera health", "Start hand control and confirm the camera tracks smoothly at a comfortable distance."],
+  ["Lighting and confidence", "Keep your hand visible. Reposition lighting if tracking drops or flickers."],
+  ["Mirror direction", "Move your hand right and confirm the cursor also moves right."],
+  ["Dominant hand", "Choose the hand you normally use to point and draw."],
+  ["Peace pointer", "Hold a comfortable peace sign and move across your normal presentation range."],
+  ["Open palm", "Show a relaxed open palm. Keep it stationary long enough to reveal the tool menu."],
+  ["Pinch range", "Close thumb and index, then open them comfortably. Jarvis keeps normalized hysteresis between both positions."],
+  ["Two-hand visibility", "Show both hands apart and confirm Jarvis reports Two hands."],
+  ["Movement range", "Trace the comfortable left, right, top and bottom limits of your presenting space."],
+  ["Verification", "Verify draw, stationary-palm menu, palm swipe and two-hand zoom. Finish to save locally."]
+];
+
+function activeProfileFromStore(state = profileStorage.read()) {
+  return state.profiles.find((profile) => profile.id === state.activeId) || state.profiles[0] || createProfile();
+}
+
+function applyProfile(profile) {
+  activeProfile = createProfile(profile);
+  setMirrorMovement(activeProfile.mirror);
+  stabilityInput.value = activeProfile.filters.minCutoff;
+  responsivenessInput.value = activeProfile.filters.beta;
+  predictionInput.value = activeProfile.filters.predictionMs;
+  primeDelayInput.value = activeProfile.timing.primeMs;
+  updateGestureSettings();
+  profileStatus.textContent = `${activeProfile.name} active${profileStorage.persistent ? " — saved locally" : " — memory only"}`;
+}
+
+function refreshProfileSelect(state = profileStorage.read()) {
+  profileSelect.replaceChildren(...state.profiles.map((profile) => {
+    const option = document.createElement("option"); option.value = profile.id; option.textContent = profile.name; return option;
+  }));
+  profileSelect.value = state.activeId;
+  applyProfile(activeProfileFromStore(state));
+}
+
+function showCalibrationStep() {
+  const [title, instruction] = calibrationSteps[calibrationStep];
+  calibrationTitle.textContent = title;
+  calibrationInstruction.textContent = instruction;
+  calibrationProgress.style.width = `${((calibrationStep + 1) / calibrationSteps.length) * 100}%`;
+  calibrationChoiceRow.hidden = calibrationStep !== 3;
+  calibrationNextBtn.textContent = calibrationStep === calibrationSteps.length - 1 ? "Save profile" : "Looks good — next";
+}
+
+function startCalibration() {
+  calibrationStep = 0;
+  calibrationSamples = { pinchRatios: [], palmSpreads: [], movementX: [], movementY: [] };
+  calibrationDominantHand.value = activeProfile.dominantHand;
+  calibrationWizard.hidden = false;
+  showCalibrationStep();
+}
+
+function finishCalibration() {
+  const sortedPinches = [...calibrationSamples.pinchRatios].sort((a, b) => a - b);
+  const sampleSize = Math.max(1, Math.floor(sortedPinches.length * 0.25));
+  const thresholds = sortedPinches.length >= 8
+    ? derivePinchThresholds({ closedRatios: sortedPinches.slice(0, sampleSize), openRatios: sortedPinches.slice(-sampleSize) })
+    : activeProfile.thresholds;
+  const palmSpread = calibrationSamples.palmSpreads.length
+    ? calibrationSamples.palmSpreads.reduce((sum, value) => sum + value, 0) / calibrationSamples.palmSpreads.length
+    : activeProfile.thresholds.palmSpread;
+  const name = `${calibrationDominantHand.value} profile ${new Date().toLocaleDateString()}`;
+  const profile = createProfile({
+    ...activeProfile,
+    id: `profile-${Date.now()}`,
+    name,
+    dominantHand: calibrationDominantHand.value,
+    thresholds: { ...activeProfile.thresholds, ...thresholds, palmSpread: Number(palmSpread.toFixed(3)) },
+    timing: { ...activeProfile.timing, primeMs: primeDelayMs },
+    filters: { minCutoff: stability, beta: responsiveness, predictionMs }
+  });
+  const state = profileStorage.save(profile);
+  calibrationWizard.hidden = true;
+  refreshProfileSelect(state);
+  showActionNotice("Calibration saved. No camera frames or microphone audio were stored.");
+}
+
+function captureCalibrationSample(hand) {
+  if (calibrationWizard.hidden || !hand) return;
+  const palmWidth = Math.max(.001, landmarkDistance(hand[5], hand[17]));
+  if (calibrationStep === 5) {
+    const spread = (landmarkDistance(hand[8], hand[12]) + landmarkDistance(hand[12], hand[16]) + landmarkDistance(hand[16], hand[20])) / (palmWidth * 3);
+    calibrationSamples.palmSpreads.push(spread);
+    calibrationSamples.palmSpreads = calibrationSamples.palmSpreads.slice(-90);
+  }
+  if (calibrationStep === 6) {
+    calibrationSamples.pinchRatios.push(landmarkDistance(hand[4], hand[8]) / palmWidth);
+    calibrationSamples.pinchRatios = calibrationSamples.pinchRatios.slice(-120);
+  }
+  if (calibrationStep === 8) {
+    calibrationSamples.movementX.push(hand[5].x);
+    calibrationSamples.movementY.push(hand[5].y);
+    calibrationSamples.movementX = calibrationSamples.movementX.slice(-120);
+    calibrationSamples.movementY = calibrationSamples.movementY.slice(-120);
+  }
+}
+
+function nextCalibrationStep() {
+  if (calibrationStep >= calibrationSteps.length - 1) return finishCalibration();
+  calibrationStep += 1;
+  showCalibrationStep();
+}
+
+function downloadText(filename, text) {
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(new Blob([text], { type: "application/json" }));
+  link.download = filename; link.click(); URL.revokeObjectURL(link.href);
+}
+
+function renameActiveProfile() {
+  const name = window.prompt("Profile name", activeProfile.name)?.trim();
+  if (!name) return;
+  const state = profileStorage.save(createProfile({ ...activeProfile, name }), { select: true });
+  refreshProfileSelect(state);
+}
+
+async function importProfiles(file) {
+  if (!file) return;
+  try { refreshProfileSelect(profileStorage.importJson(await file.text())); showActionNotice("Calibration profiles imported."); }
+  catch (error) { showActionNotice(String(error.message || error), true); }
+  profileImportInput.value = "";
+}
+
 captureBtn.addEventListener("click", startCapture);
 slidesBtn.addEventListener("click", () => slidesInput.click());
 slidesInput.addEventListener("change", () => loadSlides(slidesInput.files));
 handBtn.addEventListener("click", () => (handModeOn ? stopHandControl() : startHandControl()));
-voiceBtn.addEventListener("click", () => (voiceOn ? stopVoice() : startVoice()));
+voiceBtn.addEventListener("click", () => (voiceOn ? stopVoice() : startVoicePreflight()));
+voiceCommandsBtn.addEventListener("click", () => (voiceOn ? stopVoice() : startVoiceCommands()));
+profileSelect.addEventListener("change", () => refreshProfileSelect(profileStorage.select(profileSelect.value)));
+calibrateBtn.addEventListener("click", startCalibration);
+calibrationNextBtn.addEventListener("click", nextCalibrationStep);
+calibrationCancelBtn.addEventListener("click", () => { calibrationWizard.hidden = true; });
+renameProfileBtn.addEventListener("click", renameActiveProfile);
+exportProfileBtn.addEventListener("click", () => downloadText("jarvis-calibration-profiles.json", profileStorage.exportJson()));
+importProfileBtn.addEventListener("click", () => profileImportInput.click());
+profileImportInput.addEventListener("change", () => importProfiles(profileImportInput.files[0]));
+resetProfileBtn.addEventListener("click", () => refreshProfileSelect(profileStorage.reset()));
 clearBtn.addEventListener("click", clearDrawing);
-undoBtn.addEventListener("click", undoDrawing);
-redoBtn.addEventListener("click", redoDrawing);
+undoBtn.addEventListener("click", () => undoDrawing("ui"));
+redoBtn.addEventListener("click", () => redoDrawing("ui"));
 collapseBtn.addEventListener("click", () => setPanelCollapsed(true));
 expandBtn.addEventListener("click", () => setPanelCollapsed(false));
 presentBtn.addEventListener("click", () => setPresentMode(!presentMode));
@@ -2023,11 +2650,11 @@ window.addEventListener("keydown", (event) => {
   }
   if (!event.metaKey && !event.ctrlKey && slideMode) {
     if (event.key === "ArrowRight") {
-      nextSlide();
+      nextSlide("keyboard");
       return;
     }
     if (event.key === "ArrowLeft") {
-      previousSlide();
+      previousSlide("keyboard");
       return;
     }
   }
@@ -2035,9 +2662,9 @@ window.addEventListener("keydown", (event) => {
   if (event.key.toLowerCase() !== "z") return;
   event.preventDefault();
   if (event.shiftKey) {
-    redoDrawing();
+    redoDrawing("keyboard");
   } else {
-    undoDrawing();
+    undoDrawing("keyboard");
   }
 });
 mirrorInput.addEventListener("change", () => setMirrorMovement(mirrorInput.checked));
@@ -2061,3 +2688,15 @@ updateGestureSettings();
 updateHistoryReadout();
 transitionTo(State.IDLE, true);
 initializeOnboarding();
+refreshProfileSelect();
+document.documentElement.dataset.build = "phase5-isolated-fix2";
+void initializeReplayLab();
+if (
+  new URLSearchParams(window.location.search).get("debugReplay") === "1"
+  && new URLSearchParams(window.location.search).get("previewMenu") === "1"
+) {
+  window.setTimeout(() => {
+    openRadialMenu(stageCenter());
+    transitionTo(State.MENU, true);
+  }, 120);
+}

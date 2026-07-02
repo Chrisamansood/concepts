@@ -41,7 +41,8 @@ Participants see the captured source plus the live annotation layer.
 - Extend only your index finger to draw with the active tool.
 - Make a peace sign to move the pointer without drawing.
 - Make a fist to idle and hide the cursor.
-- Show an open palm to pause safely.
+- Hold an open palm still to open the radial tool menu.
+- With a loaded deck, move an open palm right-to-left for the next slide or left-to-right for the previous slide. Relax the palm briefly before another navigation gesture.
 - Clap both open hands together to lock drawing; clap again to resume.
 - Hold two open hands apart for 1 second to clear the overlay.
 - Keep two hands visible briefly before using a two-hand command; Jarvis confirms the pair before switching modes.
@@ -60,15 +61,17 @@ Participants see the captured source plus the live annotation layer.
 - `Prediction`: compensates for camera/model latency.
 - `Prime delay`: controls how long index-only must be held before drawing starts.
 
-## MVP Voice Commands
+## Voice Commands
 
-- `arrow` places an arrow in the center
-- `circle` places a circle in the center
-- `spotlight` or `highlight` places a spotlight in the center
-- `erase` clears the center area
-- `clear`
-- `red`, `blue`, `yellow`, `green`, `white`
-- combine color and shape, such as `red arrow` or `yellow circle`
+1. Click `Test Microphone` and say `Jarvis test microphone`.
+2. Start Voice Commands only after the visible microphone test passes.
+3. Every live command begins with `Jarvis`.
+
+Examples include `Jarvis select the laser`, `Jarvis next slide`, `Jarvis undo`, `Jarvis prepare a customer billing flow`, `Jarvis present diagram` and `Jarvis hide diagram`.
+
+## Diagram Library
+
+Place candidate PNG, JPEG, WebP or SVG diagrams in `diagram-library/`. See `diagram-library/README.md` for the review workflow. Approved diagrams will later receive deterministic names and voice aliases in `diagram-library/manifest.json`.
 
 ## Notes
 

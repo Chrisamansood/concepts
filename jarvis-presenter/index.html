@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Chris's Jarvis</title>
-    <link rel="stylesheet" href="./styles.css?v=phase3-fix2">
+    <link rel="stylesheet" href="./styles.css?v=phase5-isolated-fix2">
   </head>
   <body>
     <main class="shell">
@@ -30,13 +30,47 @@
           </div>
         </section>
 
+        <section class="panel-section" data-section="calibration">
+          <button class="section-header" type="button" aria-expanded="false">
+            <span>Calibration</span><span class="section-chevron">⌄</span>
+          </button>
+          <div class="section-content control-group calibration-controls">
+            <label>Profile <select id="profileSelect" aria-label="Calibration profile"></select></label>
+            <div class="profile-actions">
+              <button id="calibrateBtn" type="button">Run calibration</button>
+              <button id="renameProfileBtn" type="button">Rename</button>
+              <button id="exportProfileBtn" type="button">Export</button>
+              <button id="importProfileBtn" type="button">Import</button>
+              <button id="resetProfileBtn" type="button">Reset</button>
+              <input id="profileImportInput" type="file" accept="application/json,.json" hidden>
+            </div>
+            <small id="profileStatus">Local profile ready</small>
+          </div>
+        </section>
+
+        <section class="panel-section open" data-section="diagram-demo">
+          <button class="section-header" type="button" aria-expanded="true">
+            <span>Diagram demo</span><span class="section-chevron">⌄</span>
+          </button>
+          <div class="section-content control-group diagram-demo-controls">
+            <div id="diagramDraftPreview" class="diagram-draft-preview">No diagram prepared</div>
+            <small>Prepare stays private. “Present diagram” reveals it.</small>
+          </div>
+        </section>
+
         <section class="panel-section open" data-section="controls">
           <button class="section-header" type="button" aria-expanded="true">
             <span>Controls</span><span class="section-chevron">⌄</span>
           </button>
           <div class="section-content control-group">
             <button id="handBtn">Start Hand Control</button>
-            <button id="voiceBtn">Start Voice</button>
+            <button id="voiceBtn">Test Microphone</button>
+            <button id="voiceCommandsBtn" disabled>Start Voice Commands</button>
+            <div class="voice-diagnostic" id="voiceDiagnostic" aria-live="polite">
+              <b id="voiceDiagnosticState">Microphone not tested</b>
+              <span id="voiceDiagnosticTranscript">Click Test Microphone, then say “Jarvis test microphone”.</span>
+              <small id="voiceDiagnosticError"></small>
+            </div>
             <button id="presentBtn" class="primary">Enter Present Mode</button>
             <button id="helpBtn">Gesture Guide</button>
             <label class="toggle-row">
@@ -117,6 +151,7 @@
             <span>Status</span><span class="section-chevron">⌄</span>
           </button>
           <div class="section-content telemetry" aria-live="polite">
+            <span>Build <b>phase5-isolated-fix2</b></span>
             <span>Tool <b id="toolReadout">Pen</b></span>
             <span>Hand <b id="handReadout">Off</b></span>
             <span>Gesture <b id="gestureReadout">Standby</b></span>
@@ -148,17 +183,24 @@
             <img id="slideImage" alt="">
             <canvas id="pptxCanvas" aria-label="PowerPoint slide"></canvas>
           </div>
+          <svg id="diagramOverlay" class="diagram-overlay" aria-label="Presentation diagram" hidden></svg>
           <canvas id="drawCanvas"></canvas>
           <canvas id="previewCanvas"></canvas>
           <div class="gesture-cursor" id="gestureCursor"><span class="cursor-drop"></span></div>
           <div class="radial-menu" id="radialMenu" aria-hidden="true">
-            <button class="radial-item" data-tool="pen" type="button">Pen</button>
-            <button class="radial-item" data-tool="arrow" type="button">Arrow</button>
-            <button class="radial-item" data-tool="circle" type="button">Circle</button>
-            <button class="radial-item" data-tool="spotlight" type="button">Spot</button>
-            <button class="radial-item" data-tool="eraser" type="button">Erase</button>
-            <button class="radial-item" data-tool="laser" type="button">Laser</button>
-            <span class="radial-core">Tools</span>
+            <span class="radial-orbit orbit-outer" aria-hidden="true"></span>
+            <span class="radial-orbit orbit-inner" aria-hidden="true"></span>
+            <button class="radial-item" data-tool="pen" type="button"><span aria-hidden="true">✦</span><b>Pen</b></button>
+            <button class="radial-item" data-tool="arrow" type="button"><span aria-hidden="true">↗</span><b>Arrow</b></button>
+            <button class="radial-item" data-tool="circle" type="button"><span aria-hidden="true">◯</span><b>Circle</b></button>
+            <button class="radial-item" data-tool="spotlight" type="button"><span aria-hidden="true">◉</span><b>Spot</b></button>
+            <button class="radial-item" data-tool="eraser" type="button"><span aria-hidden="true">◇</span><b>Erase</b></button>
+            <button class="radial-item" data-tool="laser" type="button"><span aria-hidden="true">●</span><b>Laser</b></button>
+            <span class="radial-core">
+              <span class="radial-core-reactor" aria-hidden="true"></span>
+              <b class="radial-core-label">Tools</b>
+              <small>Pinch select</small>
+            </span>
           </div>
           <video id="cameraVideo" autoplay muted playsinline></video>
           <div class="gesture-indicator state-idle" id="gestureIndicator" aria-live="polite">
@@ -188,17 +230,54 @@
                 <div><span class="gesture-symbol">✋</span><b>Open palm</b><small>Pause or hold for tools</small></div>
                 <div><span class="gesture-symbol">✊</span><b>Fist</b><small>Standby</small></div>
               </div>
-              <p>Clap to lock controls. Use two open palms to clear. Dismiss this guide with a click or any detected gesture.</p>
+              <p>Swipe an open palm right-to-left for next or left-to-right for previous, then relax the palm to rearm. Clap to lock controls. Use two open palms to clear.</p>
               <button id="dismissOnboardingBtn" class="primary" type="button">Got it</button>
             </div>
           </div>
+          <div class="calibration-wizard" id="calibrationWizard" hidden>
+            <div class="calibration-card" role="dialog" aria-modal="true" aria-labelledby="calibrationTitle">
+              <span class="eyebrow">Local calibration</span>
+              <h2 id="calibrationTitle">Camera health</h2>
+              <p id="calibrationInstruction">Start hand control, then confirm the camera tracks smoothly.</p>
+              <div class="calibration-progress"><span id="calibrationProgress"></span></div>
+              <label id="calibrationChoiceRow" hidden>Dominant hand
+                <select id="calibrationDominantHand"><option>Auto</option><option>Right</option><option>Left</option></select>
+              </label>
+              <div class="calibration-actions">
+                <button id="calibrationCancelBtn" type="button">Cancel</button>
+                <button id="calibrationNextBtn" class="primary" type="button">Looks good — next</button>
+              </div>
+            </div>
+          </div>
         </div>
+        <aside id="commandAudit" class="command-audit" aria-label="Command audit" hidden>
+          <strong>Command audit</strong>
+          <ol></ol>
+        </aside>
+        <aside id="replayLab" class="replay-lab" aria-label="Landmark replay lab" hidden>
+          <strong>Landmark replay lab</strong>
+          <p>Landmarks only—no camera images or audio are recorded.</p>
+          <label>Fixture <select id="replayFixtureSelect"></select></label>
+          <label>Speed
+            <select id="replaySpeedSelect">
+              <option value="0">Instant</option>
+              <option value="4">4×</option>
+              <option value="1">Real time</option>
+            </select>
+          </label>
+          <div>
+            <button id="replayRunBtn" type="button">Run 3×</button>
+            <button id="recordLandmarksBtn" type="button">Record</button>
+            <button id="stopLandmarksBtn" type="button" disabled>Stop + export</button>
+          </div>
+          <pre id="replayReport">Choose a fixture and run replay.</pre>
+        </aside>
       </section>
     </main>
 
     <script src="./vendor/pptx/jszip.min.js"></script>
     <script src="./vendor/pptx/chart.umd.min.js"></script>
     <script src="./vendor/pptx/PptxViewJS.min.js"></script>
-    <script type="module" src="./app.js?v=phase3-fix2"></script>
+    <script type="module" src="./app.js?v=phase5-isolated-fix2"></script>
   </body>
 </html>
