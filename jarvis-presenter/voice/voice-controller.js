@@ -1,4 +1,4 @@
-function createVoiceController({ adapter, onFinal, onInterim, onState, maxRestarts = 3, dedupeMs = 2500 }) {
+function createVoiceController({ adapter, onFinal, onInterim, onState, maxRestarts = 12, dedupeMs = 2500 }) {
   let armed = false;
   let restarts = 0;
   let lastFinal = { text: "", at: 0 };
@@ -15,28 +15,45 @@ function createVoiceController({ adapter, onFinal, onInterim, onState, maxRestar
   adapter.onStart(() => { onState?.("LISTENING"); });
   adapter.onError((error) => {
     const terminal = ["not-allowed", "service-not-allowed", "audio-capture"].includes(error);
-    if (terminal) armed = false;
-    onState?.("ERROR", error);
+    if (terminal) {
+      armed = false;
+      adapter.stop();
+      onState?.("ERROR", error);
+      return;
+    }
+    onState?.("RESTARTING", error);
   });
   adapter.onEnd(() => {
     if (!armed) return onState?.("OFF");
     if (restarts >= maxRestarts) { armed = false; return onState?.("ERROR", "restart-limit"); }
     restarts += 1;
+    onState?.("RESTARTING", `attempt-${restarts}`);
     restartTimer = setTimeout(() => {
       if (!armed) return;
-      try { adapter.start(); }
-      catch (error) { onState?.("ERROR", String(error?.message || error)); }
+      try {
+        adapter.start();
+      } catch (error) {
+        armed = false;
+        onState?.("ERROR", String(error?.message || error));
+      }
     }, Math.min(1600, 250 * (2 ** (restarts - 1))));
   });
 
   return Object.freeze({
     start() {
       if (!adapter.isSupported()) { onState?.("ERROR", "unsupported"); return false; }
+      if (armed) return true;
       armed = true; restarts = 0; onState?.("STARTING");
       try { adapter.start(); return true; }
       catch (error) { armed = false; onState?.("ERROR", String(error?.message || error)); return false; }
     },
-    stop() { armed = false; clearTimeout(restartTimer); adapter.stop(); onState?.("OFF"); },
+    stop() {
+      armed = false;
+      clearTimeout(restartTimer);
+      restartTimer = null;
+      adapter.stop();
+      onState?.("OFF");
+    },
     isArmed: () => armed
   });
 }

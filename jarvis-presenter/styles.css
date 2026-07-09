@@ -137,6 +137,27 @@ button:active {
   min-height: 56px;
 }
 
+.runtime-identity {
+  display: grid;
+  gap: 4px;
+  margin: -4px 4px 8px;
+  padding: 9px 10px;
+  border: 1px solid rgba(255, 209, 102, .28);
+  background: rgba(255, 209, 102, .045);
+  color: #d8e7e9;
+  font-size: 10px;
+  letter-spacing: .035em;
+}
+
+.runtime-identity > span { display: flex; align-items: center; gap: 6px; }
+.runtime-identity small { color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.runtime-identity i { width: 7px; height: 7px; border-radius: 50%; background: #ffd166; box-shadow: 0 0 9px rgba(255,209,102,.72); }
+.runtime-identity.verified { border-color: rgba(124,255,107,.34); background: rgba(124,255,107,.045); }
+.runtime-identity.verified i { background: #7cff6b; box-shadow: 0 0 9px rgba(124,255,107,.72); }
+.runtime-identity.error { border-color: rgba(255,59,107,.42); }
+.runtime-identity.error i { background: #ff3b6b; box-shadow: 0 0 9px rgba(255,59,107,.72); }
+.shell.present-mode .runtime-identity { display: none; }
+
 .brand-mark {
   width: 42px;
   height: 42px;
@@ -458,6 +479,23 @@ input[type="range"] {
   filter: drop-shadow(0 0 8px rgba(57, 246, 255, .28));
 }
 
+.diagram-overlay.management {
+  filter: drop-shadow(0 0 12px rgba(57, 246, 255, .38));
+}
+
+.diagram-overlay.management .diagram-layer {
+  outline: 2px solid rgba(57,246,255,.36);
+  outline-offset: 12px;
+}
+
+.stage.diagram-dragging #previewCanvas {
+  cursor: grabbing;
+}
+
+.stage.diagram-management #previewCanvas {
+  cursor: grab;
+}
+
 #drawCanvas { z-index: 2; }
 #previewCanvas { z-index: 3; }
 
@@ -482,6 +520,191 @@ input[type="range"] {
   line-height: 1.45;
 }
 
+.diagram-shelf-overlay {
+  position: absolute;
+  top: 18px;
+  right: 18px;
+  bottom: 18px;
+  z-index: 9;
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr) minmax(126px, auto);
+  width: min(380px, calc(100% - 36px));
+  padding: 14px;
+  gap: 12px;
+  border: 1px solid rgba(57,246,255,.46);
+  background: linear-gradient(180deg, rgba(0,18,28,.88), rgba(2,8,13,.78));
+  box-shadow: 0 0 42px rgba(57,246,255,.22), inset 0 0 28px rgba(57,246,255,.07);
+  backdrop-filter: blur(16px) saturate(130%);
+  color: #dffeff;
+  transform: translateX(112%);
+  opacity: 0;
+  pointer-events: none;
+  transition: transform 160ms ease, opacity 160ms ease;
+}
+
+.diagram-shelf-overlay.open {
+  transform: translateX(0);
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.diagram-shelf-overlay[hidden] {
+  display: none;
+}
+
+.diagram-shelf-header {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 12px;
+  border-bottom: 1px solid rgba(57,246,255,.18);
+  padding-bottom: 10px;
+}
+
+.diagram-shelf-header strong,
+.diagram-shelf-section > b {
+  display: block;
+  color: #f2feff;
+  font-size: 12px;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+}
+
+.diagram-shelf-header span {
+  display: block;
+  margin-top: 4px;
+  color: rgba(223,254,255,.68);
+  font-size: 11px;
+}
+
+.diagram-active-tools {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.diagram-shelf-section {
+  display: grid;
+  min-height: 0;
+  gap: 8px;
+}
+
+.diagram-template-grid,
+.diagram-parked-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 9px;
+  min-height: 0;
+  overflow: auto;
+  padding-right: 2px;
+}
+
+.diagram-template-card,
+.diagram-shelf-card {
+  display: grid;
+  gap: 7px;
+  min-width: 0;
+  padding: 9px;
+  border: 1px solid rgba(57,246,255,.28);
+  background: rgba(57,246,255,.055);
+  color: #dffeff;
+  text-align: left;
+  clip-path: polygon(7px 0, 100% 0, 100% calc(100% - 7px), calc(100% - 7px) 100%, 0 100%, 0 7px);
+}
+
+.diagram-template-card:hover,
+.diagram-template-card:focus-visible,
+.diagram-template-card.gesture-hot,
+.diagram-shelf-card:hover,
+.diagram-shelf-card:focus-visible,
+.diagram-shelf-card.gesture-hot,
+.diagram-shelf-header button.gesture-hot,
+.diagram-active-tools button.gesture-hot {
+  border-color: rgba(57,246,255,.78);
+  background: rgba(57,246,255,.14);
+  box-shadow: 0 0 18px rgba(57,246,255,.24);
+}
+
+.diagram-template-card.gesture-hot,
+.diagram-shelf-card.gesture-hot,
+.diagram-shelf-header button.gesture-hot,
+.diagram-active-tools button.gesture-hot {
+  border-color: #82fbff;
+  background: rgba(57,246,255,.2);
+  box-shadow: 0 0 10px rgba(57,246,255,.72), 0 0 30px rgba(57,246,255,.32);
+}
+
+.diagram-template-card svg,
+.diagram-shelf-card svg {
+  width: 100%;
+  aspect-ratio: 5 / 3;
+  border: 1px solid rgba(57,246,255,.15);
+  background: rgba(0,8,14,.62);
+}
+
+.diagram-card-name {
+  color: #f4ffff;
+  font-size: 11px;
+  font-weight: 760;
+  line-height: 1.2;
+}
+
+.diagram-card-meta {
+  color: rgba(223,254,255,.62);
+  font-size: 10px;
+  line-height: 1.25;
+}
+
+.diagram-empty-state {
+  padding: 16px 10px;
+  border: 1px dashed rgba(57,246,255,.22);
+  color: rgba(223,254,255,.58);
+  font-size: 11px;
+  text-align: center;
+}
+
+.diagram-dock-zone {
+  position: absolute;
+  top: 20%;
+  right: 0;
+  bottom: 20%;
+  z-index: 10;
+  display: grid;
+  place-items: center;
+  width: min(120px, 18%);
+  border-left: 1px solid rgba(57,246,255,.5);
+  background: linear-gradient(90deg, rgba(57,246,255,.02), rgba(57,246,255,.22));
+  color: #edfeff;
+  pointer-events: none;
+  opacity: 0;
+  transform: translateX(18px);
+  transition: opacity 120ms ease, transform 120ms ease, background 120ms ease;
+}
+
+.diagram-dock-zone.open {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.diagram-dock-zone.active {
+  background: linear-gradient(90deg, rgba(57,246,255,.08), rgba(57,246,255,.36));
+  box-shadow: inset 0 0 28px rgba(57,246,255,.2), 0 0 32px rgba(57,246,255,.18);
+}
+
+.diagram-dock-zone span {
+  display: grid;
+  place-items: center;
+  width: 62px;
+  height: 62px;
+  border: 1px solid rgba(57,246,255,.6);
+  border-radius: 50%;
+  background: rgba(0, 20, 30, .74);
+  font-size: 10px;
+  font-weight: 780;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+}
+
 .voice-diagnostic {
   display: grid;
   gap: 5px;
@@ -496,6 +719,13 @@ input[type="range"] {
 .voice-diagnostic small { min-height: 1.2em; color: #ff8f9f; }
 .voice-diagnostic.ready { border-color: rgba(124,255,107,.48); background: rgba(124,255,107,.06); }
 .voice-diagnostic.ready b { color: #aaff9d; }
+
+#whisperCommandBtn.listening,
+#whisperContinuousBtn.listening {
+  border-color: rgba(124,255,107,.62);
+  background: rgba(124,255,107,.11);
+  color: #caffc2;
+}
 
 .calibration-wizard {
   position: absolute;

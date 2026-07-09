@@ -41,3 +41,12 @@ test("duplicate final transcripts execute once", () => {
   assert.deepEqual(finals, ["Jarvis next slide"]);
   controller.stop();
 });
+
+test("repeated start does not create overlapping recognition sessions", () => {
+  const adapter = fakeAdapter();
+  const controller = createVoiceController({ adapter });
+  assert.equal(controller.start(), true);
+  assert.equal(controller.start(), true);
+  assert.equal(adapter.starts(), 1);
+  controller.stop();
+});

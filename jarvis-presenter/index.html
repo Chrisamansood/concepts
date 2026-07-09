@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Chris's Jarvis</title>
-    <link rel="stylesheet" href="./styles.css?v=phase5-isolated-fix2">
+    <link rel="stylesheet" href="./styles.css?v=whisper-local-1">
   </head>
   <body>
     <main class="shell">
@@ -16,6 +16,11 @@
             <span id="systemState">Standby</span>
           </div>
           <button id="collapseBtn" class="icon-button" title="Collapse panel" aria-label="Collapse panel">‹</button>
+        </div>
+        <div class="runtime-identity" id="runtimeIdentity" title="Runtime identity has not been verified">
+          <span><i id="runtimeIdentityDot"></i>Local release <b id="runtimeBuildReadout">checking</b></span>
+          <small id="runtimeRootReadout">Verifying canonical server…</small>
+          <small>Profile <b id="runtimeProfileReadout">checking</b></small>
         </div>
 
         <section class="panel-section open" data-section="source">
@@ -54,6 +59,7 @@
           </button>
           <div class="section-content control-group diagram-demo-controls">
             <div id="diagramDraftPreview" class="diagram-draft-preview">No diagram prepared</div>
+            <button id="diagramShelfOpenBtn" type="button">Open Diagram Shelf</button>
             <small>Prepare stays private. “Present diagram” reveals it.</small>
           </div>
         </section>
@@ -65,10 +71,12 @@
           <div class="section-content control-group">
             <button id="handBtn">Start Hand Control</button>
             <button id="voiceBtn">Test Microphone</button>
-            <button id="voiceCommandsBtn" disabled>Start Voice Commands</button>
+            <button id="voiceCommandsBtn">Start Chrome Commands</button>
+            <button id="whisperContinuousBtn" type="button">Start Whisper Commands</button>
+            <button id="whisperCommandBtn" type="button">Record Whisper Command</button>
             <div class="voice-diagnostic" id="voiceDiagnostic" aria-live="polite">
               <b id="voiceDiagnosticState">Microphone not tested</b>
-              <span id="voiceDiagnosticTranscript">Click Test Microphone, then say “Jarvis test microphone”.</span>
+              <span id="voiceDiagnosticTranscript">Use Chrome voice, typed commands, or local Whisper when configured.</span>
               <small id="voiceDiagnosticError"></small>
             </div>
             <button id="presentBtn" class="primary">Enter Present Mode</button>
@@ -82,7 +90,7 @@
               <input id="mirrorInput" type="checkbox" checked>
             </label>
             <div class="command-line" aria-label="Command test">
-              <input id="commandInput" type="text" placeholder='Try "blue arrow"'>
+              <input id="commandInput" type="text" placeholder='Try “Jarvis next slide”' autocomplete="off">
               <button id="commandBtn">Run Command</button>
             </div>
           </div>
@@ -151,7 +159,7 @@
             <span>Status</span><span class="section-chevron">⌄</span>
           </button>
           <div class="section-content telemetry" aria-live="polite">
-            <span>Build <b>phase5-isolated-fix2</b></span>
+            <span>Build <b id="statusBuildReadout">checking</b></span>
             <span>Tool <b id="toolReadout">Pen</b></span>
             <span>Hand <b id="handReadout">Off</b></span>
             <span>Gesture <b id="gestureReadout">Standby</b></span>
@@ -196,11 +204,36 @@
             <button class="radial-item" data-tool="spotlight" type="button"><span aria-hidden="true">◉</span><b>Spot</b></button>
             <button class="radial-item" data-tool="eraser" type="button"><span aria-hidden="true">◇</span><b>Erase</b></button>
             <button class="radial-item" data-tool="laser" type="button"><span aria-hidden="true">●</span><b>Laser</b></button>
+            <button class="radial-item" data-radial-action="diagrams" type="button"><span aria-hidden="true">▦</span><b>Diagrams</b></button>
             <span class="radial-core">
               <span class="radial-core-reactor" aria-hidden="true"></span>
               <b class="radial-core-label">Tools</b>
               <small>Pinch select</small>
             </span>
+          </div>
+          <div id="diagramShelfOverlay" class="diagram-shelf-overlay" hidden aria-label="Diagram shelf">
+            <div class="diagram-shelf-header">
+              <div>
+                <strong>Diagrams</strong>
+                <span id="diagramShelfActiveName">No active diagram</span>
+              </div>
+              <button id="diagramShelfCloseBtn" class="icon-button" type="button" data-diagram-control="close-shelf" aria-label="Close diagram shelf">×</button>
+            </div>
+            <div class="diagram-active-tools">
+              <button id="diagramShelfParkBtn" type="button" data-diagram-control="park-active">Park Active</button>
+              <button id="diagramShelfHideBtn" type="button" data-diagram-control="hide-active">Hide</button>
+            </div>
+            <div class="diagram-shelf-section">
+              <b>Gallery</b>
+              <div id="diagramTemplateGrid" class="diagram-template-grid"></div>
+            </div>
+            <div class="diagram-shelf-section">
+              <b>Parked</b>
+              <div id="diagramParkedList" class="diagram-parked-list"></div>
+            </div>
+          </div>
+          <div id="diagramDockZone" class="diagram-dock-zone" hidden aria-hidden="true">
+            <span>Park</span>
           </div>
           <video id="cameraVideo" autoplay muted playsinline></video>
           <div class="gesture-indicator state-idle" id="gestureIndicator" aria-live="polite">
@@ -278,6 +311,6 @@
     <script src="./vendor/pptx/jszip.min.js"></script>
     <script src="./vendor/pptx/chart.umd.min.js"></script>
     <script src="./vendor/pptx/PptxViewJS.min.js"></script>
-    <script type="module" src="./app.js?v=phase5-isolated-fix2"></script>
+    <script type="module" src="./app.js?v=diagram-shelf-gesture-stabilize"></script>
   </body>
 </html>

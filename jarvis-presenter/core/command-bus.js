@@ -1,4 +1,4 @@
-const DEFAULT_SOURCES = new Set(["gesture", "voice", "keyboard", "cockpit", "ui", "test"]);
+const DEFAULT_SOURCES = new Set(["gesture", "voice", "whisper", "keyboard", "cockpit", "ui", "test"]);
 const DEFAULT_RISKS = new Set(["normal", "destructive"]);
 
 function clone(value) {

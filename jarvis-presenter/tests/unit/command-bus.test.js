@@ -21,6 +21,14 @@ test("accepts a valid command and records a separate outcome event", () => {
   assert.equal(result.event.commandId, result.command.id);
 });
 
+test("accepts Whisper as an explicit audited command source", () => {
+  const bus = createCommandBus({ allowedTypes: ["tool.select"] });
+  bus.register("tool.select", (command) => command.payload.tool);
+  const result = bus.dispatch({ type: "tool.select", source: "whisper", payload: { tool: "pen" } });
+  assert.equal(result.status, "accepted");
+  assert.equal(result.event.commandSource, "whisper");
+});
+
 test("rejects invalid command types", () => {
   const bus = createBus();
   const result = bus.dispatch({ type: "system.explode", source: "test", payload: {} });

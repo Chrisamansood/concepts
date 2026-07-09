@@ -5,13 +5,25 @@ A browser-based presenter cockpit for Teams and Google Meet screen sharing.
 ## Run
 
 ```bash
-python3 -m http.server 5177
+./launch-jarvis.command
 ```
 
-Then open:
+The launcher always serves this project directory, disables browser caching, refuses to replace another process on the same port, selects the verified demo profile and opens a content-fingerprinted URL in Google Chrome.
+
+To verify the release without starting a server:
+
+```bash
+python3 serve-jarvis.py --check
+```
+
+The normal local URL uses port 5188. Do not use `python3 -m http.server` for acceptance testing because it does not identify the served build or disable caching.
+
+When running successfully, the control rail displays the content-derived build fingerprint, canonical served root and active profile. These private details remain hidden in Presentation Mode.
+
+Example URL:
 
 ```text
-http://127.0.0.1:5177
+http://127.0.0.1:5188/?build=<fingerprint>&profile=verified-demo
 ```
 
 Use Chrome for the best screen-capture and hand-tracking support.
