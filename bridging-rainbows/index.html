@@ -1,0 +1,1145 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Kizuna by Bridging Rainbow Foundation</title>
+  <meta name="description" content="Kizuna street dog ABC operations platform by Bridging Rainbow Foundation." />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <style>
+    :root {
+      --bg: #f7f4ff;
+      --panel: #ffffff;
+      --panel-2: #fbfaff;
+      --ink: #171625;
+      --muted: #74718a;
+      --faint: #aaa5ba;
+      --line: rgba(86, 72, 132, .13);
+      --purple: #7457ef;
+      --purple-2: #9c70f4;
+      --lilac: #eee8ff;
+      --pink: #ffd6ea;
+      --green: #2fc381;
+      --mint: #35d6bd;
+      --amber: #ffb95c;
+      --red: #ff6575;
+      --blue: #5aaeff;
+      --shadow: 0 24px 64px rgba(73, 55, 142, .15);
+      --soft-shadow: 0 14px 34px rgba(74, 56, 143, .1);
+      --r-xl: 30px;
+      --r-lg: 22px;
+      --r-md: 16px;
+      --font: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--ink);
+      font-family: var(--font);
+      background:
+        radial-gradient(circle at 9% 8%, rgba(255, 214, 234, .72), transparent 28%),
+        radial-gradient(circle at 82% 2%, rgba(116, 87, 239, .18), transparent 32%),
+        linear-gradient(135deg, #ffffff 0%, #f5f1ff 44%, #f9fbff 100%);
+    }
+
+    button, input, select, textarea { font: inherit; }
+    button { color: inherit; }
+    svg { display: block; }
+
+    .app-shell { width: min(1540px, calc(100% - 42px)); margin: 22px auto 54px; }
+    .topbar {
+      position: sticky;
+      top: 14px;
+      z-index: 50;
+      display: grid;
+      grid-template-columns: 310px minmax(0,1fr) 280px;
+      align-items: center;
+      gap: 16px;
+      padding: 13px 16px;
+      border: 1px solid rgba(255,255,255,.82);
+      border-radius: 999px;
+      background: rgba(255,255,255,.86);
+      box-shadow: var(--soft-shadow);
+      backdrop-filter: blur(18px);
+    }
+
+    .brand { display: flex; align-items: center; gap: 12px; min-width: 0; }
+    .brand-mark {
+      width: 52px;
+      height: 52px;
+      display: grid;
+      place-items: center;
+      flex: 0 0 auto;
+      border-radius: 19px;
+      color: #fff;
+      background: linear-gradient(145deg, var(--purple), #b979f5);
+      box-shadow: inset 0 -10px 24px rgba(0,0,0,.08), 0 14px 24px rgba(116,87,239,.24);
+      font-weight: 950;
+      letter-spacing: -.06em;
+    }
+    .brand-copy b { display: block; font-size: 20px; letter-spacing: -.035em; }
+    .brand-copy span { display: block; margin-top: 3px; color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .1em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+    .nav { display: flex; justify-content: center; gap: 5px; overflow-x: auto; scrollbar-width: none; }
+    .nav::-webkit-scrollbar { display: none; }
+    .nav-btn {
+      border: 0;
+      border-radius: 999px;
+      padding: 13px 16px;
+      color: var(--muted);
+      background: transparent;
+      white-space: nowrap;
+      cursor: pointer;
+      transition: .2s ease;
+    }
+    .nav-btn:hover { color: var(--ink); background: #f4f0ff; }
+    .nav-btn.active { color: #fff; background: var(--purple); box-shadow: 0 12px 24px rgba(116,87,239,.22); }
+
+    .top-actions { display: flex; align-items: center; justify-content: flex-end; gap: 9px; }
+    .icon-button, .primary-button, .ghost-button, .segmented button {
+      border: 1px solid var(--line);
+      cursor: pointer;
+      transition: .2s ease;
+    }
+    .icon-button {
+      width: 44px;
+      height: 44px;
+      display: grid;
+      place-items: center;
+      border-radius: 50%;
+      background: var(--panel);
+      box-shadow: 0 8px 20px rgba(73,57,130,.08);
+    }
+    .primary-button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 9px;
+      padding: 13px 18px;
+      border-radius: 999px;
+      border-color: transparent;
+      color: #fff;
+      background: var(--purple);
+      box-shadow: 0 14px 26px rgba(116,87,239,.23);
+      font-weight: 850;
+    }
+    .primary-button:hover, .ghost-button:hover, .icon-button:hover, .segmented button:hover { transform: translateY(-1px); }
+    .ghost-button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 11px 15px;
+      border-radius: 999px;
+      color: var(--muted);
+      background: rgba(255,255,255,.75);
+    }
+    .small-button { padding: 8px 11px; font-size: 12px; }
+
+    .view { display: none; animation: viewIn .32s ease both; }
+    .view.active { display: block; }
+    @keyframes viewIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+    .status-strip {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin: 18px 8px 20px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+    .status-strip::before {
+      content: "";
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: var(--green);
+      box-shadow: 0 0 0 8px rgba(47,195,129,.12);
+    }
+    .status-strip strong { color: var(--ink); }
+    .status-strip .spacer { flex: 1; }
+
+    .page-head {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 20px;
+      padding: 7px 6px 20px;
+    }
+    .eyebrow {
+      color: var(--purple);
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing: .13em;
+      text-transform: uppercase;
+    }
+    h1, h2, h3, p { margin-top: 0; }
+    h1 {
+      margin: 8px 0 10px;
+      max-width: 850px;
+      font-size: clamp(38px, 4.6vw, 74px);
+      line-height: .94;
+      letter-spacing: -.055em;
+    }
+    h2 { margin-bottom: 8px; font-size: clamp(24px, 2.15vw, 36px); line-height: 1.04; letter-spacing: -.04em; }
+    h3 { margin-bottom: 7px; font-size: 18px; line-height: 1.2; letter-spacing: -.02em; }
+    .subhead { margin-bottom: 0; color: var(--muted); line-height: 1.58; max-width: 710px; }
+    .muted { color: var(--muted); }
+    .fine { color: var(--faint); font-size: 12px; }
+
+    .grid { display: grid; grid-template-columns: repeat(12,1fr); gap: 17px; }
+    .card {
+      position: relative;
+      overflow: hidden;
+      padding: 24px;
+      border-radius: var(--r-xl);
+      border: 1px solid rgba(255,255,255,.84);
+      background: rgba(255,255,255,.8);
+      box-shadow: var(--soft-shadow);
+    }
+    .card.flat { box-shadow: none; border-color: var(--line); }
+    .card.purple {
+      color: #fff;
+      border-color: rgba(255,255,255,.36);
+      background:
+        radial-gradient(circle at 88% 10%, rgba(255,255,255,.26), transparent 22%),
+        linear-gradient(145deg, #7357ef, #a770f4);
+    }
+    .card.purple .muted, .card.purple p { color: rgba(255,255,255,.78); }
+    .card-title { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; margin-bottom: 17px; }
+    .card-title p { margin: 5px 0 0; color: var(--muted); font-size: 13px; line-height: 1.45; }
+
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 7px 10px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      color: var(--muted);
+      background: rgba(255,255,255,.72);
+      font-size: 12px;
+      white-space: nowrap;
+    }
+    .tag.purple { color: #5d42dc; border-color: rgba(116,87,239,.2); background: #f0ebff; }
+    .tag.green { color: #148957; border-color: rgba(47,195,129,.2); background: #eafaf2; }
+    .tag.amber { color: #9b5a0b; border-color: rgba(255,185,92,.25); background: #fff3e4; }
+    .tag.red { color: #b32737; border-color: rgba(255,101,117,.22); background: #fff0f2; }
+    .dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+
+    .hero-card { grid-column: span 5; min-height: 520px; padding: clamp(28px, 3.7vw, 48px); }
+    .map-card { grid-column: span 7; min-height: 520px; }
+    .metric-card { grid-column: span 3; min-height: 160px; }
+    .queue-card { grid-column: span 4; min-height: 400px; }
+    .schedule-card { grid-column: span 5; min-height: 400px; }
+    .wide-card { grid-column: span 12; }
+    .half-card { grid-column: span 6; }
+    .third-card { grid-column: span 4; }
+
+    .hero-lockup { display: flex; align-items: center; gap: 12px; margin-bottom: 42px; }
+    .tiny-logo { width: 42px; height: 42px; display: grid; place-items: center; border-radius: 15px; background: #fff; color: var(--purple); font-weight: 950; box-shadow: 0 10px 20px rgba(79,47,150,.14); }
+    .hero-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 28px; }
+    .hero-pills { display: flex; flex-wrap: wrap; gap: 9px; margin-top: 30px; }
+    .hero-pills span { padding: 9px 12px; border-radius: 999px; background: rgba(255,255,255,.64); color: #6046d8; font-size: 12px; font-weight: 800; }
+
+    .metric { font-size: clamp(34px, 4vw, 56px); line-height: 1; letter-spacing: -.055em; font-weight: 900; }
+    .metric small { color: var(--muted); font-size: 14px; letter-spacing: 0; font-weight: 650; }
+    .metric-card p { margin: 12px 0 0; color: var(--muted); font-size: 13px; line-height: 1.45; }
+
+    .delhi-map {
+      position: relative;
+      height: 390px;
+      border-radius: 28px;
+      overflow: hidden;
+      border: 1px solid rgba(116,87,239,.1);
+      background: linear-gradient(rgba(255,255,255,.12), rgba(255,255,255,.35)), #eee9ff;
+    }
+    .delhi-map svg { width: 100%; height: 100%; }
+    .road { fill: none; stroke: rgba(90,78,128,.25); stroke-width: 2; }
+    .road.main { stroke: rgba(116,87,239,.36); stroke-width: 5; }
+    .river { fill: none; stroke: rgba(90,174,255,.45); stroke-width: 18; }
+    .map-label { position: absolute; color: rgba(34,28,60,.42); font-size: 11px; font-weight: 850; text-transform: uppercase; letter-spacing: .06em; }
+    .pin {
+      position: absolute;
+      width: 44px;
+      height: 44px;
+      transform: translate(-50%,-50%);
+      display: grid;
+      place-items: center;
+      border: 0;
+      border-radius: 50%;
+      color: #fff;
+      background: var(--purple);
+      box-shadow: 0 0 0 8px rgba(116,87,239,.13), 0 10px 20px rgba(45,32,100,.2);
+      cursor: pointer;
+      font-weight: 900;
+    }
+    .pin.red { background: var(--red); box-shadow: 0 0 0 8px rgba(255,101,117,.14), 0 10px 20px rgba(80,28,42,.16); }
+    .pin.green { background: var(--green); box-shadow: 0 0 0 8px rgba(47,195,129,.14), 0 10px 20px rgba(28,80,60,.14); }
+    .pin.amber { background: var(--amber); color: #422506; box-shadow: 0 0 0 8px rgba(255,185,92,.16), 0 10px 20px rgba(80,48,18,.12); }
+    .map-legend { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+    .live-map {
+      height: 390px;
+      border-radius: 28px;
+      overflow: hidden;
+      border: 1px solid rgba(116,87,239,.1);
+      background: #eee9ff;
+      z-index: 1;
+    }
+    .live-map .leaflet-control-attribution { font-size: 10px; }
+    .kizuna-marker {
+      width: 36px;
+      height: 36px;
+      display: grid;
+      place-items: center;
+      border-radius: 50%;
+      color: #fff;
+      border: 3px solid #fff;
+      box-shadow: 0 8px 18px rgba(35, 25, 82, .28);
+      font-size: 11px;
+      font-weight: 950;
+    }
+    .kizuna-marker.priority { background: var(--red); }
+    .kizuna-marker.scheduled { background: var(--amber); color: #422506; }
+    .kizuna-marker.centre { background: var(--purple); }
+    .kizuna-marker.release { background: var(--green); }
+    .map-popup b { display: block; margin-bottom: 4px; }
+    .map-popup span { color: #6f6b80; font-size: 12px; }
+
+    .dog-avatar {
+      position: relative;
+      width: 64px;
+      height: 64px;
+      flex: 0 0 auto;
+      border-radius: 24px;
+      background:
+        radial-gradient(circle at 39% 40%, #211d20 0 3px, transparent 4px),
+        radial-gradient(circle at 61% 40%, #211d20 0 3px, transparent 4px),
+        radial-gradient(circle at 50% 54%, #1c191d 0 4px, transparent 5px),
+        linear-gradient(145deg, #d99c5b, #b97839);
+      box-shadow: inset 0 -14px 25px rgba(116,60,18,.16), 0 9px 18px rgba(119,77,30,.12);
+    }
+    .dog-avatar::before, .dog-avatar::after {
+      content: "";
+      position: absolute;
+      top: 14px;
+      width: 20px;
+      height: 36px;
+      border-radius: 55% 55% 70% 70%;
+      background: #a86b31;
+      z-index: -1;
+    }
+    .dog-avatar::before { left: -8px; transform: rotate(20deg); }
+    .dog-avatar::after { right: -8px; transform: rotate(-20deg); }
+    .dog-avatar.dark { background: radial-gradient(circle at 39% 40%, #fff 0 3px, transparent 4px), radial-gradient(circle at 61% 40%, #fff 0 3px, transparent 4px), radial-gradient(circle at 50% 54%, #fff 0 4px, transparent 5px), linear-gradient(145deg, #4a3d37, #1e1b20); }
+    .dog-avatar.white { background: radial-gradient(circle at 39% 40%, #211d20 0 3px, transparent 4px), radial-gradient(circle at 61% 40%, #211d20 0 3px, transparent 4px), radial-gradient(circle at 50% 54%, #1c191d 0 4px, transparent 5px), linear-gradient(145deg, #f2eadf, #d4c1a7); }
+    .dog-avatar.spot { background: radial-gradient(circle at 39% 40%, #211d20 0 3px, transparent 4px), radial-gradient(circle at 61% 40%, #211d20 0 3px, transparent 4px), radial-gradient(circle at 50% 54%, #1c191d 0 4px, transparent 5px), radial-gradient(circle at 70% 24%, #6b4a30 0 14px, transparent 15px), linear-gradient(145deg, #ead9bd, #ca9b63); }
+    .dog-avatar.big { width: 190px; height: 190px; border-radius: 56px; margin: 0 auto; }
+    .dog-avatar.big::before, .dog-avatar.big::after { top: 42px; width: 54px; height: 96px; }
+    .dog-avatar.big::before { left: -23px; }
+    .dog-avatar.big::after { right: -23px; }
+    .dog-photo {
+      width: 64px;
+      height: 64px;
+      flex: 0 0 auto;
+      overflow: hidden;
+      border-radius: 24px;
+      background: #eee8ff;
+      box-shadow: 0 9px 18px rgba(78,58,140,.12);
+    }
+    .dog-photo img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+    .dog-photo.big {
+      width: min(260px, 92%);
+      height: 245px;
+      border-radius: 34px;
+      margin: 0 auto;
+    }
+
+    .list { display: grid; gap: 10px; }
+    .list-item {
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      align-items: center;
+      gap: 12px;
+      padding: 13px;
+      border: 1px solid rgba(116,87,239,.08);
+      border-radius: 20px;
+      background: rgba(246,243,255,.88);
+      cursor: pointer;
+      transition: .2s ease;
+    }
+    .list-item:hover { transform: translateY(-1px); background: #f1ebff; }
+    .list-item b { display: block; font-size: 13px; }
+    .list-item small { color: var(--muted); }
+    .badge {
+      min-width: 38px;
+      height: 38px;
+      display: grid;
+      place-items: center;
+      border-radius: 15px;
+      color: #fff;
+      background: var(--purple);
+      font-size: 12px;
+      font-weight: 950;
+    }
+    .badge.green { background: var(--green); }
+    .badge.amber { background: var(--amber); color: #3d2508; }
+    .badge.red { background: var(--red); }
+    .badge.blue { background: var(--blue); }
+
+    .schedule { width: 100%; border-collapse: collapse; }
+    .schedule th, .schedule td { text-align: left; padding: 13px 9px; border-bottom: 1px solid var(--line); font-size: 13px; }
+    .schedule th { color: var(--faint); font-weight: 750; }
+    .schedule td { color: var(--muted); }
+    .schedule td strong { color: var(--ink); }
+
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+    .search { position: relative; flex: 1 1 280px; }
+    .search input, .toolbar select, .field input, .field select, .field textarea {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      outline: none;
+      color: var(--ink);
+      background: rgba(255,255,255,.82);
+    }
+    .search input { padding: 14px 16px; }
+    .toolbar select { width: auto; min-width: 160px; padding: 13px 34px 13px 14px; }
+    .field { display: grid; gap: 7px; margin-bottom: 13px; }
+    .field label { color: var(--muted); font-size: 12px; }
+    .field input, .field select, .field textarea { padding: 13px 14px; }
+    .field textarea { min-height: 94px; resize: vertical; }
+
+    .dog-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 14px; }
+    .dog-card {
+      padding: 18px;
+      border: 1px solid rgba(116,87,239,.1);
+      border-radius: 26px;
+      background: rgba(255,255,255,.76);
+      cursor: pointer;
+      transition: .2s ease;
+    }
+    .dog-card:hover { transform: translateY(-3px); box-shadow: var(--soft-shadow); }
+    .dog-card-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    .dog-card h3 { margin: 15px 0 5px; font-size: 20px; }
+    .dog-card p { margin: 0; color: var(--muted); font-size: 12px; line-height: 1.45; }
+    .dog-card-foot { display: flex; justify-content: space-between; gap: 8px; margin-top: 15px; padding-top: 13px; border-top: 1px solid var(--line); color: var(--faint); font-size: 11px; }
+
+    .ops-layout { display: grid; grid-template-columns: minmax(0,1fr) 360px; gap: 17px; }
+    .kanban { display: grid; grid-template-columns: repeat(4,1fr); gap: 12px; align-items: start; }
+    .column {
+      min-height: 500px;
+      padding: 15px;
+      border-radius: 24px;
+      border: 1px solid rgba(116,87,239,.09);
+      background: rgba(255,255,255,.58);
+    }
+    .column-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
+    .column-head b { font-size: 14px; }
+    .case-card {
+      padding: 14px;
+      border-radius: 18px;
+      border: 1px solid rgba(116,87,239,.09);
+      background: #fff;
+      margin-bottom: 10px;
+      cursor: pointer;
+    }
+    .case-card h3 { margin: 12px 0 6px; font-size: 15px; }
+    .case-card p { margin-bottom: 11px; color: var(--muted); font-size: 12px; line-height: 1.45; }
+    .case-meta { display: flex; justify-content: space-between; gap: 8px; color: var(--faint); font-size: 11px; }
+    .advance-case { margin-top: 12px; width: 100%; }
+
+    .team-card { display: grid; gap: 12px; }
+    .team-row { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 11px; padding: 12px 0; border-bottom: 1px solid var(--line); }
+    .team-row:last-child { border-bottom: 0; }
+    .team-row b { display: block; font-size: 13px; }
+    .team-row small { color: var(--muted); }
+
+    .phone {
+      width: min(360px, 100%);
+      min-height: 676px;
+      padding: 15px;
+      border-radius: 42px;
+      background: #11101c;
+      box-shadow: 0 34px 78px rgba(30,20,80,.25);
+      margin: 0 auto;
+    }
+    .phone-screen { position: relative; overflow: hidden; min-height: 646px; border-radius: 32px; background: #fff; }
+    .phone-status { display: flex; justify-content: space-between; padding: 16px 18px 8px; color: #161625; font-size: 12px; font-weight: 850; }
+    .phone-body { padding: 12px 18px 88px; }
+    .phone-hero { min-height: 220px; display: grid; place-items: center; margin: -4px -18px 18px; background: linear-gradient(160deg,#f0e9ff,#fff0f6); }
+    .phone-title { font-size: 31px; line-height: 1; letter-spacing: -.045em; margin-bottom: 10px; }
+    .capture-card {
+      padding: 16px;
+      border-radius: 23px;
+      background: #f6f2ff;
+      border: 1px dashed rgba(116,87,239,.35);
+      text-align: center;
+      cursor: pointer;
+    }
+    .capture-icon { width: 56px; height: 56px; display: grid; place-items: center; margin: 0 auto 10px; border-radius: 20px; color: #fff; background: var(--purple); font-weight: 950; }
+    .phone-nav { position: absolute; left: 18px; right: 18px; bottom: 16px; display: grid; grid-template-columns: repeat(4,1fr); gap: 7px; padding: 9px; border-radius: 999px; background: rgba(255,255,255,.94); box-shadow: 0 14px 26px rgba(64,50,120,.14); }
+    .phone-nav button { height: 42px; border: 0; border-radius: 999px; color: var(--muted); background: transparent; cursor: pointer; font-size: 12px; font-weight: 900; }
+    .phone-nav button.active { color: #fff; background: var(--purple); }
+
+    .centre-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 17px; }
+    .kennel-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; }
+    .kennel {
+      min-height: 125px;
+      padding: 13px;
+      border-radius: 20px;
+      background: #f6f2ff;
+      border: 1px solid rgba(116,87,239,.1);
+    }
+    .kennel b { display: block; margin-bottom: 8px; }
+    .kennel span { color: var(--muted); font-size: 12px; line-height: 1.45; }
+
+    .insight-grid { display: grid; grid-template-columns: repeat(2,1fr); gap: 17px; }
+    .chart { height: 235px; display: flex; align-items: end; gap: 13px; padding: 18px 4px 4px; }
+    .bar-wrap { flex: 1; text-align: center; color: var(--muted); font-size: 11px; }
+    .bar { position: relative; min-height: 22px; border-radius: 18px 18px 9px 9px; background: linear-gradient(to top,#d9cffd,var(--purple)); }
+    .bar b { position: absolute; top: -27px; left: 50%; transform: translateX(-50%); color: var(--ink); font-size: 11px; }
+    .donut-layout { display: grid; grid-template-columns: 180px 1fr; gap: 24px; align-items: center; min-height: 230px; }
+    .donut {
+      width: 172px;
+      aspect-ratio: 1;
+      display: grid;
+      place-items: center;
+      border-radius: 50%;
+      background: conic-gradient(var(--purple) 0 69%, var(--green) 69% 85%, var(--amber) 85% 95%, var(--red) 95% 100%);
+      position: relative;
+    }
+    .donut::after { content: ""; position: absolute; width: 116px; aspect-ratio: 1; border-radius: 50%; background: #fff; }
+    .donut strong { position: relative; z-index: 1; font-size: 32px; letter-spacing: -.05em; }
+    .legend-list { display: grid; gap: 12px; }
+    .legend-item { display: flex; align-items: center; justify-content: space-between; gap: 12px; color: var(--muted); font-size: 13px; }
+    .legend-name { display: flex; align-items: center; gap: 9px; }
+    .legend-name i { width: 10px; height: 10px; border-radius: 50%; background: var(--purple); }
+
+    .vision-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 14px; }
+    .vision-item { min-height: 178px; padding: 20px; border-radius: 24px; background: rgba(255,255,255,.74); border: 1px solid rgba(116,87,239,.1); }
+    .vision-item .badge { margin-bottom: 17px; }
+    .vision-item p { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.52; }
+
+    .evidence-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 12px; }
+    .evidence-card {
+      min-height: 160px;
+      padding: 18px;
+      border-radius: 22px;
+      border: 1px solid rgba(116,87,239,.1);
+      background: rgba(255,255,255,.76);
+    }
+    .evidence-card b { display: block; margin: 8px 0 6px; font-size: 28px; letter-spacing: -.04em; }
+    .evidence-card span { color: var(--muted); font-size: 12px; line-height: 1.45; }
+    .projection-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 12px; }
+    .projection-card {
+      min-height: 230px;
+      padding: 20px;
+      border-radius: 24px;
+      background: #f7f3ff;
+      border: 1px solid rgba(116,87,239,.12);
+    }
+    .projection-card small { color: var(--purple); font-weight: 900; letter-spacing: .08em; }
+    .projection-card h3 { margin-top: 18px; }
+    .projection-card ul { margin: 0; padding-left: 18px; color: var(--muted); font-size: 12px; line-height: 1.72; }
+    .source-list { display: grid; gap: 10px; }
+    .source-list a {
+      display: block;
+      padding: 12px 14px;
+      border-radius: 16px;
+      color: var(--muted);
+      background: rgba(246,243,255,.86);
+      border: 1px solid rgba(116,87,239,.09);
+      text-decoration: none;
+      font-size: 12px;
+      line-height: 1.45;
+    }
+    .source-list a strong { color: var(--ink); }
+
+    .drawer {
+      position: fixed;
+      z-index: 80;
+      top: 0;
+      right: 0;
+      width: min(560px, 100%);
+      height: 100vh;
+      overflow-y: auto;
+      padding: 28px;
+      background: #fff;
+      box-shadow: -34px 0 80px rgba(50,36,105,.22);
+      transform: translateX(105%);
+      transition: .35s cubic-bezier(.2,.8,.2,1);
+    }
+    .drawer.open { transform: none; }
+    .backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 75;
+      opacity: 0;
+      pointer-events: none;
+      background: rgba(35,26,75,.32);
+      backdrop-filter: blur(6px);
+      transition: .25s ease;
+    }
+    .backdrop.open { opacity: 1; pointer-events: auto; }
+    .drawer-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 22px; }
+    .drawer-head h2 { margin: 4px 0 0; }
+    .drawer-hero { display: grid; place-items: center; min-height: 255px; border-radius: 28px; background: linear-gradient(160deg,#f0e9ff,#fff0f6); margin-bottom: 18px; }
+    .fact-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; margin: 14px 0; }
+    .fact { padding: 12px 8px; border-radius: 16px; background: #f6f3ff; text-align: center; }
+    .fact span { display: block; color: var(--muted); font-size: 10px; }
+    .fact b { display: block; margin-top: 5px; font-size: 12px; }
+    .timeline { display: grid; gap: 0; margin-top: 18px; }
+    .timeline-item { position: relative; display: grid; grid-template-columns: 30px 1fr; gap: 12px; padding-bottom: 22px; }
+    .timeline-item:not(:last-child)::before { content: ""; position: absolute; left: 14px; top: 28px; bottom: 0; width: 2px; background: #ebe4ff; }
+    .timeline-dot { position: relative; z-index: 1; width: 30px; height: 30px; display: grid; place-items: center; border-radius: 50%; color: #fff; background: var(--purple); font-size: 12px; font-weight: 900; }
+    .timeline-item b { display: block; font-size: 14px; }
+    .timeline-item span { display: block; margin-top: 4px; color: var(--muted); font-size: 12px; line-height: 1.48; }
+    .stepper { display: flex; gap: 7px; margin-bottom: 20px; }
+    .stepper i { flex: 1; height: 5px; border-radius: 999px; background: #eee8ff; }
+    .stepper i.on { background: var(--purple); }
+    .report-step { display: none; }
+    .report-step.active { display: block; animation: viewIn .28s ease both; }
+    .choice-grid { display: grid; grid-template-columns: repeat(2,1fr); gap: 10px; margin: 14px 0; }
+    .choice { border: 1px solid rgba(116,87,239,.13); border-radius: 20px; padding: 15px; background: #fbfaff; color: var(--muted); cursor: pointer; text-align: left; }
+    .choice.selected { color: var(--ink); background: #f0ebff; border-color: rgba(116,87,239,.38); }
+    .drawer-footer { position: sticky; bottom: -28px; display: flex; justify-content: space-between; gap: 12px; margin: 28px -28px -28px; padding: 18px 28px; background: rgba(255,255,255,.92); border-top: 1px solid var(--line); backdrop-filter: blur(14px); }
+
+    .toast {
+      position: fixed;
+      z-index: 95;
+      top: 22px;
+      left: 50%;
+      transform: translate(-50%, -140%);
+      opacity: 0;
+      pointer-events: none;
+      padding: 13px 18px;
+      border-radius: 999px;
+      color: #fff;
+      background: var(--purple);
+      box-shadow: var(--shadow);
+      font-size: 13px;
+      font-weight: 850;
+      transition: .3s ease;
+    }
+    .toast.show { transform: translate(-50%, 0); opacity: 1; }
+
+    @media (max-width: 1180px) {
+      .topbar { grid-template-columns: 245px 1fr 150px; border-radius: 28px; }
+      .brand-copy span, .top-actions .ghost-button { display: none; }
+      .hero-card, .map-card, .queue-card, .schedule-card, .half-card, .third-card { grid-column: span 12; }
+      .metric-card { grid-column: span 6; }
+      .dog-grid { grid-template-columns: repeat(3,1fr); }
+      .ops-layout, .centre-grid { grid-template-columns: 1fr; }
+      .kanban { grid-template-columns: repeat(2,1fr); }
+      .vision-grid, .evidence-grid, .projection-grid { grid-template-columns: repeat(2,1fr); }
+    }
+    @media (max-width: 760px) {
+      .app-shell { width: calc(100% - 18px); margin-top: 10px; }
+      .topbar { position: relative; top: 0; grid-template-columns: 1fr auto; padding: 12px; border-radius: 26px; }
+      .nav { grid-column: 1 / -1; justify-content: flex-start; padding-top: 8px; }
+      .page-head { flex-direction: column; align-items: flex-start; }
+      .metric-card { grid-column: span 12; }
+      .dog-grid, .kanban, .insight-grid, .vision-grid, .kennel-grid, .evidence-grid, .projection-grid { grid-template-columns: 1fr; }
+      .donut-layout { grid-template-columns: 1fr; justify-items: center; }
+      .status-strip .spacer { display: none; }
+      .status-strip { flex-wrap: wrap; }
+    }
+    @media (max-width: 480px) {
+      h1 { font-size: 40px; }
+      .card { padding: 18px; border-radius: 24px; }
+      .choice-grid, .fact-grid { grid-template-columns: 1fr; }
+      .top-actions .primary-button { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="brand" aria-label="Kizuna by Bridging Rainbow Foundation">
+        <div class="brand-mark">K</div>
+        <div class="brand-copy"><b>Kizuna</b><span>by Bridging Rainbow Foundation</span></div>
+      </div>
+      <nav class="nav" aria-label="Kizuna sections">
+        <button class="nav-btn active" data-view="dashboard">Dashboard</button>
+        <button class="nav-btn" data-view="intake">Intake</button>
+        <button class="nav-btn" data-view="dogs">Dogs</button>
+        <button class="nav-btn" data-view="field">Field ops</button>
+        <button class="nav-btn" data-view="centre">ABC centre</button>
+        <button class="nav-btn" data-view="insights">Insights</button>
+        <button class="nav-btn" data-view="roadmap">Roadmap</button>
+      </nav>
+      <div class="top-actions">
+        <button class="ghost-button small-button" id="syncButton">Sync data</button>
+        <button class="primary-button report-trigger">New report</button>
+      </div>
+    </header>
+
+    <div class="status-strip">
+      <strong>Delhi South cluster online</strong>
+      <span>2,184 dog records - 68 open ABC requests - 9 vans active - last sync 2 minutes ago</span>
+      <span class="spacer"></span>
+      <span class="tag green"><span class="dot"></span>Operational</span>
+    </div>
+
+    <main>
+      <section class="view active" id="view-dashboard">
+        <div class="grid">
+          <article class="card purple hero-card">
+            <div class="hero-lockup"><div class="tiny-logo">K</div><div><div class="eyebrow" style="color:#fff">Delhi ABC operations</div><b>Kizuna by Bridging Rainbow Foundation</b></div></div>
+            <h1>Street dog care, visible from report to release.</h1>
+            <p class="subhead">Kizuna connects citizens, BRF coordinators, field teams, vans, and ABC centres around one verified record for every dog.</p>
+            <div class="hero-actions"><button class="primary-button report-trigger" style="background:#fff;color:var(--purple)">Register report</button><button class="ghost-button" style="background:rgba(255,255,255,.18);color:#fff;border-color:rgba(255,255,255,.28)" data-view-link="field">Open field board</button></div>
+            <div class="hero-pills"><span>Photo + GPS intake</span><span>Pickup scheduling</span><span>ABC centre tracking</span><span>Release proof</span></div>
+          </article>
+
+          <article class="card map-card">
+            <div class="card-title"><div><h2>Delhi live coverage</h2><p>Public pins are approximate. Exact pickup and release coordinates are visible only to authorised teams.</p></div><span class="tag purple">18 wards</span></div>
+            <div class="live-map" id="liveMap" aria-label="Interactive Delhi ABC operations map"></div>
+            <div class="map-legend"><span class="tag red">Rabies priority</span><span class="tag purple">ABC request</span><span class="tag amber">Pickup route</span><span class="tag green">Released</span></div>
+          </article>
+
+          <article class="card metric-card"><div class="metric">2,184 <small>dogs</small></div><p>Verified dog records across pilot wards.</p></article>
+          <article class="card metric-card"><div class="metric">1,506 <small>ABC done</small></div><p>Sterilised and vaccinated records.</p></article>
+          <article class="card metric-card"><div class="metric">68 <small>open</small></div><p>Requests in field or centre workflow.</p></article>
+          <article class="card metric-card"><div class="metric">91% <small>release proof</small></div><p>Drop-back evidence attached within 24 hours.</p></article>
+
+          <article class="card queue-card">
+            <div class="card-title"><div><h2>Action queue</h2><p>Cases needing coordinator attention today.</p></div></div>
+            <div class="list" id="dashboardQueue"></div>
+          </article>
+          <article class="card schedule-card">
+            <div class="card-title"><div><h2>Today's pickups</h2><p>Field plan for South and Central Delhi teams.</p></div><button class="ghost-button small-button" data-view-link="field">Open board</button></div>
+            <table class="schedule">
+              <thead><tr><th>Time</th><th>Dog</th><th>Area</th><th>Team</th></tr></thead>
+              <tbody id="pickupTable"></tbody>
+            </table>
+          </article>
+          <article class="card third-card">
+            <div class="card-title"><div><h2>Field teams</h2><p>Van and catcher status.</p></div></div>
+            <div class="team-card" id="teamList"></div>
+          </article>
+        </div>
+      </section>
+
+      <section class="view" id="view-intake">
+        <div class="page-head">
+          <div><div class="eyebrow">Community intake</div><h1>Fast reporting for citizens and feeders.</h1><p class="subhead">Each report captures photo, GPS, markings, case type, and whether the person can be present during catching.</p></div>
+          <button class="primary-button report-trigger">Open intake drawer</button>
+        </div>
+        <div class="grid">
+          <article class="card half-card">
+            <div class="card-title"><div><h2>Mobile citizen flow</h2><p>Built for a one-minute street report.</p></div><span class="tag green">Hindi + English ready</span></div>
+            <div class="phone">
+              <div class="phone-screen">
+                <div class="phone-status"><span>9:41</span><span>Kizuna</span></div>
+                <div class="phone-body">
+                  <div class="phone-hero"><div class="dog-photo big"><img src="assets/dogs/web/dog-01.jpg" alt="Street dog reported for ABC" /></div></div>
+                  <h2 class="phone-title">Report a dog near you.</h2>
+                  <p class="muted">Photo, location, and case type are enough to start the ABC workflow.</p>
+                  <div class="field"><select><option>Needs sterilisation</option><option>Suspected rabies</option><option>Dog bite case</option><option>Post-release feedback</option></select></div>
+                  <div class="capture-card report-trigger"><div class="capture-icon">+</div><b>Add photo and GPS</b><br><span class="fine">Location stored privately</span></div>
+                </div>
+                <div class="phone-nav"><button class="active">Report</button><button>Track</button><button>ID</button><button>Help</button></div>
+              </div>
+            </div>
+          </article>
+          <article class="card half-card">
+            <div class="card-title"><div><h2>Recent community reports</h2><p>New reports are matched to dog records before field action.</p></div><span class="tag purple">23 today</span></div>
+            <div class="list" id="recentReports"></div>
+          </article>
+        </div>
+      </section>
+
+      <section class="view" id="view-dogs">
+        <div class="page-head">
+          <div><div class="eyebrow">Dog registry</div><h1>Every dog has a living record.</h1><p class="subhead">Search by Kizuna ID, name, area, status, marking, or current ABC stage.</p></div>
+          <button class="primary-button report-trigger">Add dog report</button>
+        </div>
+        <div class="card">
+          <div class="toolbar">
+            <div class="search"><input id="dogSearch" type="search" placeholder="Search Tara, KZ-DL-0042, Saket, rabies, release..." /></div>
+            <select id="stageFilter"><option value="all">All stages</option><option>ABC done</option><option>Pickup scheduled</option><option>Post-op</option><option>Release due</option><option>Priority</option></select>
+            <select id="areaFilter"><option value="all">All areas</option><option>Lajpat Nagar</option><option>Saket</option><option>Karol Bagh</option><option>Yamuna Bank</option><option>Connaught Place</option></select>
+          </div>
+          <div class="dog-grid" id="dogGrid"></div>
+        </div>
+      </section>
+
+      <section class="view" id="view-field">
+        <div class="page-head">
+          <div><div class="eyebrow">Field operations</div><h1>ABC work moves through clear handoffs.</h1><p class="subhead">Coordinator, catcher, van, ABC centre, and release teams see the same case state.</p></div>
+          <button class="primary-button" id="advanceFirstCase">Advance selected case</button>
+        </div>
+        <div class="ops-layout">
+          <article class="card">
+            <div class="kanban" id="kanban"></div>
+          </article>
+          <aside class="card">
+            <div class="card-title"><div><h2>Selected case</h2><p id="selectedCaseHint">Click any case to inspect details.</p></div></div>
+            <div id="caseDetail"></div>
+          </aside>
+        </div>
+      </section>
+
+      <section class="view" id="view-centre">
+        <div class="page-head">
+          <div><div class="eyebrow">ABC centre</div><h1>Surgery, vaccine, recovery, release.</h1><p class="subhead">Daily medical updates keep each dog moving safely through the centre.</p></div>
+          <span class="tag green"><span class="dot"></span>Centre intake open</span>
+        </div>
+        <div class="centre-grid">
+          <article class="card">
+            <div class="card-title"><div><h2>Recovery kennels</h2><p>Dogs under post-op observation.</p></div></div>
+            <div class="kennel-grid">
+              <div class="kennel"><b>Tara</b><span>Post-op day 2<br>Suture check due 6 PM</span></div>
+              <div class="kennel"><b>Kali</b><span>Post-op day 1<br>Eating normally</span></div>
+              <div class="kennel"><b>Badal</b><span>Pre-surgery<br>Vet clearance pending</span></div>
+              <div class="kennel"><b>Champa</b><span>Release ready<br>Van assigned</span></div>
+              <div class="kennel"><b>Sultan</b><span>Rabies vaccine done<br>Observation complete</span></div>
+              <div class="kennel"><b>Meera</b><span>Post-op day 3<br>Release window tomorrow</span></div>
+            </div>
+          </article>
+          <article class="card">
+            <div class="card-title"><div><h2>Medical checklist</h2><p>Batch, cold-chain and ABC Rules fields are mandatory before release.</p></div></div>
+            <table class="schedule">
+              <thead><tr><th>Dog</th><th>ABC</th><th>Rabies</th><th>Release</th></tr></thead>
+              <tbody><tr><td><strong>Tara</strong></td><td>Done</td><td>RV-4261</td><td>Due</td></tr><tr><td><strong>Champa</strong></td><td>Done</td><td>RV-4258</td><td>Ready</td></tr><tr><td><strong>Badal</strong></td><td>Pending</td><td>Due</td><td>Blocked</td></tr><tr><td><strong>Meera</strong></td><td>Done</td><td>RV-4259</td><td>Tomorrow</td></tr></tbody>
+            </table>
+          </article>
+        </div>
+      </section>
+
+      <section class="view" id="view-insights">
+        <div class="page-head">
+          <div><div class="eyebrow">Impact insights</div><h1>Measure outcomes, not paperwork.</h1><p class="subhead">Kizuna gives BRF and partner organisations a clear view of ABC coverage, rabies safety, field bottlenecks, and release accountability.</p></div>
+          <span class="tag purple"><span class="dot"></span>2 min sync</span>
+        </div>
+        <div class="insight-grid">
+          <article class="card"><div class="card-title"><div><h2>ABC stage mix</h2><p>2,184 dog records in pilot wards</p></div></div><div class="donut-layout"><div class="donut"><strong>69%</strong></div><div class="legend-list"><div class="legend-item"><span class="legend-name"><i></i>Sterilised and vaccinated</span><b>1,506</b></div><div class="legend-item"><span class="legend-name"><i style="background:var(--green)"></i>In workflow</span><b>356</b></div><div class="legend-item"><span class="legend-name"><i style="background:var(--amber)"></i>Scheduled</span><b>210</b></div><div class="legend-item"><span class="legend-name"><i style="background:var(--red)"></i>Priority review</span><b>112</b></div></div></div></article>
+          <article class="card"><div class="card-title"><div><h2>Weekly throughput</h2><p>Requests converted into verified outcomes</p></div><span class="tag green">+22%</span></div><div class="chart"><div class="bar-wrap"><div class="bar" style="height:42%"><b>42</b></div><span>Mon</span></div><div class="bar-wrap"><div class="bar" style="height:66%"><b>66</b></div><span>Tue</span></div><div class="bar-wrap"><div class="bar" style="height:58%"><b>58</b></div><span>Wed</span></div><div class="bar-wrap"><div class="bar" style="height:74%"><b>74</b></div><span>Thu</span></div><div class="bar-wrap"><div class="bar" style="height:92%"><b>92</b></div><span>Fri</span></div><div class="bar-wrap"><div class="bar" style="height:71%"><b>71</b></div><span>Sat</span></div></div></article>
+          <article class="card"><div class="card-title"><div><h2>Release accountability</h2><p>Signals that prevent leakage in the ABC chain</p></div></div><div class="list"><div class="list-item"><div class="badge green">OK</div><div><b>Returned to pickup location</b><small>Citizen or field proof attached</small></div><strong>91%</strong></div><div class="list-item"><div class="badge amber">23</div><div><b>Suture status pending</b><small>Pre-release check not closed</small></div><strong>23</strong></div><div class="list-item"><div class="badge red">6</div><div><b>Rabies priority unresolved</b><small>Immediate supervisor attention</small></div><strong>6</strong></div></div></article>
+          <article class="card"><div class="card-title"><div><h2>Ward coverage</h2><p>Where the next field drive matters.</p></div></div><table class="schedule"><thead><tr><th>Ward</th><th>Dogs</th><th>ABC done</th><th>Open</th></tr></thead><tbody><tr><td><strong>Lajpat Nagar</strong></td><td>318</td><td>224</td><td>18</td></tr><tr><td><strong>Saket</strong></td><td>284</td><td>209</td><td>11</td></tr><tr><td><strong>Karol Bagh</strong></td><td>236</td><td>153</td><td>22</td></tr><tr><td><strong>Yamuna Bank</strong></td><td>196</td><td>119</td><td>17</td></tr></tbody></table></article>
+        </div>
+        <article class="card wide-card" style="margin-top:17px">
+          <div class="card-title"><div><h2>India evidence base</h2><p>Why a transparent ABC operating layer matters for people, civic bodies, and dogs.</p></div><span class="tag purple">Source-linked</span></div>
+          <div class="evidence-grid">
+            <div class="evidence-card"><span class="tag red">Rabies</span><b>18k-20k</b><span>Estimated human rabies deaths annually in India, according to WHO India.</span></div>
+            <div class="evidence-card"><span class="tag purple">Global share</span><b>36%</b><span>India accounts for about 36% of global rabies deaths, according to WHO India.</span></div>
+            <div class="evidence-card"><span class="tag amber">Dog bites</span><b>37.17L</b><span>Dog bite cases reported in India in 2024, as parliamentary data was reported in national media.</span></div>
+            <div class="evidence-card"><span class="tag green">Prevention</span><b>99%</b><span>Dogs are responsible for up to 99% of human rabies transmissions; dog vaccination stops risk at source.</span></div>
+          </div>
+        </article>
+        <article class="card wide-card" style="margin-top:17px">
+          <div class="card-title"><div><h2>Kizuna impact projection</h2><p>Planning model for one Delhi operating cluster starting from roughly 2,000 mapped street dogs.</p></div><span class="tag amber">Assumptions shown</span></div>
+          <div class="projection-grid">
+            <div class="projection-card"><small>6 MONTHS</small><h3>Make the invisible visible</h3><ul><li>2,000-2,500 dogs mapped with Kizuna IDs</li><li>60-65% rabies vaccination status captured</li><li>Pickup and release proof attached for 1,000+ ABC journeys</li><li>Priority rabies and bite cases visible within hours</li></ul></div>
+            <div class="projection-card"><small>12 MONTHS</small><h3>Reach protective coverage</h3><ul><li>3,500-4,000 dog records across adjacent wards</li><li>70%+ vaccination coverage target in active wards</li><li>2,000+ sterilisation records with batch and vet history</li><li>25-35% reduction in repeat unmanaged complaint hotspots</li></ul></div>
+            <div class="projection-card"><small>2 YEARS</small><h3>Stabilise the ABC chain</h3><ul><li>8,000+ dogs mapped across a larger Delhi cluster</li><li>Booster reminders reduce lapsed rabies protection</li><li>40-50% faster pickup-to-release cycle for routine ABC cases</li><li>Evidence-led ward planning replaces ad hoc drives</li></ul></div>
+            <div class="projection-card"><small>5 YEARS</small><h3>Build a city playbook</h3><ul><li>25,000+ longitudinal street dog records</li><li>Sustained 70%+ dog vaccination coverage in managed wards</li><li>Fewer puppies entering unmanaged street populations</li><li>Replicable civic model for other NGOs and municipalities</li></ul></div>
+          </div>
+        </article>
+        <div class="grid" style="margin-top:17px">
+          <article class="card half-card">
+            <div class="card-title"><div><h2>Model assumptions</h2><p>These numbers are not claimed outcomes. They are operating targets based on what Kizuna can coordinate.</p></div></div>
+            <div class="list"><div class="list-item"><div class="badge purple">1</div><div><b>Starting cohort</b><small>One Delhi cluster with around 2,000 street dogs actively mapped.</small></div></div><div class="list-item"><div class="badge green">2</div><div><b>Core levers</b><small>Digital ID, rabies vaccination status, ABC scheduling, release proof, and bite/rabies escalation.</small></div></div><div class="list-item"><div class="badge amber">3</div><div><b>Impact logic</b><small>Reliable field data improves coverage, reduces missed follow-ups, and makes public-health action faster.</small></div></div></div>
+          </article>
+          <article class="card half-card">
+            <div class="card-title"><div><h2>Sources</h2><p>Reference points used for the evidence layer.</p></div></div>
+            <div class="source-list">
+              <a href="https://www.who.int/india/health-topics/rabies" target="_blank"><strong>WHO India - Rabies:</strong> India burden, 36% global share, estimated annual deaths.</a>
+              <a href="https://www.who.int/news-room/fact-sheets/detail/rabies" target="_blank"><strong>WHO Rabies fact sheet:</strong> 99% dog-mediated transmission, children at risk, vaccination and PEP guidance.</a>
+              <a href="https://economictimes.indiatimes.com/news/new-updates/37-lakh-dog-bites-in-a-year-karti-chidambaram-raises-alarm-about-dangerous-surge-says-we-cant-ignore-this-any-more/articleshow/122855228.cms" target="_blank"><strong>Parliament data reported by Economic Times:</strong> 37.17 lakh dog bite cases in 2024 and 54 suspected rabies deaths.</a>
+              <a href="https://apnews.com/article/62b97a8aae5061dc56d431b3a109138d" target="_blank"><strong>Associated Press, Delhi context:</strong> New Delhi street dog population estimate, bite pressure, and release-after-sterilisation context.</a>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section class="view" id="view-roadmap">
+        <div class="page-head">
+          <div><div class="eyebrow">Expansion roadmap</div><h1>The wider ABCD programme layer.</h1><p class="subhead">Field workflow comes first. These modules can be added as BRF brings more civic, AWO, and public stakeholders onto the platform.</p></div>
+        </div>
+        <div class="vision-grid">
+          <article class="vision-item"><div class="badge">1</div><h3>Government circulars</h3><p>ABC rules, circulars and SOP material in English, Hindi, and local languages.</p></article>
+          <article class="vision-item"><div class="badge">2</div><h3>AWO registry</h3><p>Training status, tender eligibility, achievements, complaints and performance history.</p></article>
+          <article class="vision-item"><div class="badge">3</div><h3>Community education</h3><p>Awareness material, KAP questionnaire, downloads, and co-existence education.</p></article>
+          <article class="vision-item"><div class="badge red">4</div><h3>Dog bite pathway</h3><p>Evidence capture, fourteen-day observation, objective assessment and humane education.</p></article>
+          <article class="vision-item"><div class="badge amber">5</div><h3>Van and release tracking</h3><p>GPS-tracked vans, original-location drop-back, release proof and resistance escalation.</p></article>
+          <article class="vision-item"><div class="badge green">6</div><h3>Post-release feedback</h3><p>Public reporting for missing returns, post-release illness, pregnancy after sterilisation, or rabies concern.</p></article>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div class="backdrop" id="backdrop"></div>
+  <aside class="drawer" id="reportDrawer" aria-label="New community report">
+    <div class="drawer-head"><div><div class="eyebrow">New community report</div><h2>Register ABC request</h2></div><button class="icon-button drawer-close" aria-label="Close">x</button></div>
+    <div class="stepper"><i class="on"></i><i></i><i></i></div>
+    <div class="report-step active" data-step="0">
+      <div class="capture-card" id="captureCard"><div class="capture-icon">+</div><b>Add dog photo</b><br><span class="fine">Timestamp and GPS will be attached</span></div>
+      <div class="choice-grid">
+        <button class="choice selected"><b>Needs ABC</b><br><span>Sterilisation request</span></button>
+        <button class="choice"><b>Suspected rabies</b><br><span>Priority safety case</span></button>
+        <button class="choice"><b>Dog bite case</b><br><span>Evidence and observation</span></button>
+        <button class="choice"><b>Post-release</b><br><span>Feedback after return</span></button>
+      </div>
+    </div>
+    <div class="report-step" data-step="1">
+      <div class="field"><label>Dog details</label><select><option>Female dog</option><option>Male dog</option><option>Unknown</option></select></div>
+      <div class="field"><label>Location</label><input value="Lajpat Nagar, Delhi" /></div>
+      <div class="field"><label>Markings and landmark</label><textarea>Brown coat, white chest, near market lane. Community feeder can be present during catching.</textarea></div>
+    </div>
+    <div class="report-step" data-step="2">
+      <span class="tag purple">Possible match found</span>
+      <div class="card flat" style="margin-top:14px;padding:15px">
+        <div style="display:grid;grid-template-columns:86px 1fr;gap:14px;align-items:center"><div class="dog-photo"><img src="assets/dogs/web/dog-01.jpg" alt="Tara street dog" /></div><div><h3 style="margin-bottom:4px">Tara</h3><p class="muted" style="font-size:12px;margin-bottom:8px">KZ-DL-0042 - seen 180 m away yesterday</p><span class="tag green">Coordinator confirmation required</span></div></div>
+      </div>
+      <table class="schedule" style="margin-top:14px"><tbody><tr><td>Suggested pickup</td><td><strong>Tomorrow 8:30 AM</strong></td></tr><tr><td>Field queue</td><td><strong>South Delhi AWO</strong></td></tr><tr><td>Citizen reminder</td><td><strong>Enabled</strong></td></tr></tbody></table>
+    </div>
+    <div class="drawer-footer"><button class="ghost-button" id="reportBack">Back</button><button class="primary-button" id="reportNext">Continue</button></div>
+  </aside>
+
+  <aside class="drawer" id="dogDrawer" aria-label="Dog profile">
+    <div id="dogProfileContent"></div>
+  </aside>
+
+  <div class="toast" id="toast">Saved</div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script>
+    const dogs = [
+      { id:'tara', name:'Tara', code:'KZ-DL-0042', area:'Lajpat Nagar', sex:'Female', age:'2 years', stage:'Post-op', avatar:'spot', photo:'assets/dogs/web/dog-01.jpg', lat:28.5665, lng:77.2433, status:'Suture check due', rabies:'RV-4261 done', release:'Due tomorrow', notes:'Brown coat, white chest, calm around feeder.', timeline:['Report verified from market lane','Picked up by South Delhi Team A','ABC surgery complete','Rabies vaccine recorded','Release proof pending'] },
+      { id:'sheru', name:'Sheru', code:'KZ-DL-0087', area:'Karol Bagh', sex:'Male', age:'4 years', stage:'Pickup scheduled', avatar:'dark', photo:'assets/dogs/web/dog-02.jpg', lat:28.6516, lng:77.1907, status:'Pickup 5:30 PM', rabies:'Due', release:'Not started', notes:'Black coat, white paws, stays near temple lane.', timeline:['Community report received','Existing profile matched','Pickup scheduled for evening'] },
+      { id:'badal', name:'Badal', code:'KZ-DL-0119', area:'Connaught Place', sex:'Male', age:'3 years', stage:'Priority', avatar:'white', photo:'assets/dogs/web/dog-03.jpg', lat:28.6315, lng:77.2167, status:'Bite case observation', rabies:'Pending check', release:'Blocked', notes:'White dog, tan ears, dog bite case under assessment.', timeline:['Dog bite evidence received','Field team assigned','Observation record opened'] },
+      { id:'noori', name:'Noori', code:'KZ-DL-0162', area:'Saket', sex:'Female', age:'5 years', stage:'ABC done', avatar:'spot', photo:'assets/dogs/web/dog-04.jpg', lat:28.5245, lng:77.2066, status:'Released', rabies:'RV-4258 done', release:'Verified', notes:'Light brown coat, notched ear, returned to park gate.', timeline:['ABC complete','Rabies vaccine recorded','Released to original pickup point','Citizen feedback positive'] },
+      { id:'luna', name:'Luna', code:'KZ-DL-0195', area:'Yamuna Bank', sex:'Female', age:'1 year', stage:'Release due', avatar:'white', photo:'assets/dogs/web/dog-05.jpg', lat:28.6233, lng:77.2679, status:'Pre-release passed', rabies:'RV-4260 done', release:'Van assigned', notes:'Cream coat, shy, found near metro pillar.', timeline:['Picked up from Yamuna Bank','ABC complete','Pre-release check passed'] },
+      { id:'kali', name:'Kali', code:'KZ-DL-0211', area:'Lajpat Nagar', sex:'Female', age:'3 years', stage:'Post-op', avatar:'dark', photo:'assets/dogs/web/dog-06.jpg', lat:28.5653, lng:77.2369, status:'Eating normally', rabies:'RV-4259 done', release:'48 hours', notes:'Black dog, red collar from feeder group.', timeline:['Report verified','ABC complete','Post-op day 1 stable'] },
+      { id:'champa', name:'Champa', code:'KZ-DL-0244', area:'Saket', sex:'Female', age:'2 years', stage:'Release due', avatar:'spot', photo:'assets/dogs/web/dog-07.jpg', lat:28.5277, lng:77.2152, status:'Release ready', rabies:'RV-4258 done', release:'Today 6 PM', notes:'Tan coat, friendly, release route assigned.', timeline:['ABC complete','Suture check passed','Release van assigned'] },
+      { id:'sultan', name:'Sultan', code:'KZ-DL-0308', area:'Karol Bagh', sex:'Male', age:'6 years', stage:'ABC done', avatar:'dark', photo:'assets/dogs/web/dog-08.jpg', lat:28.6478, lng:77.1994, status:'Released', rabies:'RV-4255 done', release:'Verified', notes:'Large black dog, calm, returned to same chowk.', timeline:['Picked up','ABC complete','Released and verified'] },
+      { id:'meera', name:'Meera', code:'KZ-DL-0341', area:'Connaught Place', sex:'Female', age:'3 years', stage:'Post-op', avatar:'white', photo:'assets/dogs/web/dog-09.jpg', lat:28.6279, lng:77.2193, status:'Post-op day 3', rabies:'RV-4259 done', release:'Tomorrow', notes:'White dog, brown patch over left eye.', timeline:['ABC complete','Daily recovery logged','Release planned'] },
+      { id:'moti', name:'Moti', code:'KZ-DL-0399', area:'Yamuna Bank', sex:'Male', age:'4 years', stage:'Pickup scheduled', avatar:'spot', photo:'assets/dogs/web/dog-10.jpg', lat:28.6189, lng:77.2612, status:'Team assigned', rabies:'Due', release:'Not started', notes:'Tan dog, white tail tip, seen near food stall.', timeline:['New report received','Photo matched','Pickup scheduled'] },
+      { id:'pari', name:'Pari', code:'KZ-DL-0420', area:'Lajpat Nagar', sex:'Female', age:'2 years', stage:'ABC done', avatar:'white', photo:'assets/dogs/web/dog-11.jpg', lat:28.5702, lng:77.2474, status:'Released', rabies:'RV-4257 done', release:'Verified', notes:'Cream coat, notched ear, feeder confirmed healthy.', timeline:['ABC complete','Released','Feedback positive'] },
+      { id:'raja', name:'Raja', code:'KZ-DL-0448', area:'Saket', sex:'Male', age:'5 years', stage:'Priority', avatar:'dark', photo:'assets/dogs/web/dog-12.jpg', lat:28.5189, lng:77.2028, status:'Suspected rabies review', rabies:'Unknown', release:'Blocked', notes:'Aggressive behaviour reported; safety team assigned.', timeline:['Priority report received','Supervisor notified','Field team dispatched'] }
+    ];
+
+    let cases = [
+      { id:'C-221', dog:'Tara', dogId:'tara', title:'Suture check and release proof', area:'Lajpat Nagar', priority:'High', stage:'centre', time:'Due 6 PM' },
+      { id:'C-220', dog:'Sheru', dogId:'sheru', title:'Pickup for ABC', area:'Karol Bagh', priority:'Scheduled', stage:'scheduled', time:'5:30 PM' },
+      { id:'C-219', dog:'Badal', dogId:'badal', title:'Dog bite observation', area:'Connaught Place', priority:'Priority', stage:'reported', time:'32 min ago' },
+      { id:'C-218', dog:'Luna', dogId:'luna', title:'Release van assigned', area:'Yamuna Bank', priority:'Ready', stage:'release', time:'4:45 PM' },
+      { id:'C-217', dog:'Kali', dogId:'kali', title:'Post-op daily update', area:'Lajpat Nagar', priority:'Normal', stage:'centre', time:'2 hrs ago' },
+      { id:'C-216', dog:'Moti', dogId:'moti', title:'Citizen report matched', area:'Yamuna Bank', priority:'Scheduled', stage:'scheduled', time:'Tomorrow' },
+      { id:'C-215', dog:'Raja', dogId:'raja', title:'Suspected rabies review', area:'Saket', priority:'Priority', stage:'reported', time:'Now' }
+    ];
+    let selectedCaseId = 'C-221';
+
+    const navButtons = [...document.querySelectorAll('.nav-btn')];
+    const views = [...document.querySelectorAll('.view')];
+    function showView(name) {
+      views.forEach(view => view.classList.toggle('active', view.id === `view-${name}`));
+      navButtons.forEach(button => button.classList.toggle('active', button.dataset.view === name));
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+    navButtons.forEach(button => button.addEventListener('click', () => showView(button.dataset.view)));
+    document.querySelectorAll('[data-view-link]').forEach(button => button.addEventListener('click', () => showView(button.dataset.viewLink)));
+
+    function tagFor(stage) {
+      if (stage === 'Priority') return '<span class="tag red">Priority</span>';
+      if (stage === 'ABC done') return '<span class="tag green">ABC done</span>';
+      if (stage === 'Release due') return '<span class="tag amber">Release due</span>';
+      if (stage === 'Post-op') return '<span class="tag purple">Post-op</span>';
+      return '<span class="tag amber">Pickup scheduled</span>';
+    }
+    function avatarClass(dog) { return `dog-avatar ${dog.avatar || ''}`; }
+    function dogPhoto(dog, size = '') {
+      if (!dog.photo) return `<div class="${avatarClass(dog)} ${size}"></div>`;
+      return `<div class="dog-photo ${size}"><img src="${dog.photo}" alt="${dog.name} street dog record" loading="lazy" /></div>`;
+    }
+    function findDog(id) { return dogs.find(d => d.id === id) || dogs[0]; }
+    function mapStatus(dog) {
+      if (dog.stage === 'Priority') return 'priority';
+      if (dog.stage === 'Pickup scheduled') return 'scheduled';
+      if (dog.stage === 'Post-op') return 'centre';
+      if (dog.stage === 'Release due' || dog.stage === 'ABC done') return 'release';
+      return 'centre';
+    }
+    function initMap() {
+      const mapNode = document.getElementById('liveMap');
+      if (!mapNode) return;
+      if (!window.L) {
+        mapNode.innerHTML = '<div style="padding:22px;color:#74718a">Map tiles load when internet is available.</div>';
+        return;
+      }
+      const map = L.map(mapNode, { zoomControl: true, scrollWheelZoom: false }).setView([28.594, 77.226], 11);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '&copy; OpenStreetMap contributors'
+      }).addTo(map);
+
+      dogs.forEach(dog => {
+        const status = mapStatus(dog);
+        const label = status === 'priority' ? '!' : status === 'scheduled' ? 'ABC' : status === 'release' ? 'OK' : 'ID';
+        const icon = L.divIcon({
+          className: '',
+          html: `<div class="kizuna-marker ${status}">${label}</div>`,
+          iconSize: [36, 36],
+          iconAnchor: [18, 18],
+          popupAnchor: [0, -18]
+        });
+        L.marker([dog.lat, dog.lng], { icon })
+          .addTo(map)
+          .bindPopup(`<div class="map-popup"><b>${dog.name} - ${dog.code}</b><span>${dog.area}<br>${dog.stage} - ${dog.status}</span></div>`)
+          .on('click', () => openDog(dog.id));
+      });
+
+      const pickupRoute = dogs.filter(d => ['tara','sheru','badal','moti'].includes(d.id)).map(d => [d.lat, d.lng]);
+      L.polyline(pickupRoute, { color: '#7457ef', weight: 4, opacity: .65, dashArray: '8 8' }).addTo(map);
+      setTimeout(() => map.invalidateSize(), 250);
+    }
+
+    function renderDashboard() {
+      const urgent = cases.filter(c => c.priority === 'Priority' || c.priority === 'High').slice(0,4);
+      document.getElementById('dashboardQueue').innerHTML = urgent.map(c => `<div class="list-item" data-case="${c.id}"><div class="badge ${c.priority === 'Priority' ? 'red' : 'amber'}">${c.priority === 'Priority' ? '!' : 'HI'}</div><div><b>${c.title}</b><small>${c.dog} - ${c.area}</small></div><span class="fine">${c.time}</span></div>`).join('');
+      document.getElementById('pickupTable').innerHTML = [['8:30 AM','Tara','Lajpat Nagar','Team A'],['11:10 AM','Moti','Yamuna Bank','Team C'],['2:20 PM','Badal','Connaught Place','Team B'],['5:30 PM','Sheru','Karol Bagh','Team A']].map(r => `<tr><td>${r[0]}</td><td><strong>${r[1]}</strong></td><td>${r[2]}</td><td>${r[3]}</td></tr>`).join('');
+      document.getElementById('teamList').innerHTML = [['Team A','Van DL-02-4187','6 stops left','green'],['Team B','Van DL-01-7732','Priority case','red'],['Team C','Van DL-05-1182','At ABC centre','amber']].map(t => `<div class="team-row"><div class="badge ${t[3]}">${t[0].split(' ')[1]}</div><div><b>${t[0]}</b><small>${t[1]}</small></div><span class="tag ${t[3]}">${t[2]}</span></div>`).join('');
+      bindCaseClicks();
+    }
+
+    function renderReports() {
+      document.getElementById('recentReports').innerHTML = [
+        ['Tara','KZ-DL-0042','Photo matched, pickup scheduled','Lajpat Nagar'],
+        ['Raja','KZ-DL-0448','Suspected rabies review','Saket'],
+        ['Badal','KZ-DL-0119','Dog bite observation opened','Connaught Place'],
+        ['Moti','KZ-DL-0399','Citizen can attend pickup','Yamuna Bank'],
+        ['Unknown dog','New ID pending','Photo quality check required','Karol Bagh']
+      ].map((r,i) => `<div class="list-item ${i===1?'priority':''}"><div class="badge ${i===1?'red':i===4?'amber':'purple'}">${i+1}</div><div><b>${r[0]} - ${r[1]}</b><small>${r[2]}</small></div><span class="fine">${r[3]}</span></div>`).join('');
+    }
+
+    function renderDogs() {
+      const q = (document.getElementById('dogSearch').value || '').toLowerCase();
+      const stage = document.getElementById('stageFilter').value;
+      const area = document.getElementById('areaFilter').value;
+      const filtered = dogs.filter(d => (stage === 'all' || d.stage === stage) && (area === 'all' || d.area === area) && `${d.name} ${d.code} ${d.area} ${d.stage} ${d.notes}`.toLowerCase().includes(q));
+      document.getElementById('dogGrid').innerHTML = filtered.map(d => `<article class="dog-card" data-dog="${d.id}"><div class="dog-card-head">${dogPhoto(d)}${tagFor(d.stage)}</div><h3>${d.name}</h3><p>${d.code}<br>${d.area} - ${d.sex} - ${d.age}</p><div class="dog-card-foot"><span>${d.status}</span><span>${d.release}</span></div></article>`).join('') || '<div class="card flat" style="grid-column:1/-1;text-align:center"><h3>No matching records</h3><p class="muted">Try a different name, area, or status.</p></div>';
+      bindDogClicks();
+    }
+
+    function renderKanban() {
+      const columns = [['reported','Reported'],['scheduled','Scheduled'],['centre','ABC centre'],['release','Release']];
+      document.getElementById('kanban').innerHTML = columns.map(([key,label]) => {
+        const list = cases.filter(c => c.stage === key);
+        return `<section class="column"><div class="column-head"><b>${label}</b><span class="tag purple">${list.length}</span></div>${list.map(c => `<article class="case-card" data-case="${c.id}"><span class="tag ${c.priority === 'Priority' ? 'red' : c.priority === 'High' ? 'amber' : c.priority === 'Ready' ? 'green' : 'purple'}">${c.priority}</span><h3>${c.title}</h3><p>${c.dog}<br>${c.area}</p><div class="case-meta"><span>${c.id}</span><span>${c.time}</span></div></article>`).join('')}</section>`;
+      }).join('');
+      bindCaseClicks();
+      renderCaseDetail();
+    }
+
+    function renderCaseDetail() {
+      const c = cases.find(item => item.id === selectedCaseId) || cases[0];
+      const dog = findDog(c.dogId);
+      selectedCaseId = c.id;
+      document.getElementById('selectedCaseHint').textContent = `${c.id} - ${c.area}`;
+      document.getElementById('caseDetail').innerHTML = `<div class="drawer-hero" style="min-height:210px">${dogPhoto(dog, 'big')}</div><span class="tag ${c.priority === 'Priority' ? 'red' : 'purple'}">${c.priority}</span><h2 style="margin-top:12px">${c.dog}</h2><p class="muted">${c.title}<br>${dog.code} - ${dog.area}</p><div class="fact-grid"><div class="fact"><span>Stage</span><b>${c.stage}</b></div><div class="fact"><span>Rabies</span><b>${dog.rabies}</b></div><div class="fact"><span>Release</span><b>${dog.release}</b></div></div><button class="primary-button" style="width:100%;margin-top:10px" id="caseAdvanceButton">Move forward</button><button class="ghost-button" style="width:100%;margin-top:9px" data-dog-open="${dog.id}">Open dog profile</button>`;
+      document.getElementById('caseAdvanceButton').addEventListener('click', advanceSelectedCase);
+      document.querySelector('[data-dog-open]').addEventListener('click', e => openDog(e.currentTarget.dataset.dogOpen));
+    }
+
+    function advanceSelectedCase() {
+      const order = ['reported','scheduled','centre','release'];
+      const c = cases.find(item => item.id === selectedCaseId) || cases[0];
+      c.stage = order[Math.min(order.indexOf(c.stage) + 1, order.length - 1)];
+      c.priority = c.stage === 'release' ? 'Ready' : c.stage === 'centre' ? 'High' : c.priority;
+      renderKanban();
+      showToast(`${c.dog} moved to ${c.stage}`);
+    }
+
+    function bindDogClicks() {
+      document.querySelectorAll('[data-dog]').forEach(el => el.addEventListener('click', () => openDog(el.dataset.dog)));
+    }
+    function bindCaseClicks() {
+      document.querySelectorAll('[data-case]').forEach(el => el.addEventListener('click', () => {
+        selectedCaseId = el.dataset.case;
+        showView('field');
+        renderKanban();
+      }));
+    }
+
+    const backdrop = document.getElementById('backdrop');
+    const reportDrawer = document.getElementById('reportDrawer');
+    const dogDrawer = document.getElementById('dogDrawer');
+    function closeDrawers() { reportDrawer.classList.remove('open'); dogDrawer.classList.remove('open'); backdrop.classList.remove('open'); }
+    function openReport() { closeDrawers(); setReportStep(0); reportDrawer.classList.add('open'); backdrop.classList.add('open'); }
+    function openDog(id) {
+      const d = findDog(id);
+      closeDrawers();
+      document.getElementById('dogProfileContent').innerHTML = `<div class="drawer-head"><div><div class="eyebrow">Kizuna ID</div><h2>${d.name} - ${d.code}</h2></div><button class="icon-button drawer-close" aria-label="Close">x</button></div><div class="drawer-hero">${dogPhoto(d, 'big')}</div><div class="fact-grid"><div class="fact"><span>Stage</span><b>${d.stage}</b></div><div class="fact"><span>Rabies</span><b>${d.rabies}</b></div><div class="fact"><span>Release</span><b>${d.release}</b></div></div><p class="muted">${d.notes}</p><div class="timeline">${d.timeline.map((item,i) => `<div class="timeline-item"><div class="timeline-dot">${i+1}</div><div><b>${item}</b><span>${i===0 ? d.area : 'Updated in Kizuna record'}</span></div></div>`).join('')}</div>`;
+      dogDrawer.querySelector('.drawer-close').addEventListener('click', closeDrawers);
+      dogDrawer.classList.add('open');
+      backdrop.classList.add('open');
+    }
+
+    let reportStep = 0;
+    function setReportStep(step) {
+      reportStep = Math.max(0, Math.min(2, step));
+      reportDrawer.querySelectorAll('.report-step').forEach((panel, i) => panel.classList.toggle('active', i === reportStep));
+      reportDrawer.querySelectorAll('.stepper i').forEach((dot, i) => dot.classList.toggle('on', i <= reportStep));
+      document.getElementById('reportBack').style.visibility = reportStep === 0 ? 'hidden' : 'visible';
+      document.getElementById('reportNext').textContent = reportStep === 2 ? 'Confirm and schedule' : 'Continue';
+    }
+    document.getElementById('reportBack').addEventListener('click', () => setReportStep(reportStep - 1));
+    document.getElementById('reportNext').addEventListener('click', () => {
+      if (reportStep < 2) {
+        setReportStep(reportStep + 1);
+      } else {
+        closeDrawers();
+        selectedCaseId = 'C-220';
+        showView('field');
+        renderKanban();
+        showToast('ABC request added to field queue');
+      }
+    });
+    document.querySelectorAll('.choice').forEach(button => button.addEventListener('click', () => {
+      document.querySelectorAll('.choice').forEach(choice => choice.classList.remove('selected'));
+      button.classList.add('selected');
+    }));
+    document.getElementById('captureCard').addEventListener('click', () => {
+      document.getElementById('captureCard').innerHTML = '<div class="capture-icon">OK</div><b>Photo attached</b><br><span class="fine">Clear side view - GPS ready</span>';
+    });
+    document.querySelectorAll('.report-trigger').forEach(button => button.addEventListener('click', openReport));
+    document.querySelectorAll('.drawer-close').forEach(button => button.addEventListener('click', closeDrawers));
+    backdrop.addEventListener('click', closeDrawers);
+    document.getElementById('syncButton').addEventListener('click', () => showToast('Kizuna records synced'));
+    document.getElementById('advanceFirstCase').addEventListener('click', advanceSelectedCase);
+    ['dogSearch','stageFilter','areaFilter'].forEach(id => document.getElementById(id).addEventListener('input', renderDogs));
+    document.addEventListener('keydown', event => { if (event.key === 'Escape') closeDrawers(); });
+
+    function showToast(message) {
+      const toast = document.getElementById('toast');
+      toast.textContent = message;
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 2500);
+    }
+
+    renderDashboard();
+    renderReports();
+    renderDogs();
+    renderKanban();
+    initMap();
+    bindDogClicks();
+  </script>
+</body>
+</html>

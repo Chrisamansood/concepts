@@ -87,5 +87,20 @@
     "status": "Live",
     "path": "saarthi-live-mission/",
     "color": "#FFB000"
+  },
+  {
+    "id": "bridging-rainbows",
+    "title": "Bridging Rainbows",
+    "subtitle": "Kizuna Street Dog ABC Command Center",
+    "description": "A live-feeling civic operations prototype for Bridging Rainbow Foundation, connecting citizen reports, dog identity records, field pickup workflows, ABC centre care, release proof, and impact insights for Delhi street dog welfare.",
+    "tags": [
+      "Civic Tech",
+      "Animal Welfare",
+      "ABC Programme",
+      "Public Health"
+    ],
+    "status": "Live",
+    "path": "bridging-rainbows/",
+    "color": "#7457EF"
   }
 ]
