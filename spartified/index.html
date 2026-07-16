@@ -1,0 +1,1108 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Spartified Agentic Revenue & Assurance Layer</title>
+  <meta name="description" content="Product concept page for Spartified Agentic Revenue & Assurance Layer.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:ital,opsz,wght@0,6..12,300..1000;1,6..12,300..1000&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --black: #000000;
+      --page: #030712;
+      --panel: #111827;
+      --panel-soft: #0d1422;
+      --text: #ffffff;
+      --body: rgba(255,255,255,.84);
+      --muted: rgba(255,255,255,.62);
+      --line: rgba(63, 85, 116, .62);
+      --cyan: #00d8f7;
+      --blue: #1f8fff;
+      --card: #111827;
+      --icon: #2a3548;
+      --radius: 14px;
+      --max: 1580px;
+    }
+
+    * { box-sizing: border-box; }
+
+    html {
+      scroll-behavior: smooth;
+      background: var(--black);
+    }
+
+    body {
+      margin: 0;
+      min-width: 320px;
+      background: var(--black);
+      color: var(--text);
+      font-family: "Nunito Sans", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      letter-spacing: 0;
+    }
+
+    a { color: inherit; text-decoration: none; }
+    button { font: inherit; }
+
+    .site {
+      background: var(--black);
+      overflow: hidden;
+    }
+
+    .nav {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      height: 76px;
+      background: #000;
+      border-bottom: 1px solid rgba(255,255,255,.04);
+    }
+
+    .nav-inner {
+      width: min(var(--max), 100%);
+      height: 100%;
+      margin: 0 auto;
+      padding: 0 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      min-width: 0;
+    }
+
+    .logo-mark {
+      width: 42px;
+      height: 24px;
+      flex: 0 0 auto;
+    }
+
+    .logo-text {
+      font-size: clamp(26px, 5.8vw, 38px);
+      line-height: 1;
+      font-weight: 1000;
+      letter-spacing: -1px;
+      white-space: nowrap;
+    }
+
+    .nav-links {
+      display: none;
+      align-items: center;
+      gap: 46px;
+      color: rgba(255,255,255,.86);
+      font-size: 17px;
+      font-weight: 700;
+    }
+
+    .book {
+      min-height: 46px;
+      border: 0;
+      border-radius: 999px;
+      padding: 12px 18px;
+      background: linear-gradient(100deg, #2d83ff 0%, #22d5ef 100%);
+      color: #fff;
+      font-weight: 800;
+      font-size: 15px;
+      white-space: nowrap;
+    }
+
+    .section {
+      position: relative;
+      background: var(--black);
+    }
+
+    .hero {
+      min-height: calc(100svh - 76px);
+      display: grid;
+      align-items: stretch;
+      background: #060b14;
+    }
+
+    .image-copy {
+      width: 100%;
+      display: grid;
+      min-height: calc(100svh - 76px);
+      background:
+        linear-gradient(90deg, rgba(0,0,0,.10) 0%, rgba(4,8,15,.28) 38%, rgba(7,12,22,.96) 72%),
+        var(--bg-image) center / cover no-repeat;
+    }
+
+    .image-copy.flip {
+      background:
+        linear-gradient(90deg, rgba(7,12,22,.96) 0%, rgba(4,8,15,.52) 52%, rgba(0,0,0,.18) 100%),
+        var(--bg-image) center / cover no-repeat;
+    }
+
+    .image-copy-inner {
+      width: min(var(--max), 100%);
+      margin: 0 auto;
+      padding: 56px 22px 58px;
+      display: grid;
+      align-items: center;
+      min-height: inherit;
+    }
+
+    .text-panel {
+      width: min(100%, 760px);
+      padding-top: 30vh;
+    }
+
+    .image-copy.flip .text-panel {
+      padding-top: 0;
+    }
+
+    .kicker {
+      color: var(--cyan);
+      font-weight: 900;
+      font-size: clamp(13px, 1.15vw, 16px);
+      letter-spacing: .04em;
+      margin-bottom: 12px;
+    }
+
+    h1, h2, h3, p { margin: 0; }
+
+    h1 {
+      font-size: clamp(36px, 3.35vw, 66px);
+      line-height: 1.02;
+      font-weight: 1000;
+      letter-spacing: -1px;
+      max-width: 880px;
+    }
+
+    h2 {
+      font-size: clamp(34px, 3.15vw, 62px);
+      line-height: 1.05;
+      font-weight: 1000;
+      letter-spacing: -1px;
+    }
+
+    h3 {
+      font-size: clamp(20px, 1.65vw, 28px);
+      line-height: 1.22;
+      color: var(--cyan);
+      font-weight: 900;
+    }
+
+    .blue {
+      color: var(--blue);
+    }
+
+    .cyan {
+      color: var(--cyan);
+    }
+
+    .lead {
+      margin-top: 22px;
+      color: var(--body);
+      font-size: clamp(17px, 1.35vw, 23px);
+      line-height: 1.5;
+      max-width: 760px;
+      font-weight: 600;
+    }
+
+    .section-copy {
+      color: var(--body);
+      font-size: clamp(16px, 1.25vw, 22px);
+      line-height: 1.55;
+      max-width: 850px;
+      font-weight: 600;
+    }
+
+    .para-block {
+      margin-top: 32px;
+      display: grid;
+      gap: 24px;
+      max-width: 860px;
+    }
+
+    .para-block p {
+      color: var(--body);
+      font-size: clamp(16px, 1.25vw, 22px);
+      line-height: 1.56;
+      font-weight: 500;
+    }
+
+    .para-block strong {
+      color: var(--cyan);
+      font-weight: 900;
+    }
+
+    .hero-actions {
+      margin-top: 34px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px;
+    }
+
+    .primary-cta,
+    .secondary-cta {
+      min-height: 48px;
+      border-radius: 999px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 13px 20px;
+      font-size: 15px;
+      font-weight: 900;
+      border: 1px solid rgba(0,216,247,.45);
+    }
+
+    .primary-cta {
+      background: linear-gradient(100deg, #2d83ff 0%, #22d5ef 100%);
+      color: #fff;
+    }
+
+    .secondary-cta {
+      background: rgba(7,12,22,.68);
+      color: #fff;
+    }
+
+    .black-section {
+      padding: 78px 22px;
+      background: #000;
+    }
+
+    .inner {
+      width: min(var(--max), 100%);
+      margin: 0 auto;
+    }
+
+    .center-title {
+      text-align: center;
+      margin: 0 auto 58px;
+      max-width: 1120px;
+    }
+
+    .center-title p {
+      margin: 26px auto 0;
+      color: var(--body);
+      font-size: clamp(16px, 1.25vw, 22px);
+      line-height: 1.5;
+      max-width: 860px;
+      font-weight: 600;
+    }
+
+    .problem-grid,
+    .agent-grid,
+    .commercial-grid {
+      display: grid;
+      gap: 20px;
+    }
+
+    .problem-card,
+    .agent-card,
+    .commercial-card {
+      background: var(--card);
+      border: 1px solid #23314b;
+      border-radius: var(--radius);
+      padding: 28px 24px;
+      min-height: 250px;
+    }
+
+    .problem-card {
+      min-height: 260px;
+    }
+
+    .icon-box {
+      width: 62px;
+      height: 62px;
+      border-radius: 16px;
+      display: grid;
+      place-items: center;
+      background: #2a3548;
+      color: #fff;
+      margin-bottom: 28px;
+    }
+
+    .icon-box svg {
+      width: 32px;
+      height: 32px;
+    }
+
+    .problem-card h3,
+    .agent-card h3,
+    .commercial-card h3 {
+      margin-bottom: 18px;
+      font-size: clamp(20px, 1.55vw, 27px);
+    }
+
+    .problem-card p,
+    .agent-card p,
+    .commercial-card p {
+      color: var(--body);
+      font-size: clamp(16px, 1.25vw, 21px);
+      line-height: 1.58;
+      font-weight: 500;
+    }
+
+    .stop-line {
+      padding: 86px 22px 40px;
+      text-align: center;
+      background: #000;
+    }
+
+    .stop-line h2 {
+      max-width: 1120px;
+      margin: 0 auto;
+    }
+
+    .stop-line p {
+      color: var(--body);
+      font-size: clamp(16px, 1.25vw, 22px);
+      line-height: 1.45;
+      max-width: 940px;
+      margin: 26px auto 0;
+      font-weight: 600;
+    }
+
+    .console-section {
+      padding: 82px 22px;
+      background:
+        radial-gradient(circle at 50% 0%, rgba(0,216,247,.10), transparent 520px),
+        #000;
+    }
+
+    .console-layout {
+      display: grid;
+      gap: 26px;
+      align-items: stretch;
+    }
+
+    .console {
+      background: #0b1220;
+      border: 1px solid #263650;
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 0 42px rgba(0,216,247,.08);
+    }
+
+    .console-head {
+      height: 58px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      padding: 0 18px;
+      border-bottom: 1px solid #263650;
+      background: #090f1b;
+    }
+
+    .dots {
+      display: flex;
+      gap: 7px;
+    }
+
+    .dots span {
+      width: 11px;
+      height: 11px;
+      border-radius: 50%;
+      background: var(--cyan);
+      opacity: .7;
+    }
+
+    .console-title {
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 700;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .console-body {
+      padding: 18px;
+      display: grid;
+      gap: 18px;
+    }
+
+    .tabs {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0,1fr));
+      gap: 8px;
+      padding: 7px;
+      background: #111827;
+      border: 1px solid #263650;
+      border-radius: 14px;
+    }
+
+    .tabs button {
+      min-height: 42px;
+      border: 0;
+      border-radius: 10px;
+      background: transparent;
+      color: rgba(255,255,255,.76);
+      font-weight: 900;
+      font-size: 14px;
+    }
+
+    .tabs button.active {
+      background: linear-gradient(100deg, #218bff 0%, #00d8f7 100%);
+      color: #fff;
+    }
+
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0,1fr));
+      gap: 10px;
+    }
+
+    .metric {
+      background: #111827;
+      border: 1px solid #263650;
+      border-radius: 12px;
+      padding: 13px 12px;
+      min-height: 92px;
+    }
+
+    .metric strong {
+      display: block;
+      color: var(--cyan);
+      font-size: clamp(20px, 5vw, 34px);
+      line-height: 1;
+      margin-bottom: 8px;
+      font-weight: 1000;
+    }
+
+    .metric span {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.25;
+      font-weight: 700;
+    }
+
+    .chart-grid {
+      display: grid;
+      gap: 14px;
+    }
+
+    .chart {
+      background: #111827;
+      border: 1px solid #263650;
+      border-radius: 12px;
+      padding: 14px;
+    }
+
+    .chart-label {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+      margin-bottom: 14px;
+    }
+
+    .chart-label strong {
+      color: var(--text);
+      font-size: 14px;
+    }
+
+    .bars {
+      display: grid;
+      gap: 13px;
+    }
+
+    .bar {
+      display: grid;
+      grid-template-columns: 78px 1fr 42px;
+      gap: 10px;
+      align-items: center;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .track {
+      height: 12px;
+      border-radius: 999px;
+      background: rgba(255,255,255,.10);
+      overflow: hidden;
+    }
+
+    .fill {
+      width: var(--w);
+      height: 100%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, var(--blue), var(--cyan));
+    }
+
+    .line-chart {
+      width: 100%;
+      aspect-ratio: 2.1 / 1;
+      display: block;
+    }
+
+    .line-chart .gridline {
+      stroke: rgba(255,255,255,.10);
+      stroke-width: 1;
+    }
+
+    .line-chart .area {
+      fill: rgba(0,216,247,.13);
+    }
+
+    .line-chart .line {
+      fill: none;
+      stroke: var(--cyan);
+      stroke-width: 3;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .agent-response {
+      background: #111827;
+      border: 1px solid #263650;
+      border-radius: 16px;
+      padding: 22px;
+      display: grid;
+      gap: 18px;
+    }
+
+    .agent-response h3 {
+      color: #fff;
+    }
+
+    .agent-response p {
+      color: var(--body);
+      font-size: clamp(16px, 1.25vw, 21px);
+      line-height: 1.55;
+      font-weight: 500;
+    }
+
+    .stack-section {
+      padding: 84px 22px;
+      background:
+        linear-gradient(180deg, rgba(9,15,27,.96), #000 84%),
+        var(--bg-image) center / cover no-repeat;
+    }
+
+    .stack-grid {
+      display: grid;
+      gap: 16px;
+    }
+
+    .stack-item {
+      display: grid;
+      grid-template-columns: 58px 1fr;
+      gap: 16px;
+      align-items: start;
+      background: rgba(17,24,39,.88);
+      border: 1px solid #263650;
+      border-radius: 14px;
+      padding: 18px;
+    }
+
+    .stack-num {
+      width: 58px;
+      height: 58px;
+      border-radius: 14px;
+      background: linear-gradient(135deg, var(--blue), var(--cyan));
+      display: grid;
+      place-items: center;
+      font-weight: 1000;
+      font-size: 20px;
+    }
+
+    .stack-item h3 {
+      font-size: clamp(19px, 1.5vw, 26px);
+      margin-bottom: 8px;
+    }
+
+    .stack-item p {
+      color: var(--body);
+      font-size: clamp(15px, 1.12vw, 20px);
+      line-height: 1.5;
+      font-weight: 500;
+    }
+
+    .footer {
+      padding: 34px 22px 48px;
+      text-align: center;
+      color: var(--muted);
+      background: #000;
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    @media (max-width: 719px) {
+      .nav {
+        height: 68px;
+      }
+
+      .logo-mark {
+        width: 34px;
+        height: 20px;
+      }
+
+      .book {
+        min-height: 40px;
+        padding: 10px 14px;
+        font-size: 13px;
+      }
+
+      .image-copy,
+      .hero {
+        min-height: auto;
+      }
+
+      .image-copy {
+        background-position: center top;
+      }
+
+      .image-copy-inner {
+        padding-top: 260px;
+        min-height: 780px;
+        align-items: end;
+      }
+
+      .image-copy.flip .image-copy-inner {
+        padding-top: 290px;
+      }
+
+      .text-panel {
+        padding-top: 0;
+      }
+
+      .text-panel::before {
+        content: "";
+        position: absolute;
+        inset: 220px 0 0;
+        background: linear-gradient(180deg, transparent, rgba(3,7,18,.98) 26%, rgba(3,7,18,1));
+        pointer-events: none;
+        z-index: -1;
+      }
+
+      .problem-grid,
+      .agent-grid,
+      .commercial-grid,
+      .stack-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .metrics {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (min-width: 720px) {
+      .nav {
+        height: 88px;
+      }
+
+      .nav-inner {
+        padding: 0 34px;
+      }
+
+      .nav-links {
+        display: flex;
+      }
+
+      .book {
+        min-width: 162px;
+        min-height: 54px;
+        font-size: 17px;
+      }
+
+      .image-copy-inner {
+        padding: 80px 44px;
+        grid-template-columns: .95fr 1.05fr;
+      }
+
+      .image-copy.flip .image-copy-inner {
+        grid-template-columns: 1.02fr .98fr;
+      }
+
+      .image-copy .text-panel {
+        grid-column: 2;
+        padding-top: 0;
+      }
+
+      .image-copy.flip .text-panel {
+        grid-column: 1;
+      }
+
+      .black-section,
+      .console-section,
+      .stack-section {
+        padding: 108px 44px;
+      }
+
+      .problem-grid {
+        grid-template-columns: repeat(3, minmax(0,1fr));
+      }
+
+      .agent-grid {
+        grid-template-columns: repeat(3, minmax(0,1fr));
+      }
+
+      .commercial-grid {
+        grid-template-columns: repeat(3, minmax(0,1fr));
+      }
+
+      .console-layout {
+        grid-template-columns: minmax(0, 1.15fr) minmax(330px, .85fr);
+      }
+
+      .chart-grid {
+        grid-template-columns: repeat(2, minmax(0,1fr));
+      }
+
+      .stack-grid {
+        grid-template-columns: repeat(2, minmax(0,1fr));
+      }
+    }
+
+    @media (min-width: 1160px) {
+      .image-copy-inner {
+        padding: 86px 64px;
+      }
+
+      .black-section,
+      .console-section,
+      .stack-section {
+        padding-left: 64px;
+        padding-right: 64px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="site">
+    <header class="nav">
+      <div class="nav-inner">
+        <a href="#top" class="logo" aria-label="Spartified">
+          <svg class="logo-mark" viewBox="0 0 68 38" aria-hidden="true">
+            <path d="M6 19c8-13 19-13 28 0s20 13 28 0" fill="none" stroke="#fff" stroke-width="7" stroke-linecap="round"/>
+            <path d="M6 19c8 13 19 13 28 0s20-13 28 0" fill="none" stroke="#fff" stroke-width="7" stroke-linecap="round"/>
+            <path d="M13 19c5-7 10-7 15 0s10 7 15 0 10-7 15 0" fill="none" stroke="#000" stroke-width="2.6" stroke-linecap="round" opacity=".65"/>
+          </svg>
+          <span class="logo-text">spartified</span>
+        </a>
+        <nav class="nav-links" aria-label="Navigation">
+          <a href="#top">Home</a>
+          <a href="#agents">Topics</a>
+          <a href="#stack">Products & Services</a>
+          <a href="#builder">MVNO</a>
+          <a href="#commercial">Resources</a>
+        </nav>
+        <a class="book" href="#pilot">Book a Demo</a>
+      </div>
+    </header>
+
+    <section id="top" class="section hero">
+      <div class="image-copy" style="--bg-image: url('spartified-assets/insight-ai-bg.webp');">
+        <div class="image-copy-inner">
+          <div class="text-panel">
+            <h1><span class="blue">Agentic Revenue</span><br>& Assurance Layer</h1>
+            <p class="lead">A new Spartified product layer for operators who want every roaming, eSIM, MVNO, fraud and 5G API product to come with its own agent and its own commercial view.</p>
+            <div class="para-block">
+              <p><strong>Revenue intelligence with operational memory:</strong> the agent reads product data, usage, rates, tests and fraud signals, then shows what moved, why it moved and what should be reviewed next.</p>
+              <p><strong>Assurance before action:</strong> recommendations can be turned into tickets, test campaigns, partner notes or pricing drafts, but sensitive actions stay behind approval gates.</p>
+            </div>
+            <div class="hero-actions">
+              <a class="primary-cta" href="#analytics">View Console</a>
+              <a class="secondary-cta" href="#stack">How It Works</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="black-section">
+      <div class="inner">
+        <div class="center-title">
+          <h2>Why <span class="blue">Spartified?</span></h2>
+          <p>Spartified is already close to high-value telecom workflows. The missing piece is a product layer that turns those workflows into measurable revenue, assurance and action.</p>
+        </div>
+        <div class="problem-grid">
+          <article class="problem-card">
+            <div class="icon-box"><svg viewBox="0 0 24 24"><path d="M4 19V5M4 19h16M8 16v-5M12 16V8M16 16v-8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
+            <h3>Revenue Signals Are Scattered</h3>
+            <p>Roaming rates, eSIM performance, partner reports and fraud exposure sit in different operational views. The agent brings them into one commercial story.</p>
+          </article>
+          <article class="problem-card">
+            <div class="icon-box"><svg viewBox="0 0 24 24"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12Z M12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6Z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
+            <h3>Visibility Without Action Is Weak</h3>
+            <p>Dashboards show symptoms. Operators still need someone to explain the cause, rank the next step and prepare the action for review.</p>
+          </article>
+          <article class="problem-card">
+            <div class="icon-box"><svg viewBox="0 0 24 24"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7H14a3.5 3.5 0 0 1 0 7H6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
+            <h3>Connectivity Needs A Margin Brain</h3>
+            <p>Connectivity is often sold like a commodity. Agents can point to the specific partner, route, segment or offer where the economics can improve.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section id="agents" class="section">
+      <div class="image-copy flip" style="--bg-image: url('spartified-assets/flexiesim-hero-bg.webp');">
+        <div class="image-copy-inner">
+          <div class="text-panel">
+            <h2><span class="cyan">Product Agents:</span> Built Around The Portfolio</h2>
+            <div class="para-block">
+              <p><strong>Roaming Margin Agent:</strong> finds partner routes, destinations and wholesale rates that need commercial attention.</p>
+              <p><strong>Travel eSIM Offer Agent:</strong> drafts bundles for direct, reseller, retail and corporate channels using usage and conversion signals.</p>
+              <p><strong>Fraud Intelligence Agent:</strong> explains suspicious patterns, simulates rule impact and prepares safe review actions for FraudProtect.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="analytics" class="console-section">
+      <div class="inner">
+        <div class="center-title">
+          <h2>Agent Console With <span class="blue">Live Analytics</span></h2>
+          <p>The agent should not just answer. It should show the chart, the evidence and the action queue. That is how operators learn to trust it.</p>
+        </div>
+        <div class="console-layout">
+          <div class="console">
+            <div class="console-head">
+              <div class="dots"><span></span><span></span><span></span></div>
+              <div class="console-title">Spartified Agent Console / Revenue Assurance View</div>
+            </div>
+            <div class="console-body">
+              <div class="tabs" role="group" aria-label="Select product analytics">
+                <button type="button" class="active" data-product="roaming">Roaming</button>
+                <button type="button" data-product="esim">eSIM</button>
+                <button type="button" data-product="fraud">Fraud</button>
+              </div>
+              <div class="metrics">
+                <div class="metric"><strong data-metric-one>€420k</strong><span data-label-one>recoverable margin</span></div>
+                <div class="metric"><strong data-metric-two>18%</strong><span data-label-two>partner variance</span></div>
+                <div class="metric"><strong data-metric-three>31</strong><span data-label-three>actions queued</span></div>
+              </div>
+              <div class="chart-grid">
+                <div class="chart">
+                  <div class="chart-label"><strong data-bar-title>Roaming margin by region</strong><span data-bar-note>ranked by impact</span></div>
+                  <div class="bars" data-bars></div>
+                </div>
+                <div class="chart">
+                  <div class="chart-label"><strong>6-period trend</strong><span data-line-note>margin recovery</span></div>
+                  <svg class="line-chart" viewBox="0 0 320 160" role="img" aria-label="Agent analytics trend">
+                    <path class="gridline" d="M20 28H300M20 78H300M20 128H300"></path>
+                    <path class="area" data-area></path>
+                    <path class="line" data-line></path>
+                  </svg>
+                </div>
+              </div>
+            </div>
+          </div>
+          <aside class="agent-response">
+            <h3>What The Agent Says</h3>
+            <p data-agent-answer>GCC outbound has the highest recoverable margin. The issue is not volume. The issue is the visited network mix and two stale wholesale rates. Review routes 3 and 7 first.</p>
+            <p><span class="cyan">Next action:</span> prepare partner review note, compare current rate table and queue a test campaign for approval.</p>
+          </aside>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="image-copy" style="--bg-image: url('spartified-assets/test-automation-bg.webp');">
+        <div class="image-copy-inner">
+          <div class="text-panel">
+            <h2><span class="cyan">Assurance Automation:</span><br>Confidence Before Launch</h2>
+            <div class="para-block">
+              <p><strong>IR.21 and test intelligence:</strong> the agent watches changes, compares them with test results and points out readiness gaps before a service goes live.</p>
+              <p><strong>Human approval remains built in:</strong> network-sensitive, partner-facing and commercial actions are prepared by the agent, then approved by the right owner.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="stack" class="stack-section" style="--bg-image: url('spartified-assets/api-marketplace-bg.webp');">
+      <div class="inner">
+        <div class="center-title">
+          <h2>How The <span class="blue">Product Runs</span></h2>
+          <p>Keep the platform practical. Use a proven orchestration stack, give every agent a tight job, and log every decision path.</p>
+        </div>
+        <div class="stack-grid">
+          <div class="stack-item">
+            <div class="stack-num">01</div>
+            <div><h3>Telecom Connectors</h3><p>IR.21, RAEX, TAP/CDR, eSIM lifecycle, fraud database, partner rates, API usage and ticket history.</p></div>
+          </div>
+          <div class="stack-item">
+            <div class="stack-num">02</div>
+            <div><h3>LangGraph Orchestration</h3><p>Stateful workflows for routing, tool calls, retries, approvals and agent handoffs.</p></div>
+          </div>
+          <div class="stack-item">
+            <div class="stack-num">03</div>
+            <div><h3>LangSmith Observability</h3><p>Trace prompts, retrieved data, tool calls, latency, cost, confidence and decision path.</p></div>
+          </div>
+          <div class="stack-item">
+            <div class="stack-num">04</div>
+            <div><h3>MCP-Style Tool Layer</h3><p>Expose Spartified product capabilities as controlled tools that agents can call with clear permissions.</p></div>
+          </div>
+          <div class="stack-item">
+            <div class="stack-num">05</div>
+            <div><h3>Validators & Guardrails</h3><p>PII handling, policy checks, hallucination checks, confidence thresholds and spend circuit breakers.</p></div>
+          </div>
+          <div class="stack-item">
+            <div class="stack-num">06</div>
+            <div><h3>Channels</h3><p>Operator portal, partner portal, API, WhatsApp, Telegram and voice depending on the customer workflow.</p></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="builder" class="black-section">
+      <div class="inner">
+        <div class="center-title">
+          <h2>Build Your Own <span class="blue">Telecom Agents</span></h2>
+          <p>Some operators will buy ready-made agents. Mature teams will want to compose their own. Spartified can offer a guarded agent builder without letting every workflow become an uncontrolled experiment.</p>
+        </div>
+        <div class="agent-grid">
+          <article class="agent-card">
+            <div class="icon-box"><svg viewBox="0 0 24 24"><path d="M12 2v20M4 7h16M6 17h12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
+            <h3>Choose A Domain</h3>
+            <p>Roaming, eSIM, fraud, MVNO, secure voice or 5G API monetisation. The builder starts from real telecom boundaries.</p>
+          </article>
+          <article class="agent-card">
+            <div class="icon-box"><svg viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7 0l2-2a5 5 0 0 0-7-7l-1 1M14 11a5 5 0 0 0-7 0l-2 2a5 5 0 0 0 7 7l1-1" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
+            <h3>Attach Tools</h3>
+            <p>Read rates, check tests, create ticket, draft offer, compare partner routes, call API and prepare a report.</p>
+          </article>
+          <article class="agent-card">
+            <div class="icon-box"><svg viewBox="0 0 24 24"><path d="M12 3l8 4v5c0 5-3.4 8-8 9-4.6-1-8-4-8-9V7l8-4Z M9 12l2 2 4-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+            <h3>Set Guardrails</h3>
+            <p>Confidence threshold, approval role, data scope, spend cap and audit policy are part of the agent definition.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section id="commercial" class="black-section">
+      <div class="inner">
+        <div class="center-title">
+          <h2>Commercial <span class="blue">Packaging</span></h2>
+          <p>Sell it above the existing portfolio. The customer buys the Spartified product, then adds the agent layer where there is enough data and enough business value.</p>
+        </div>
+        <div class="commercial-grid">
+          <article class="commercial-card">
+            <h3>Foundation Layer</h3>
+            <p>Agent console, governance, audit trail, product connectors and approval flows. Good for one product line.</p>
+          </article>
+          <article class="commercial-card">
+            <h3>Ready-Made Agents</h3>
+            <p>Roaming Margin, Travel eSIM Offer, Fraud Intelligence, Assurance, MVNO Launch and 5G API agents.</p>
+          </article>
+          <article class="commercial-card">
+            <h3>Usage Or Outcome</h3>
+            <p>Price by active partner, eSIM profile, agent action, API transaction, test campaign or recovered leakage band.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section id="pilot" class="stop-line">
+      <div class="inner">
+        <h2>Start With Roaming Margin.<br><span class="blue">Add Assurance Next.</span></h2>
+        <p>One operator dataset. One agent console. A ranked action queue with charts, evidence and approval. That is enough to make the conversation real.</p>
+      </div>
+    </section>
+
+    <footer class="footer">Prepared as an informal product concept page. Images are public Spartified visual assets; text is original for the proposed offering.</footer>
+  </main>
+
+  <script>
+    const data = {
+      roaming: {
+        metrics: ['€420k', '18%', '31'],
+        labels: ['recoverable margin', 'partner variance', 'actions queued'],
+        barTitle: 'Roaming margin by region',
+        barNote: 'ranked by impact',
+        lineNote: 'margin recovery',
+        answer: 'GCC outbound has the highest recoverable margin. The issue is not volume. The issue is the visited network mix and two stale wholesale rates. Review routes 3 and 7 first.',
+        bars: [['GCC routes', 92], ['EU inbound', 76], ['Asia data', 64], ['Africa voice', 48]],
+        points: [22, 34, 38, 57, 64, 82]
+      },
+      esim: {
+        metrics: ['€180k', '24%', '12'],
+        labels: ['bundle upside', 'conversion gap', 'offers drafted'],
+        barTitle: 'Travel eSIM channel opportunity',
+        barNote: 'by channel fit',
+        lineNote: 'offer conversion',
+        answer: 'Corporate travel has the cleanest near-term offer. It needs employee bulk purchase, usage visibility and a monthly billing option. The retail channel needs simpler vouchers before price changes.',
+        bars: [['Corporate', 88], ['OTA partners', 71], ['Airport retail', 63], ['Direct app', 53]],
+        points: [18, 28, 44, 52, 68, 74]
+      },
+      fraud: {
+        metrics: ['€95k', '41%', '8'],
+        labels: ['risk exposure', 'alert cluster', 'rules to review'],
+        barTitle: 'Fraud risk concentration',
+        barNote: 'rule review order',
+        lineNote: 'risk blocked',
+        answer: 'The current risk cluster is IRSF-led. The agent recommends simulation before live blocking because two ranges overlap with legitimate enterprise traffic.',
+        bars: [['IRSF ranges', 86], ['CLI spoofing', 78], ['Wangiri', 62], ['Bypass calls', 55]],
+        points: [30, 39, 45, 63, 59, 84]
+      }
+    };
+
+    const buttons = Array.from(document.querySelectorAll('[data-product]'));
+    const bars = document.querySelector('[data-bars]');
+    const metricOne = document.querySelector('[data-metric-one]');
+    const metricTwo = document.querySelector('[data-metric-two]');
+    const metricThree = document.querySelector('[data-metric-three]');
+    const labelOne = document.querySelector('[data-label-one]');
+    const labelTwo = document.querySelector('[data-label-two]');
+    const labelThree = document.querySelector('[data-label-three]');
+    const barTitle = document.querySelector('[data-bar-title]');
+    const barNote = document.querySelector('[data-bar-note]');
+    const lineNote = document.querySelector('[data-line-note]');
+    const answer = document.querySelector('[data-agent-answer]');
+    const line = document.querySelector('[data-line]');
+    const area = document.querySelector('[data-area]');
+
+    function makePath(points) {
+      const minX = 20;
+      const maxX = 300;
+      const minY = 24;
+      const maxY = 132;
+      const coords = points.map((value, index) => {
+        const x = minX + (index * (maxX - minX)) / (points.length - 1);
+        const y = maxY - (value / 100) * (maxY - minY);
+        return [x, y];
+      });
+      const path = coords.map(([x, y], index) => `${index === 0 ? 'M' : 'L'}${x.toFixed(1)} ${y.toFixed(1)}`).join(' ');
+      return { line: path, area: `${path} L300 136 L20 136 Z` };
+    }
+
+    function setProduct(key) {
+      const selected = data[key];
+      buttons.forEach((button) => button.classList.toggle('active', button.dataset.product === key));
+      metricOne.textContent = selected.metrics[0];
+      metricTwo.textContent = selected.metrics[1];
+      metricThree.textContent = selected.metrics[2];
+      labelOne.textContent = selected.labels[0];
+      labelTwo.textContent = selected.labels[1];
+      labelThree.textContent = selected.labels[2];
+      barTitle.textContent = selected.barTitle;
+      barNote.textContent = selected.barNote;
+      lineNote.textContent = selected.lineNote;
+      answer.textContent = selected.answer;
+      bars.innerHTML = '';
+      selected.bars.forEach(([label, value]) => {
+        const row = document.createElement('div');
+        row.className = 'bar';
+        row.innerHTML = `<span>${label}</span><div class="track"><div class="fill" style="--w:${value}%"></div></div><span>${value}%</span>`;
+        bars.appendChild(row);
+      });
+      const paths = makePath(selected.points);
+      line.setAttribute('d', paths.line);
+      area.setAttribute('d', paths.area);
+    }
+
+    buttons.forEach((button) => button.addEventListener('click', () => setProduct(button.dataset.product)));
+    setProduct('roaming');
+  </script>
+</body>
+</html>

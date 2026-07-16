@@ -102,5 +102,20 @@
     "status": "Live",
     "path": "bridging-rainbows/",
     "color": "#7457EF"
+  },
+  {
+    "id": "spartified",
+    "title": "Spartified Agentic AI",
+    "subtitle": "Agentic Revenue & Assurance Layer",
+    "description": "A Spartified-style concept page for an agentic AI product layer across roaming, travel eSIM, MVNO launch, fraud protection, assurance, analytics, and 5G API monetisation.",
+    "tags": [
+      "Agentic AI",
+      "Telecom",
+      "Revenue Assurance",
+      "Analytics"
+    ],
+    "status": "Live",
+    "path": "spartified/",
+    "color": "#00D8F7"
   }
 ]
