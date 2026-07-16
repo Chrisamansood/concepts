@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>ARC/OS — Agentic BSS Mission Control</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@300;400;500;600;700&family=Rajdhani:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap');
+
+:root{
+  --cyan:#39D6FF;
+  --cyan-hot:#8FF0FF;
+  --cyan-dim:#1E88AA;
+  --blue:#2B7FFF;
+  --amber:#FE9424;
+  --ink:#03060B;
+  --ink-2:#070C15;
+  --line:rgba(57,214,255,0.22);
+  --line-soft:rgba(57,214,255,0.10);
+  --t-hi:#DFF6FF;
+  --t-mid:rgba(180,220,240,0.62);
+  --t-lo:rgba(140,180,205,0.38);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;width:100%;overflow:hidden;}
+body{
+  background:
+    radial-gradient(ellipse 60% 50% at 50% 44%, #0A1826 0%, #050A12 45%, #03060B 100%);
+  font-family:'Rajdhani',sans-serif;
+  color:var(--t-hi);
+  position:relative;
+}
+.mono{font-family:'JetBrains Mono',monospace;}
+.chakra{font-family:'Chakra Petch',sans-serif;}
+
+/* floor grid */
+body::after{
+  content:'';position:fixed;left:0;right:0;bottom:0;height:34%;pointer-events:none;z-index:0;
+  background:
+    repeating-linear-gradient(90deg, transparent 0 78px, rgba(57,214,255,0.055) 78px 79px),
+    repeating-linear-gradient(0deg, transparent 0 60px, rgba(57,214,255,0.045) 60px 61px);
+  transform:perspective(420px) rotateX(62deg);
+  transform-origin:bottom center;
+  -webkit-mask-image:linear-gradient(to top, black, transparent 88%);
+  mask-image:linear-gradient(to top, black, transparent 88%);
+  opacity:0.8;
+}
+
+canvas#sphere{position:fixed;inset:0;z-index:1;display:block;}
+
+/* ── generic HUD label styles ── */
+.eyebrow{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:3px;color:var(--cyan);text-transform:uppercase;}
+.eyebrow .muted{color:var(--t-lo);}
+.hairline{height:1px;background:linear-gradient(90deg,var(--cyan),transparent);opacity:0.5;}
+
+/* ══ TOP BAR ══ */
+#topbar{position:fixed;top:0;left:0;right:0;z-index:6;display:flex;align-items:flex-start;justify-content:space-between;padding:26px 34px 0;pointer-events:none;}
+.brand{pointer-events:auto;}
+.brand h1{font-family:'Chakra Petch',sans-serif;font-weight:700;font-size:38px;letter-spacing:14px;color:var(--t-hi);
+  text-shadow:0 0 20px rgba(57,214,255,0.45);line-height:1;}
+.brand .tag{font-family:'JetBrains Mono',monospace;font-size:9.5px;letter-spacing:4px;color:var(--t-lo);margin-top:6px;text-transform:uppercase;}
+.status-row{display:flex;gap:22px;justify-content:center;font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:2px;color:var(--t-mid);padding-top:12px;}
+.status-row b{color:var(--cyan);font-weight:500;}
+.status-row .dot{color:var(--cyan);animation:pulse 1.8s infinite;}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.25}}
+.clock{text-align:right;pointer-events:auto;}
+.clock .time{font-family:'Chakra Petch',sans-serif;font-weight:600;font-size:34px;letter-spacing:3px;color:var(--t-hi);line-height:1;text-shadow:0 0 16px rgba(57,214,255,0.4);}
+.clock .time small{font-size:16px;color:var(--cyan);}
+.clock .date{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:3px;color:var(--t-lo);margin-top:5px;}
+
+/* ══ LEFT RAIL ══ */
+#leftRail{position:fixed;top:120px;left:34px;width:290px;z-index:5;}
+.rail-head{display:flex;align-items:center;gap:10px;margin-bottom:16px;}
+.rail-head .eyebrow{white-space:nowrap;}
+.rail-head .hairline{flex:1;}
+
+.vital{margin-bottom:20px;cursor:pointer;transition:transform .18s;position:relative;padding-left:14px;}
+.vital::before{content:'';position:absolute;left:0;top:5px;width:5px;height:5px;border-radius:50%;background:var(--cyan);box-shadow:0 0 8px var(--cyan);}
+.vital:hover{transform:translateX(4px);}
+.vital .v-top{display:flex;justify-content:space-between;align-items:baseline;}
+.vital .v-label{font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:2px;text-transform:uppercase;color:var(--t-mid);}
+.vital .v-delta{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--cyan);letter-spacing:1px;}
+.vital .v-num{font-family:'Chakra Petch',sans-serif;font-weight:600;font-size:34px;letter-spacing:0.5px;color:var(--t-hi);line-height:1.05;margin-top:2px;}
+.vital .v-num sub{font-size:14px;color:var(--t-lo);font-weight:400;}
+.spark{width:100%;height:26px;margin-top:6px;display:block;overflow:visible;}
+
+/* directives / documents */
+.block{margin-top:26px;}
+.dir-item,.doc-item{display:flex;gap:10px;font-size:13px;color:var(--t-mid);margin-bottom:11px;line-height:1.35;font-weight:400;}
+.dir-item .box{width:12px;height:12px;border:1px solid var(--line);flex-shrink:0;margin-top:3px;}
+.doc-item{justify-content:space-between;font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:1px;color:var(--t-lo);}
+.doc-item .when{color:var(--cyan-dim);}
+
+/* ══ RIGHT RAIL ══ */
+#rightRail{position:fixed;top:120px;right:34px;width:300px;z-index:5;text-align:left;}
+.cmd-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px 14px;margin-bottom:8px;}
+.cmd{display:flex;align-items:center;gap:8px;font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--t-mid);cursor:pointer;padding:5px 6px;border:1px solid transparent;transition:all .16s;}
+.cmd::before{content:'';width:5px;height:5px;background:var(--cyan);border-radius:50%;flex-shrink:0;box-shadow:0 0 6px var(--cyan);}
+.cmd:hover{color:var(--cyan-hot);border-color:var(--line);background:rgba(57,214,255,0.05);}
+.cmd-note{font-family:'JetBrains Mono',monospace;font-size:9.5px;letter-spacing:2px;color:var(--t-lo);text-transform:uppercase;margin-top:6px;}
+
+.audio-bars{display:flex;gap:3px;height:24px;align-items:flex-end;margin-top:10px;}
+.audio-bars i{flex:1;background:linear-gradient(to top,var(--cyan-dim),var(--cyan));border-radius:1px;animation:eq 1.1s infinite ease-in-out;}
+@keyframes eq{0%,100%{height:20%}50%{height:100%}}
+
+.wire-item{display:flex;gap:9px;font-size:12px;line-height:1.4;color:var(--t-mid);margin-bottom:12px;font-weight:400;}
+.wire-item .car{color:var(--cyan);flex-shrink:0;}
+.wire-item b{color:var(--t-hi);font-weight:600;}
+
+/* ══ FLOATING CALLOUT CARDS ══ */
+.callout{position:fixed;z-index:4;width:224px;pointer-events:auto;cursor:pointer;transition:transform .2s, box-shadow .2s;}
+.callout:hover{transform:translateY(-2px);}
+.callout .cbody{background:linear-gradient(135deg, rgba(10,22,34,0.94), rgba(6,12,20,0.9));
+  border:1px solid var(--line);padding:12px 14px;position:relative;
+  box-shadow:0 0 24px rgba(57,214,255,0.10), inset 0 0 20px rgba(57,214,255,0.03);}
+.callout .cbody::before,.callout .cbody::after{content:'';position:absolute;width:9px;height:9px;border-color:var(--cyan);}
+.callout .cbody::before{top:-1px;left:-1px;border-top:1.5px solid;border-left:1.5px solid;}
+.callout .cbody::after{bottom:-1px;right:-1px;border-bottom:1.5px solid;border-right:1.5px solid;}
+.callout .chead{display:flex;justify-content:space-between;align-items:center;}
+.callout .ctitle{font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:2px;color:var(--cyan-hot);text-transform:uppercase;}
+.callout .cx{color:var(--t-lo);font-size:12px;}
+.callout .cmeta{font-family:'JetBrains Mono',monospace;font-size:9.5px;color:var(--t-lo);margin-top:4px;letter-spacing:1px;}
+.callout .cline{position:absolute;background:var(--line);z-index:-1;}
+
+/* ══ CENTER PRIMARY NUMBER ══ */
+#primary{position:fixed;left:50%;bottom:64px;transform:translateX(-50%);z-index:5;text-align:center;pointer-events:none;}
+#primary .plabel{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:5px;color:var(--cyan);text-transform:uppercase;margin-bottom:6px;}
+#primary .pnum{font-family:'Chakra Petch',sans-serif;font-weight:700;font-size:78px;letter-spacing:2px;color:var(--t-hi);line-height:0.95;
+  text-shadow:0 0 30px rgba(57,214,255,0.5);}
+#primary .pnum span{font-size:26px;color:var(--cyan);letter-spacing:6px;margin-left:12px;}
+#primary .pfoot{display:flex;gap:34px;justify-content:center;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:2px;color:var(--t-lo);margin-top:16px;text-transform:uppercase;}
+#primary .pfoot b{color:var(--cyan);}
+.pbar{width:520px;height:1px;background:var(--line);margin:14px auto 0;position:relative;}
+.pbar::before{content:'';position:absolute;left:0;top:0;height:100%;width:62%;background:linear-gradient(90deg,var(--cyan),transparent);}
+
+/* corner brackets on viewport */
+.vp-corner{position:fixed;width:26px;height:26px;z-index:6;border-color:var(--line);pointer-events:none;}
+.vp-corner.tl{top:16px;left:16px;border-top:1px solid;border-left:1px solid;}
+.vp-corner.tr{top:16px;right:16px;border-top:1px solid;border-right:1px solid;}
+.vp-corner.bl{bottom:16px;left:16px;border-bottom:1px solid;border-left:1px solid;}
+.vp-corner.br{bottom:16px;right:16px;border-bottom:1px solid;border-right:1px solid;}
+
+/* sphere node tooltip */
+#tooltip{position:fixed;z-index:9;pointer-events:none;display:none;transform:translate(-50%,-140%);
+  background:rgba(6,12,20,0.95);border:1px solid var(--line);padding:7px 12px;
+  font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:1px;color:var(--cyan-hot);white-space:nowrap;
+  box-shadow:0 0 18px rgba(57,214,255,0.2);}
+#tooltip small{display:block;color:var(--t-lo);font-size:9px;letter-spacing:1px;margin-top:2px;}
+
+/* ══ OVERLAY DETAIL PANEL ══ */
+#overlay{position:fixed;inset:0;z-index:20;background:rgba(3,6,11,0.72);
+  display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .35s;}
+#overlay.open{opacity:1;pointer-events:auto;}
+.panel{width:min(880px,92vw);max-height:86vh;overflow-y:auto;position:relative;
+  background:linear-gradient(160deg, rgba(9,18,28,0.98), rgba(5,9,16,0.98));
+  border:1px solid var(--line);
+  box-shadow:0 0 60px rgba(57,214,255,0.14), inset 0 0 40px rgba(57,214,255,0.03);
+  transform:translateY(16px) scale(0.98);transition:transform .35s cubic-bezier(.4,0,.2,1);}
+#overlay.open .panel{transform:translateY(0) scale(1);}
+.panel::before,.panel::after{content:'';position:absolute;width:16px;height:16px;border-color:var(--cyan);}
+.panel::before{top:-1px;left:-1px;border-top:2px solid;border-left:2px solid;}
+.panel::after{bottom:-1px;right:-1px;border-bottom:2px solid;border-right:2px solid;}
+.p-head{display:flex;justify-content:space-between;align-items:flex-start;padding:26px 30px 20px;border-bottom:1px solid var(--line-soft);}
+.p-eyebrow{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:3px;color:var(--cyan);text-transform:uppercase;margin-bottom:8px;}
+.p-title{font-family:'Chakra Petch',sans-serif;font-weight:600;font-size:28px;letter-spacing:0.5px;color:var(--t-hi);text-shadow:0 0 18px rgba(57,214,255,0.3);}
+.p-close{font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:1px;color:var(--t-mid);border:1px solid var(--line);
+  background:transparent;padding:8px 14px;cursor:pointer;transition:all .16s;text-transform:uppercase;}
+.p-close:hover{color:var(--cyan-hot);border-color:var(--cyan);background:rgba(57,214,255,0.06);}
+.p-body{padding:24px 30px 32px;}
+.p-sub{font-size:15px;color:var(--t-mid);line-height:1.6;margin-bottom:24px;font-weight:400;}
+.p-sub b{color:var(--t-hi);font-weight:600;}
+
+.hcard{border:1px solid var(--line-soft);padding:18px 20px;margin-bottom:16px;background:rgba(57,214,255,0.02);position:relative;}
+.hcard .hc-t{font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:2px;color:var(--cyan);text-transform:uppercase;margin-bottom:12px;}
+.hcard .hc-note{font-size:13px;color:var(--t-mid);line-height:1.55;font-weight:400;}
+
+.g2{display:grid;grid-template-columns:1.2fr 1fr;gap:16px;}
+@media(max-width:640px){.g2{grid-template-columns:1fr;}}
+
+table{width:100%;border-collapse:collapse;}
+th{font-family:'JetBrains Mono',monospace;font-size:9.5px;letter-spacing:1.5px;text-transform:uppercase;color:var(--t-lo);text-align:left;padding:7px 8px;border-bottom:1px solid var(--line-soft);font-weight:500;}
+td{padding:10px 8px;font-size:13px;color:var(--t-mid);border-bottom:1px solid rgba(57,214,255,0.05);}
+tr:last-child td{border-bottom:none;}
+td.mono{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--t-hi);}
+
+.tag-pill{display:inline-block;font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:1px;text-transform:uppercase;padding:3px 9px;border:1px solid;}
+.tag-pill.ok{color:#5BFFB0;border-color:rgba(91,255,176,0.4);}
+.tag-pill.hold{color:var(--amber);border-color:rgba(254,148,36,0.45);}
+.tag-pill.human{color:#FF6B9D;border-color:rgba(255,107,157,0.45);}
+
+.steps{list-style:none;}
+.steps li{display:flex;gap:14px;padding:12px 0;border-bottom:1px solid rgba(57,214,255,0.06);align-items:flex-start;}
+.steps li:last-child{border-bottom:none;}
+.sdot{width:22px;height:22px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;
+  font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;margin-top:1px;}
+.sdot.done{background:rgba(91,255,176,0.15);color:#5BFFB0;border:1px solid rgba(91,255,176,0.5);}
+.sdot.active{background:rgba(57,214,255,0.18);color:var(--cyan-hot);border:1px solid var(--cyan);box-shadow:0 0 12px rgba(57,214,255,0.4);}
+.sdot.pend{background:rgba(57,214,255,0.04);color:var(--t-lo);border:1px solid var(--line-soft);}
+.stext b{color:var(--t-hi);font-weight:600;font-size:14px;}
+.stext .ss{font-size:12px;color:var(--t-lo);margin-top:2px;}
+
+.metric-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.mbox{border:1px solid var(--line-soft);padding:14px 16px;background:rgba(57,214,255,0.02);}
+.mbox .mk{font-family:'JetBrains Mono',monospace;font-size:9.5px;letter-spacing:1.5px;color:var(--t-lo);text-transform:uppercase;}
+.mbox .mv{font-family:'Chakra Petch',sans-serif;font-weight:600;font-size:26px;color:var(--t-hi);margin-top:5px;}
+.mbox .mv.up{color:#5BFFB0;}
+.mbox .mv.down{color:#FF6B9D;}
+
+.term{background:#040910;border:1px solid var(--line-soft);padding:18px 20px;font-family:'JetBrains Mono',monospace;font-size:12.5px;line-height:1.85;}
+.term .pr{color:var(--cyan);}
+.term .cm{color:var(--t-hi);}
+.term .rs{color:var(--t-lo);}
+.term .warn{color:var(--amber);}
+.blink{display:inline-block;width:7px;height:13px;background:var(--cyan);vertical-align:middle;margin-left:3px;animation:pulse 1s infinite;}
+
+.ladder{display:flex;flex-direction:column-reverse;gap:8px;}
+.rung{display:flex;gap:14px;align-items:center;padding:11px 16px;border:1px solid var(--line-soft);background:rgba(57,214,255,0.02);}
+.rung.cur{border-color:var(--cyan);background:rgba(57,214,255,0.09);box-shadow:0 0 20px rgba(57,214,255,0.12);}
+.rung .lv{font-family:'JetBrains Mono',monospace;font-weight:700;font-size:13px;width:30px;color:var(--t-lo);}
+.rung.cur .lv{color:var(--cyan-hot);}
+.rung .ld{font-size:13.5px;color:var(--t-mid);}
+.rung.cur .ld{color:var(--t-hi);}
+
+.btnrow{display:flex;gap:12px;margin-top:20px;}
+.hbtn{font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:1.5px;text-transform:uppercase;padding:12px 22px;cursor:pointer;transition:all .16s;border:1px solid;}
+.hbtn.go{color:var(--ink);background:var(--cyan);border-color:var(--cyan);font-weight:700;}
+.hbtn.go:hover{background:var(--cyan-hot);box-shadow:0 0 20px rgba(57,214,255,0.5);}
+.hbtn.no{color:var(--t-mid);background:transparent;border-color:var(--line);}
+.hbtn.no:hover{color:#FF6B9D;border-color:rgba(255,107,157,0.5);}
+</style>
+</head>
+<body>
+
+<div class="vp-corner tl"></div><div class="vp-corner tr"></div>
+<div class="vp-corner bl"></div><div class="vp-corner br"></div>
+
+<canvas id="sphere"></canvas>
+
+<!-- TOP BAR -->
+<div id="topbar">
+  <div class="brand">
+    <h1>A R C / O S</h1>
+    <div class="tag">AGENTIC BSS · OPERATING SYSTEM FOR AGENTS</div>
+    <div class="status-row" style="justify-content:flex-start;padding-top:14px;">
+      <span><span class="dot">●</span> CORE</span><span>· KERNEL</span><span>· <b>ONLINE</b></span><span>· AGENTS <b>2 LIVE</b></span>
+    </div>
+  </div>
+  <div class="clock">
+    <div class="time" id="clock">18:32<small>:30</small></div>
+    <div class="date">WED · JUL 07 · 2026</div>
+  </div>
+</div>
+
+<!-- LEFT RAIL -->
+<div id="leftRail">
+  <div class="rail-head"><span class="eyebrow">SYSTEM VITALS <span class="muted">KERNEL.LINK</span></span><span class="hairline"></span></div>
+
+  <div class="vital" onclick="openPanel('kernel')">
+    <div class="v-top"><span class="v-label">Kernel commits</span><span class="v-delta">▲ 142/sec</span></div>
+    <div class="v-num">18,442<sub> today</sub></div>
+    <svg class="spark" viewBox="0 0 120 26" preserveAspectRatio="none"><polyline fill="none" stroke="#39D6FF" stroke-width="1.4" points="0,20 15,18 30,19 45,12 60,14 75,8 90,10 105,5 120,6"/></svg>
+  </div>
+
+  <div class="vital" onclick="openPanel('tools')">
+    <div class="v-top"><span class="v-label">Tool calls</span><span class="v-delta">▲ 3.2K /day</span></div>
+    <div class="v-num">3,204</div>
+    <svg class="spark" viewBox="0 0 120 26" preserveAspectRatio="none"><polyline fill="none" stroke="#39D6FF" stroke-width="1.4" points="0,22 20,20 40,16 60,17 80,10 100,12 120,7"/></svg>
+  </div>
+
+  <div class="vital" onclick="openPanel('twinSim')">
+    <div class="v-top"><span class="v-label">Twin subscribers</span><span class="v-delta">SEED 4471</span></div>
+    <div class="v-num">2.4<sub>M modeled</sub></div>
+    <svg class="spark" viewBox="0 0 120 26" preserveAspectRatio="none"><polyline fill="none" stroke="#39D6FF" stroke-width="1.4" points="0,14 20,15 40,13 60,14 80,13 100,14 120,13"/></svg>
+  </div>
+
+  <div class="vital" onclick="openPanel('permission')">
+    <div class="v-top"><span class="v-label">Approval queue</span><span class="v-delta">1 PENDING</span></div>
+    <div class="v-num">45<sub>% autonomy earned</sub></div>
+    <svg class="spark" viewBox="0 0 120 26" preserveAspectRatio="none"><polyline fill="none" stroke="#39D6FF" stroke-width="1.4" points="0,24 24,22 48,18 72,16 96,12 120,10"/></svg>
+  </div>
+
+  <div class="block">
+    <div class="rail-head"><span class="eyebrow">DIRECTIVES <span class="muted">TOP.3</span></span><span class="hairline"></span></div>
+    <div class="dir-item"><span class="box"></span>Ship the youth-gaming tariff — human approval pending on the twin-verified draft</div>
+    <div class="dir-item"><span class="box"></span>Decompose the disputes module into four governance lanes</div>
+    <div class="dir-item"><span class="box"></span>Baseline hours-per-catalog-change before the pilot</div>
+  </div>
+
+  <div class="block">
+    <div class="rail-head"><span class="eyebrow">DOCUMENTS <span class="muted">AUDIT.TRAIL</span></span><span class="hairline"></span></div>
+    <div class="doc-item"><span>tariff_youth_399.draft</span><span class="when">now</span></div>
+    <div class="doc-item"><span>twin_sim_4471.evidence</span><span class="when">now</span></div>
+    <div class="doc-item"><span>catalog_conflicts.log</span><span class="when">2m</span></div>
+    <div class="doc-item"><span>dispute_evidence_8841.md</span><span class="when">14m</span></div>
+  </div>
+</div>
+
+<!-- RIGHT RAIL -->
+<div id="rightRail">
+  <div class="rail-head"><span class="eyebrow">COMMAND DECK <span class="muted">2/3 ACTIVE</span></span><span class="hairline"></span></div>
+  <div class="cmd-grid">
+    <div class="cmd" onclick="openPanel('composer')">COMPOSER</div>
+    <div class="cmd" onclick="openPanel('twinAgent')">TWIN AGENT</div>
+    <div class="cmd" onclick="openPanel('tools')">TOOL LAYER</div>
+    <div class="cmd" onclick="openPanel('permission')">PERMISSIONS</div>
+    <div class="cmd" onclick="openPanel('twinSim')">RUN SIM</div>
+    <div class="cmd" onclick="openPanel('kernel')">KERNEL</div>
+    <div class="cmd" onclick="openPanel('shell')">INTENT CLI</div>
+    <div class="cmd" onclick="openPanel('ladder')">HONESTY LADDER</div>
+  </div>
+  <div class="cmd-note">INTENT WRITES TO SHELL → AGENT PLANS → KERNEL VERIFIES → HUMAN COMMITS</div>
+
+  <div class="block">
+    <div class="rail-head"><span class="eyebrow">AGENT I/O <span class="muted">STREAMING</span></span><span class="hairline"></span></div>
+    <div class="audio-bars" id="eq"></div>
+    <div class="cmd-note" style="margin-top:8px;">COMPOSER · REASONING · 24.4K / 40K TOKENS</div>
+  </div>
+
+  <div class="block">
+    <div class="rail-head"><span class="eyebrow">AGENT WIRE <span class="muted">LIVE.INTEL</span></span><span class="hairline"></span></div>
+    <div class="wire-item"><span class="car">▸</span><span><b>Composer</b> found 3 catalog conflicts on the youth-gaming draft — flagged, not committed.</span></div>
+    <div class="wire-item"><span class="car">▸</span><span><b>Twin Agent</b> simulated +4,120 subs / −0.6pp churn at seed 4471. Reproducible.</span></div>
+    <div class="wire-item"><span class="car">▸</span><span>1 action at the <b>approval gate</b> — evidence tree attached, awaiting human commit.</span></div>
+  </div>
+</div>
+
+<!-- FLOATING CALLOUTS -->
+<div class="callout" id="calloutA" style="top:210px;left:640px;" onclick="openPanel('composer')">
+  <div class="cbody">
+    <div class="chead"><span class="ctitle">COMPOSER · PROC</span><span class="cx">●</span></div>
+    <div class="cmeta">GOAL: youth_gaming_399 · STEP 3/4</div>
+  </div>
+</div>
+<div class="callout" id="calloutB" style="top:230px;right:640px;" onclick="openPanel('twinAgent')">
+  <div class="cbody">
+    <div class="chead"><span class="ctitle">TWIN AGENT · PROC</span><span class="cx">●</span></div>
+    <div class="cmeta">SIM COMPLETE · SEED 4471</div>
+  </div>
+</div>
+<div class="callout" id="calloutC" style="bottom:230px;left:610px;" onclick="openPanel('permission')">
+  <div class="cbody">
+    <div class="chead"><span class="ctitle">APPROVAL GATE</span><span class="cx">●</span></div>
+    <div class="cmeta">1 PENDING · HUMAN REQUIRED</div>
+  </div>
+</div>
+<div class="callout" id="calloutD" style="bottom:250px;right:600px;" onclick="openPanel('kernel')">
+  <div class="cbody">
+    <div class="chead"><span class="ctitle">KERNEL · L0</span><span class="cx">●</span></div>
+    <div class="cmeta">DETERMINISTIC · 100% AUDITED</div>
+  </div>
+</div>
+
+<!-- CENTER PRIMARY -->
+<div id="primary">
+  <div class="plabel">PRIMARY DIRECTIVE · AWAITING COMMIT</div>
+  <div class="pnum" id="pnum">1<span>ACTION</span></div>
+  <div class="pbar"></div>
+  <div class="pfoot"><span>AGENTS <b>2 LIVE</b></span><span>TOKENS <b>24.4K</b></span><span>AUTONOMY <b>L4</b></span></div>
+</div>
+
+<div id="tooltip"></div>
+
+<!-- OVERLAY -->
+<div id="overlay" onclick="if(event.target.id==='overlay')closePanel()">
+  <div class="panel">
+    <div class="p-head">
+      <div>
+        <div class="p-eyebrow" id="pEyebrow"></div>
+        <div class="p-title" id="pTitle"></div>
+      </div>
+      <button class="p-close" onclick="closePanel()">✕ ESC</button>
+    </div>
+    <div class="p-body" id="pBody"></div>
+  </div>
+</div>
+
+<script>
+/* ══════════ PARTICLE SPHERE ══════════ */
+const cv = document.getElementById('sphere'), c = cv.getContext('2d');
+let W,H,CX,CY,R;
+function resize(){ W=cv.width=innerWidth; H=cv.height=innerHeight; CX=W/2; CY=H*0.47; R=Math.min(W,H)*0.30; }
+resize(); addEventListener('resize', resize);
+
+// fibonacci sphere points
+const N = 620;
+const pts = [];
+for(let i=0;i<N;i++){
+  const y = 1 - (i/(N-1))*2;
+  const rad = Math.sqrt(1-y*y);
+  const theta = i * 2.399963; // golden angle
+  pts.push({ x:Math.cos(theta)*rad, y:y, z:Math.sin(theta)*rad,
+    tw: Math.random()*Math.PI*2, sp: 0.4+Math.random()*0.8 });
+}
+// bright dust core
+const dust = [];
+for(let i=0;i<340;i++){
+  const r = Math.pow(Math.random(),1.6);
+  const th = Math.random()*Math.PI*2, ph = Math.acos(2*Math.random()-1);
+  dust.push({ x:Math.sin(ph)*Math.cos(th)*r, y:Math.cos(ph)*r, z:Math.sin(ph)*Math.sin(th)*r, tw:Math.random()*6.28 });
+}
+
+// clickable named hotspots on the sphere surface
+const hotspots = [
+  {id:'shell',    label:'SHELL',        sub:'Intent CLI',      lat: 0.85, lon:0.0},
+  {id:'composer', label:'COMPOSER',     sub:'Agent process',   lat: 0.30, lon:2.1},
+  {id:'twinAgent',label:'TWIN AGENT',   sub:'Agent process',   lat: 0.30, lon:4.2},
+  {id:'tools',    label:'TOOLS',        sub:'Syscalls',        lat:-0.05, lon:0.9},
+  {id:'permission',label:'PERMISSIONS', sub:'Safety case',     lat:-0.05, lon:3.5},
+  {id:'twinSim',  label:'DIGITAL TWIN', sub:'Simulation',      lat:-0.55, lon:5.4},
+  {id:'kernel',   label:'KERNEL',       sub:'Deterministic core',lat:-0.85,lon:1.6},
+];
+hotspots.forEach(h=>{
+  const cl = Math.cos(h.lat);
+  h.x = cl*Math.cos(h.lon); h.y = Math.sin(h.lat); h.z = cl*Math.sin(h.lon);
+});
+
+let rot = 0, mouse={x:-9999,y:-9999}, hovered=null;
+cv.addEventListener('mousemove', e=>{ mouse.x=e.clientX; mouse.y=e.clientY; });
+cv.addEventListener('mouseleave', ()=>{ mouse.x=-9999; mouse.y=-9999; });
+cv.addEventListener('click', ()=>{ if(hovered) openPanel(hovered.id); });
+
+function project(p, ry){
+  const cosR=Math.cos(ry), sinR=Math.sin(ry);
+  const x = p.x*cosR - p.z*sinR;
+  const z = p.x*sinR + p.z*cosR;
+  const y = p.y;
+  const persp = 1/(1 + z*0.35);
+  return { sx: CX + x*R*persp, sy: CY + y*R*persp, z:z, persp:persp };
+}
+
+function frame(t){
+  c.clearRect(0,0,W,H);
+  rot += 0.0016;
+  const time = t*0.001;
+
+  // glow core
+  const cg = c.createRadialGradient(CX,CY,0,CX,CY,R*1.15);
+  cg.addColorStop(0,'rgba(143,240,255,0.22)');
+  cg.addColorStop(0.4,'rgba(57,214,255,0.08)');
+  cg.addColorStop(1,'rgba(57,214,255,0)');
+  c.fillStyle=cg; c.beginPath(); c.arc(CX,CY,R*1.15,0,6.28); c.fill();
+
+  // dust core
+  dust.forEach(d=>{
+    const pr = project(d, rot*1.4);
+    const a = (0.25+0.55*((pr.z+1)/2)) * (0.5+0.5*Math.sin(time*2+d.tw));
+    c.fillStyle=`rgba(200,245,255,${a*0.9})`;
+    c.fillRect(pr.sx, pr.sy, 1.4*pr.persp, 1.4*pr.persp);
+  });
+
+  // connective filaments (near neighbors, subtle)
+  const proj = pts.map(p=>({p, ...project(p, rot)}));
+  c.lineWidth = 0.5;
+  for(let i=0;i<proj.length;i+=3){
+    const a=proj[i];
+    for(let j=i+1;j<i+7 && j<proj.length;j++){
+      const b=proj[j];
+      const dx=a.sx-b.sx, dy=a.sy-b.sy;
+      const dd=dx*dx+dy*dy;
+      if(dd<3400){
+        const al = (1-dd/3400)*0.16*((a.z+b.z)/2+1)/2;
+        c.strokeStyle=`rgba(57,214,255,${al})`;
+        c.beginPath(); c.moveTo(a.sx,a.sy); c.lineTo(b.sx,b.sy); c.stroke();
+      }
+    }
+  }
+
+  // shell particles
+  proj.forEach(pr=>{
+    const depth=(pr.z+1)/2;
+    const tw = 0.55+0.45*Math.sin(time*pr.p.sp + pr.p.tw);
+    const a = (0.22 + depth*0.6) * tw;
+    const size = (0.8 + depth*1.6)*pr.persp;
+    c.fillStyle=`rgba(140,225,255,${a})`;
+    c.beginPath(); c.arc(pr.sx,pr.sy,size,0,6.28); c.fill();
+  });
+
+  // hotspots — clickable labeled nodes
+  hovered=null;
+  const tip=document.getElementById('tooltip');
+  hotspots.forEach(h=>{
+    const pr=project(h, rot);
+    const depth=(pr.z+1)/2;
+    if(pr.z < -0.15){ h._sx=null; return; }
+    h._sx=pr.sx; h._sy=pr.sy;
+    const dist=Math.hypot(mouse.x-pr.sx, mouse.y-pr.sy);
+    const isH = dist<18;
+    if(isH) hovered=h;
+    // node
+    const rr = isH?7:4.5;
+    const g=c.createRadialGradient(pr.sx,pr.sy,0,pr.sx,pr.sy,rr*3);
+    g.addColorStop(0,`rgba(143,240,255,${0.7*depth+0.3})`);
+    g.addColorStop(1,'rgba(57,214,255,0)');
+    c.fillStyle=g; c.beginPath(); c.arc(pr.sx,pr.sy,rr*3,0,6.28); c.fill();
+    c.fillStyle=isH?'#DFF9FF':`rgba(200,245,255,${0.6+0.4*depth})`;
+    c.beginPath(); c.arc(pr.sx,pr.sy,rr,0,6.28); c.fill();
+    if(isH){ c.strokeStyle='#8FF0FF'; c.lineWidth=1.5; c.beginPath(); c.arc(pr.sx,pr.sy,rr+4,0,6.28); c.stroke(); }
+  });
+
+  if(hovered){
+    tip.style.display='block';
+    tip.style.left=hovered._sx+'px'; tip.style.top=hovered._sy+'px';
+    tip.innerHTML=`${hovered.label}<small>${hovered.sub} · click to open</small>`;
+    cv.style.cursor='pointer';
+  } else { tip.style.display='none'; cv.style.cursor='default'; }
+
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+
+/* ══════════ EQ BARS ══════════ */
+const eq=document.getElementById('eq');
+for(let i=0;i<28;i++){ const b=document.createElement('i'); b.style.animationDelay=(i*0.05)+'s'; b.style.animationDuration=(0.8+Math.random()*0.6)+'s'; eq.appendChild(b); }
+
+/* ══════════ CLOCK ══════════ */
+setInterval(()=>{
+  const d=new Date();
+  const hh=String(d.getHours()).padStart(2,'0'), mm=String(d.getMinutes()).padStart(2,'0'), ss=String(d.getSeconds()).padStart(2,'0');
+  document.getElementById('clock').innerHTML=`${hh}:${mm}<small>:${ss}</small>`;
+},1000);
+
+/* ══════════ PANEL CONTENT ══════════ */
+const content = {
+shell:{eyebrow:'THE SHELL IS INTENT, NOT MENUS', title:'Intent CLI', sub:'The operator states a goal. Agents spawn, plan, call tools, and terminate with an artifact or an honest failure. Screens become renderings of agent work — plans, simulations, evidence trees — not forms for manual entry.', body:`
+  <div class="term">
+    <div><span class="pr">arc/os&gt;</span> <span class="cm">design a youth gaming plan, ₹399, under 8GB</span></div>
+    <div class="rs">→ spawn agent: composer · budget 40k tokens · owner c.sood</div>
+    <div class="rs">→ plan: catalog check → draft tariff → simulate → assemble evidence</div>
+    <div class="rs">→ tool: catalog.search(segment="youth_gaming") · 3 conflicts</div>
+    <div class="rs">→ tool: twin.simulate(draft, band ±8%) · complete</div>
+    <div class="warn">→ status: PROPOSED — awaiting human approval</div>
+    <div><span class="pr">arc/os&gt;</span><span class="blink"></span></div>
+  </div>`},
+composer:{eyebrow:'AGENTS ARE PROCESSES', title:'Composer Agent', sub:'Spawned with a goal, not a form. It plans, calls whitelisted tools, and terminates inside a resource budget it cannot exceed. Owner and kill-switch attached.', body:`
+  <div class="g2">
+    <div class="hcard"><div class="hc-t">GOAL · youth_gaming_399</div>
+      <ul class="steps">
+        <li><div class="sdot done">✓</div><div class="stext"><b>Check catalog conflicts</b><div class="ss">3 overlapping SKUs flagged</div></div></li>
+        <li><div class="sdot done">✓</div><div class="stext"><b>Draft tariff structure</b><div class="ss">Rating rules generated, not committed</div></div></li>
+        <li><div class="sdot active">3</div><div class="stext"><b>Simulate impact on twin</b><div class="ss">Running · seed 4471</div></div></li>
+        <li><div class="sdot pend">4</div><div class="stext"><b>Assemble evidence → human</b><div class="ss">Blocked on step 3</div></div></li>
+      </ul></div>
+    <div><div class="hcard"><div class="hc-t">RESOURCE BUDGET</div>
+      <div class="mbox" style="border:none;padding:0;background:none;"><div class="mk">Tokens used</div><div class="mv">24.4K<span style="font-size:14px;color:var(--t-lo)"> / 40K</span></div></div>
+      <div style="height:6px;background:rgba(57,214,255,0.1);margin-top:10px;"><div style="height:100%;width:61%;background:linear-gradient(90deg,var(--cyan),var(--blue));"></div></div>
+      <div class="hc-note" style="margin-top:12px;">Owner: c.sood · kill-switch armed</div></div></div>
+  </div>`},
+twinAgent:{eyebrow:'AGENTS ARE PROCESSES', title:'Digital Twin Agent', sub:'Its only job is to parameterize the simulation kernel correctly and explain what comes out. <b>It never computes the numbers itself.</b>', body:`
+  <div class="hcard"><div class="hc-t">CURRENT RUN</div>
+    <ul class="steps">
+      <li><div class="sdot done">✓</div><div class="stext"><b>Parameterize twin</b><div class="ss">segment youth_gaming · band ±8%</div></div></li>
+      <li><div class="sdot done">✓</div><div class="stext"><b>Kernel computes deterministically</b><div class="ss">seed 4471 — not the agent's math</div></div></li>
+      <li><div class="sdot active">3</div><div class="stext"><b>Interpret in commercial language</b><div class="ss">drafting for the approval gate</div></div></li>
+    </ul></div>
+  <div class="hcard"><div class="hc-t">SIMULATED IMPACT · SAME SEED, SAME RESULT</div>
+    <div class="metric-grid"><div class="mbox"><div class="mk">Projected uptake</div><div class="mv up">+4,120</div></div>
+    <div class="mbox"><div class="mk">Churn delta</div><div class="mv up">−0.6 pp</div></div></div></div>`},
+tools:{eyebrow:'TOOLS ARE SYSCALLS', title:'Tool Layer', sub:'The only way an agent touches BSS data is through a typed, whitelisted, logged tool contract. Permissions live here — not in the prompt. <b>Prompts are requests, not security boundaries.</b>', body:`
+  <div class="hcard"><table>
+    <tr><th>Tool</th><th>Scope</th><th>Agent</th><th>Status</th></tr>
+    <tr><td class="mono">catalog.search()</td><td>read</td><td>composer</td><td><span class="tag-pill ok">Logged</span></td></tr>
+    <tr><td class="mono">tariff.draft()</td><td>write · sandbox</td><td>composer</td><td><span class="tag-pill ok">Logged</span></td></tr>
+    <tr><td class="mono">twin.simulate()</td><td>read · compute</td><td>twinAgent</td><td><span class="tag-pill ok">Logged</span></td></tr>
+    <tr><td class="mono">tariff.commit()</td><td>write · production</td><td>—</td><td><span class="tag-pill human">Human only</span></td></tr>
+  </table></div>
+  <div class="hcard"><div class="hc-t">WHY THIS IS THE WHOLE GAME</div>
+    <div class="hc-note">If an agent can't call <span class="mono" style="color:var(--cyan-hot)">tariff.commit()</span> under any prompt, no jailbreak matters. Governance lives in the tool layer, enforced server-side.</div></div>`},
+permission:{eyebrow:'THE PERMISSION MODEL IS THE SAFETY CASE', title:'Approval Gate', sub:"The human doesn't leave the loop. The job moves to the point of commitment, armed with full provenance.", body:`
+  <div class="hcard"><div class="hc-t">THRESHOLDS</div><table>
+    <tr><th>Action</th><th>Value</th><th>Gate</th></tr>
+    <tr><td>Tariff draft</td><td>&lt; ₹500 ARPU</td><td><span class="tag-pill ok">Auto-verified</span></td></tr>
+    <tr><td>Tariff commit</td><td>any</td><td><span class="tag-pill human">Human</span></td></tr>
+    <tr><td>Dispute &gt; ₹5,000</td><td>high</td><td><span class="tag-pill human">Human</span></td></tr>
+    <tr><td>Dispute &lt; ₹5,000</td><td>low</td><td><span class="tag-pill hold">Det. check + log</span></td></tr>
+  </table></div>
+  <div class="hcard"><div class="hc-t">PENDING IN YOUR QUEUE</div>
+    <div style="font-size:15px;color:var(--t-hi);font-weight:600;">Youth gaming tariff · ₹399 / 8GB</div>
+    <div class="hc-note" style="margin-top:4px;">Proposed by Composer · twin-verified · full evidence tree attached</div>
+    <div class="btnrow"><button class="hbtn go">APPROVE &amp; COMMIT</button><button class="hbtn no">REJECT + FEEDBACK</button></div></div>`},
+twinSim:{eyebrow:'THE DIGITAL TWIN IS THE NEW RATING TABLE', title:'Digital Twin', sub:'A synthetic, statistically faithful model of the subscriber base — deterministic and reproducible. The agent parameterizes it; the kernel computes it. Simulate before you ship.', body:`
+  <div class="hcard"><div class="hc-t">PLAN-IMPACT SIMULATION · SEED 4471</div>
+    <div class="metric-grid">
+      <div class="mbox"><div class="mk">Baseline ARPU</div><div class="mv">₹412</div></div>
+      <div class="mbox"><div class="mk">Simulated ARPU</div><div class="mv up">₹438</div></div>
+      <div class="mbox"><div class="mk">Churn baseline</div><div class="mv">2.1%</div></div>
+      <div class="mbox"><div class="mk">Churn simulated</div><div class="mv up">1.5%</div></div>
+    </div></div>
+  <div class="hcard"><div class="hc-note">Within five years, launching a plan without a twin simulation will look the way shipping code without tests looks today — possible, common in laggards, understood to be negligent.</div></div>`},
+kernel:{eyebrow:'THE KERNEL IS THE DETERMINISTIC CORE', title:'Deterministic Kernel', sub:'Rating, charging, invoicing, tax, regulatory artifacts. Exact, versioned, audited, fast. <b>Nothing probabilistic lives here.</b> Agents cannot write directly — same as user-space cannot touch kernel memory.', body:`
+  <div class="hcard"><div class="hc-t">100% DETERMINISTIC · ZERO LLM IN THE COMPUTE PATH</div><table>
+    <tr><th>Operation</th><th>Trigger</th><th>Audit</th></tr>
+    <tr><td>Rate call · 4,812ms window</td><td class="mono">tools.rate()</td><td><span class="tag-pill ok">Versioned</span></td></tr>
+    <tr><td>Invoice compute · cycle 07/26</td><td class="mono">scheduler</td><td><span class="tag-pill ok">Versioned</span></td></tr>
+    <tr><td>Tariff commit · youth_399</td><td class="mono">human approval</td><td><span class="tag-pill ok">Versioned</span></td></tr>
+  </table></div>`},
+ladder:{eyebrow:'WHAT THIS IS NOT', title:'The Honesty Ladder', sub:'Place any system on the ladder — including this one. Ask a vendor three questions: which decisions commit without a human, what deterministic check runs on every commit, and show the audit trail of a real run.', body:`
+  <div class="hcard"><div class="ladder">
+    <div class="rung"><span class="lv">L0</span><span class="ld">Deterministic — rules and code</span></div>
+    <div class="rung"><span class="lv">L1</span><span class="ld">AI-assisted — predictions feeding dashboards</span></div>
+    <div class="rung"><span class="lv">L2</span><span class="ld">AI-augmented — copilots over a deterministic core</span></div>
+    <div class="rung"><span class="lv">L3</span><span class="ld">AI-native — LLM primary path, deterministic fallback</span></div>
+    <div class="rung cur"><span class="lv">L4</span><span class="ld">Agentic — goal-directed, tool-using, inside hard governance bounds</span></div>
+  </div></div>
+  <div class="hcard"><div class="hc-note">This prototype labels which applications are live agent loops and which are scripted simulations. Ask any vendor for the same.</div></div>`}
+};
+
+function openPanel(id){
+  const d=content[id]; if(!d) return;
+  document.getElementById('pEyebrow').textContent=d.eyebrow;
+  document.getElementById('pTitle').textContent=d.title;
+  document.getElementById('pBody').innerHTML=`<div class="p-sub">${d.sub}</div>${d.body}`;
+  document.getElementById('overlay').classList.add('open');
+}
+function closePanel(){ document.getElementById('overlay').classList.remove('open'); }
+addEventListener('keydown', e=>{ if(e.key==='Escape') closePanel(); });
+</script>
+</body>
+</html>

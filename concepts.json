@@ -117,5 +117,20 @@
     "status": "Live",
     "path": "spartified/",
     "color": "#00D8F7"
+  },
+  {
+    "id": "bss-as-os",
+    "title": "BSS as OS",
+    "subtitle": "Agentic BSS Mission Control",
+    "description": "An interactive ARC/OS HUD concept showing telecom BSS as an operating system: intent shell, agent processes, typed tool syscalls, digital twin simulation, deterministic kernel, and human approval gates.",
+    "tags": [
+      "BSS",
+      "Telecom",
+      "Agentic AI",
+      "Operating System"
+    ],
+    "status": "Live",
+    "path": "bss-as-os/",
+    "color": "#39D6FF"
   }
 ]
