@@ -104,6 +104,21 @@
     "color": "#7457EF"
   },
   {
+    "id": "kizuna-v2",
+    "title": "Kizuna",
+    "subtitle": "ABC Command Centre for Bridging Rainbow Foundation",
+    "description": "A live-feeling Kizuna command centre for Bridging Rainbow Foundation, with Delhi map operations, citizen ABC reports, living dog records, field handoffs, ABC centre workflow, release proof, insights, and guided walkthrough bubbles.",
+    "tags": [
+      "Civic Tech",
+      "Animal Welfare",
+      "ABC Operations",
+      "Command Centre"
+    ],
+    "status": "Live",
+    "path": "kizuna-v2/",
+    "color": "#5A3FD4"
+  },
+  {
     "id": "spartified",
     "title": "Spartified Agentic AI",
     "subtitle": "Agentic Revenue & Assurance Layer",
