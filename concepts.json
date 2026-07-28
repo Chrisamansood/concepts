@@ -147,5 +147,20 @@
     "status": "Live",
     "path": "bss-as-os/",
     "color": "#39D6FF"
+  },
+  {
+    "id": "bss-as-loop-led-os",
+    "title": "BSS as Loop Led OS",
+    "subtitle": "Loop Engine for AI-Native Telecom",
+    "description": "An interactive ARC/OS v2 operator console showing Loop-Led BSS: governed revenue loops for sovereign AI, token monetisation, customer care, network experience, partner marketplaces, leakage recovery, and agent governance.",
+    "tags": [
+      "BSS",
+      "Telecom",
+      "Agentic AI",
+      "Sovereign AI"
+    ],
+    "status": "Live",
+    "path": "bss-as-loop-led-os/",
+    "color": "#39D6FF"
   }
 ]

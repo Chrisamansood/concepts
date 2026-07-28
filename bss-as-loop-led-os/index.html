@@ -1,0 +1,1734 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ARC/OS v2 - Loop Engine for AI-Native Telecom</title>
+<style>
+:root{
+  --cyan:#39d6ff;
+  --cyan-hot:#8ff0ff;
+  --cyan-deep:#0a89b8;
+  --blue:#2b7fff;
+  --amber:#fe9424;
+  --green:#5bffb0;
+  --red:#ff5f86;
+  --yellow:#eaff2f;
+  --magenta:#ff6bd6;
+  --ink:#03060b;
+  --ink-2:#07111c;
+  --ink-3:#0b1724;
+  --line:rgba(57,214,255,0.24);
+  --line-soft:rgba(57,214,255,0.11);
+  --line-amber:rgba(254,148,36,0.38);
+  --text:#dff6ff;
+  --muted:rgba(190,226,244,0.66);
+  --low:rgba(150,190,210,0.42);
+  --shadow:rgba(57,214,255,0.22);
+  --runtime:var(--cyan);
+  --runtime-soft:rgba(57,214,255,0.16);
+  --runtime-glow:rgba(57,214,255,0.42);
+}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;background:var(--ink);color:var(--text)}
+body{
+  font-family:"Trebuchet MS","Segoe UI",Arial,sans-serif;
+  overflow-x:hidden;
+  background:
+    radial-gradient(ellipse 72% 58% at 50% 35%, rgba(13,34,54,0.96) 0%, rgba(6,13,23,0.98) 42%, #03060b 100%),
+    linear-gradient(120deg, rgba(43,127,255,0.08), transparent 35%, rgba(254,148,36,0.06));
+}
+body::before{
+  content:"";
+  position:fixed;
+  inset:0;
+  pointer-events:none;
+  background:
+    linear-gradient(rgba(57,214,255,0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(57,214,255,0.026) 1px, transparent 1px);
+  background-size:44px 44px;
+  mask-image:linear-gradient(to bottom, black 0%, transparent 82%);
+  z-index:0;
+}
+body::after{
+  content:"";
+  position:fixed;
+  left:0;
+  right:0;
+  bottom:-2vh;
+  height:34vh;
+  pointer-events:none;
+  background:
+    repeating-linear-gradient(90deg, transparent 0 74px, rgba(57,214,255,0.08) 74px 75px),
+    repeating-linear-gradient(0deg, transparent 0 54px, rgba(57,214,255,0.06) 54px 55px);
+  transform:perspective(520px) rotateX(62deg);
+  transform-origin:bottom center;
+  mask-image:linear-gradient(to top, black, transparent 90%);
+  opacity:.72;
+  z-index:0;
+}
+body.runtime-active{
+  --runtime:var(--yellow);
+  --runtime-soft:rgba(234,255,47,0.15);
+  --runtime-glow:rgba(234,255,47,0.5);
+}
+body.runtime-blocked{
+  --runtime:var(--red);
+  --runtime-soft:rgba(255,95,134,0.16);
+  --runtime-glow:rgba(255,95,134,0.48);
+}
+body.runtime-complete{
+  --runtime:var(--green);
+  --runtime-soft:rgba(91,255,176,0.16);
+  --runtime-glow:rgba(91,255,176,0.5);
+}
+button,input{font:inherit}
+button{cursor:pointer}
+.app{
+  position:relative;
+  z-index:1;
+  min-height:100vh;
+  padding:18px 22px 22px;
+}
+.corner{
+  position:fixed;
+  width:24px;
+  height:24px;
+  border-color:var(--line);
+  pointer-events:none;
+  z-index:8;
+}
+.tl{top:14px;left:14px;border-top:1px solid;border-left:1px solid}
+.tr{top:14px;right:14px;border-top:1px solid;border-right:1px solid}
+.bl{bottom:14px;left:14px;border-bottom:1px solid;border-left:1px solid}
+.br{bottom:14px;right:14px;border-bottom:1px solid;border-right:1px solid}
+.topbar{
+  display:grid;
+  grid-template-columns:minmax(260px,1fr) auto minmax(220px,1fr);
+  gap:20px;
+  align-items:start;
+  margin-bottom:18px;
+}
+.brand h1{
+  margin:0;
+  font-size:clamp(30px,4vw,52px);
+  line-height:.95;
+  letter-spacing:10px;
+  font-weight:700;
+  text-shadow:0 0 24px rgba(57,214,255,.48);
+}
+.tag,.mono,.eyebrow,.metric-label,.small,.chip,.wire,.timeline,.ledger,.command-input{
+  font-family:"Courier New",Courier,monospace;
+}
+.tag{
+  margin-top:7px;
+  font-size:11px;
+  letter-spacing:2.8px;
+  color:var(--low);
+  text-transform:uppercase;
+}
+.status-line{
+  display:flex;
+  flex-wrap:wrap;
+  gap:10px 18px;
+  margin-top:12px;
+  color:var(--muted);
+  font-size:11px;
+  letter-spacing:1.4px;
+  text-transform:uppercase;
+}
+.status-line b{color:var(--cyan);font-weight:500}
+.pulse-dot{
+  display:inline-block;
+  width:7px;
+  height:7px;
+  border-radius:50%;
+  background:var(--green);
+  box-shadow:0 0 12px var(--green);
+  animation:pulse 1.4s infinite;
+  margin-right:6px;
+}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.32;transform:scale(.72)}}
+.mission{
+  border:1px solid var(--line);
+  background:linear-gradient(145deg,rgba(8,20,32,.83),rgba(4,10,17,.68));
+  box-shadow:0 0 28px rgba(57,214,255,.09), inset 0 0 30px rgba(57,214,255,.035);
+  padding:12px 14px;
+  min-width:310px;
+}
+.mission .line{
+  font-size:12px;
+  letter-spacing:1.6px;
+  color:var(--cyan-hot);
+  text-transform:uppercase;
+}
+.mission .claim{
+  margin-top:8px;
+  font-size:15px;
+  color:var(--text);
+}
+.clock{text-align:right}
+.clock .time{
+  font-size:34px;
+  line-height:1;
+  letter-spacing:2px;
+  text-shadow:0 0 16px rgba(57,214,255,.38);
+}
+.clock small{font-size:17px;color:var(--cyan)}
+.clock .date{
+  color:var(--low);
+  margin-top:5px;
+  font-size:10px;
+  letter-spacing:2px;
+  text-transform:uppercase;
+}
+.grid{
+  display:grid;
+  grid-template-columns:285px minmax(460px,1fr) 330px;
+  gap:16px;
+  align-items:start;
+}
+.panel{
+  border:1px solid var(--line);
+  background:linear-gradient(160deg,rgba(8,18,29,.86),rgba(4,9,16,.78));
+  box-shadow:0 0 30px rgba(57,214,255,.08), inset 0 0 24px rgba(57,214,255,.028);
+  position:relative;
+}
+.panel::before,.panel::after{
+  content:"";
+  position:absolute;
+  width:11px;
+  height:11px;
+  border-color:var(--cyan);
+  pointer-events:none;
+}
+.panel::before{top:-1px;left:-1px;border-top:1.5px solid;border-left:1.5px solid}
+.panel::after{right:-1px;bottom:-1px;border-right:1.5px solid;border-bottom:1.5px solid}
+.panel-head{
+  display:flex;
+  gap:10px;
+  align-items:center;
+  justify-content:space-between;
+  padding:12px 13px 10px;
+  border-bottom:1px solid var(--line-soft);
+}
+.eyebrow{
+  font-size:10px;
+  letter-spacing:2.2px;
+  color:var(--cyan);
+  text-transform:uppercase;
+}
+.muted{color:var(--low)}
+.hairline{height:1px;flex:1;background:linear-gradient(90deg,var(--cyan),transparent);opacity:.48}
+.panel-body{padding:12px}
+.loop-deck{
+  display:grid;
+  gap:8px;
+}
+.loop-card{
+  width:100%;
+  text-align:left;
+  border:1px solid var(--line-soft);
+  color:var(--muted);
+  background:rgba(57,214,255,.035);
+  padding:10px 10px 9px;
+  min-height:64px;
+  transition:background .18s,border .18s,transform .18s,color .18s;
+}
+.loop-card:hover,.loop-card:focus-visible{
+  color:var(--text);
+  border-color:var(--line);
+  background:rgba(57,214,255,.075);
+  transform:translateX(2px);
+}
+.loop-card.active{
+  border-color:var(--cyan);
+  color:var(--text);
+  background:linear-gradient(100deg,rgba(57,214,255,.16),rgba(43,127,255,.08));
+  box-shadow:0 0 18px rgba(57,214,255,.16);
+}
+.loop-card.running{border-color:var(--amber);box-shadow:0 0 18px rgba(254,148,36,.14)}
+.loop-card.blocked{border-color:rgba(255,95,134,.55);box-shadow:0 0 18px rgba(255,95,134,.14)}
+.loop-card.complete{border-color:rgba(91,255,176,.52);box-shadow:0 0 18px rgba(91,255,176,.12)}
+.loop-name{
+  display:block;
+  font-size:13px;
+  line-height:1.18;
+  font-weight:700;
+  letter-spacing:.2px;
+}
+.loop-desc{
+  display:block;
+  margin-top:5px;
+  font-size:11px;
+  line-height:1.25;
+  color:var(--low);
+}
+.loop-meta{
+  display:flex;
+  justify-content:space-between;
+  gap:8px;
+  align-items:center;
+  margin-top:8px;
+}
+.loop-status,.run-id{
+  font-family:"Courier New",Courier,monospace;
+  font-size:9px;
+  letter-spacing:.9px;
+  text-transform:uppercase;
+}
+.loop-status{
+  border:1px solid var(--line-soft);
+  color:var(--low);
+  padding:3px 6px;
+}
+.loop-status.running,.loop-status.approval{color:var(--yellow);border-color:rgba(234,255,47,.42)}
+.loop-status.complete{color:var(--green);border-color:rgba(91,255,176,.42)}
+.loop-status.blocked{color:var(--red);border-color:rgba(255,95,134,.45)}
+.run-id{color:var(--low)}
+.core-panel{
+  min-height:665px;
+  overflow:hidden;
+}
+.core-stage{
+  position:relative;
+  min-height:350px;
+  border-bottom:1px solid var(--line-soft);
+}
+.core-stage::after{
+  content:"";
+  position:absolute;
+  inset:18px;
+  pointer-events:none;
+  border:1px solid var(--runtime-soft);
+  box-shadow:0 0 28px var(--runtime-soft), inset 0 0 22px rgba(57,214,255,.03);
+  opacity:.78;
+  transition:border-color .25s, box-shadow .25s;
+}
+canvas#core{
+  width:100%;
+  height:350px;
+  display:block;
+}
+.core-overlay{
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+  display:grid;
+  place-items:center;
+}
+.core-readout{text-align:center;margin-top:20px}
+.core-readout .kicker{
+  font-size:10px;
+  letter-spacing:3px;
+  color:var(--runtime);
+  text-transform:uppercase;
+}
+.core-readout .state{
+  margin-top:8px;
+  font-size:clamp(28px,4vw,52px);
+  line-height:1;
+  letter-spacing:1px;
+  font-weight:700;
+  text-shadow:0 0 28px var(--runtime-glow);
+}
+.core-readout .sub{
+  margin-top:10px;
+  color:var(--muted);
+  font-size:13px;
+}
+.flow-formula{
+  position:absolute;
+  left:18px;
+  right:18px;
+  bottom:16px;
+  display:grid;
+  grid-template-columns:repeat(6,1fr);
+  gap:6px;
+}
+.flow-step{
+  border:1px solid var(--line-soft);
+  background:rgba(3,8,14,.62);
+  padding:8px 6px;
+  text-align:center;
+  font-size:10px;
+  letter-spacing:1px;
+  color:var(--low);
+  text-transform:uppercase;
+}
+.flow-step.on{
+  color:var(--ink);
+  border-color:var(--runtime);
+  background:var(--runtime);
+  box-shadow:0 0 16px var(--runtime-glow);
+}
+.flow-step.done{
+  color:var(--green);
+  border-color:rgba(91,255,176,.42);
+  background:rgba(91,255,176,.06);
+}
+.command-strip{
+  display:grid;
+  grid-template-columns:1fr auto auto auto;
+  gap:8px;
+  padding:12px;
+  border-bottom:1px solid var(--line-soft);
+}
+.command-input{
+  width:100%;
+  color:var(--text);
+  background:#040910;
+  border:1px solid var(--line-soft);
+  padding:10px 11px;
+  font-size:12px;
+  outline:none;
+}
+.command-input:focus{border-color:var(--cyan);box-shadow:0 0 0 2px rgba(57,214,255,.12)}
+.hud-btn{
+  border:1px solid var(--line);
+  color:var(--cyan-hot);
+  background:rgba(57,214,255,.04);
+  padding:9px 12px;
+  font-size:11px;
+  letter-spacing:1.5px;
+  text-transform:uppercase;
+  white-space:nowrap;
+}
+.hud-btn:hover,.hud-btn:focus-visible{background:rgba(57,214,255,.12);border-color:var(--cyan)}
+.hud-btn.primary{background:var(--cyan);border-color:var(--cyan);color:var(--ink);font-weight:700}
+.hud-btn.primary:hover{background:var(--cyan-hot)}
+.hud-btn.warn{border-color:var(--line-amber);color:var(--amber)}
+.hud-btn.danger{border-color:rgba(255,95,134,.45);color:var(--red)}
+.timeline{
+  display:grid;
+  grid-template-columns:repeat(6,1fr);
+  gap:8px;
+  padding:12px;
+  border-bottom:1px solid var(--line-soft);
+}
+.stage{
+  border:1px solid var(--line-soft);
+  min-height:74px;
+  padding:9px 8px;
+  background:rgba(57,214,255,.028);
+}
+.stage .num{font-size:10px;color:var(--low)}
+.stage .name{font-size:11px;color:var(--muted);letter-spacing:.8px;text-transform:uppercase;margin-top:4px}
+.stage .bar{height:4px;background:rgba(57,214,255,.09);margin-top:10px;overflow:hidden}
+.stage .fill{height:100%;width:0;background:linear-gradient(90deg,var(--cyan),var(--amber));transition:width .5s ease}
+.stage.active{border-color:var(--amber);background:rgba(254,148,36,.055)}
+.stage.active .name{color:var(--amber)}
+.stage.done{border-color:rgba(91,255,176,.38);background:rgba(91,255,176,.045)}
+.stage.done .name{color:var(--green)}
+.runtime{
+  display:grid;
+  grid-template-columns:1.25fr .95fr;
+  gap:12px;
+  padding:12px;
+}
+.wire-box,.approval-box{
+  border:1px solid var(--line-soft);
+  background:rgba(3,8,14,.55);
+  min-height:186px;
+}
+.agent-pulse{
+  display:flex;
+  gap:3px;
+  align-items:flex-end;
+  height:42px;
+  padding:8px 10px;
+  border-bottom:1px solid var(--line-soft);
+  background:linear-gradient(180deg,rgba(57,214,255,.035),rgba(3,8,14,.26));
+  overflow:hidden;
+}
+.agent-pulse i{
+  flex:1;
+  min-width:3px;
+  height:18%;
+  background:linear-gradient(to top,var(--cyan-deep),var(--runtime));
+  box-shadow:0 0 10px var(--runtime-soft);
+  transform-origin:bottom;
+  animation:agentPulse 1.05s infinite ease-in-out;
+  animation-play-state:paused;
+  opacity:.62;
+}
+body.runtime-active .agent-pulse i,
+body.runtime-blocked .agent-pulse i,
+body.runtime-complete .agent-pulse i{animation-play-state:running;opacity:.95}
+body.runtime-blocked .agent-pulse i{animation-duration:.42s}
+body.runtime-complete .agent-pulse i{animation-duration:1.45s}
+@keyframes agentPulse{
+  0%,100%{height:16%;transform:scaleY(.88)}
+  25%{height:72%}
+  50%{height:34%}
+  75%{height:100%;transform:scaleY(1.02)}
+}
+.box-title{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  padding:9px 10px;
+  border-bottom:1px solid var(--line-soft);
+  color:var(--cyan);
+  font-size:10px;
+  letter-spacing:1.8px;
+  text-transform:uppercase;
+}
+.wire{
+  padding:10px;
+  height:180px;
+  overflow:auto;
+  font-size:11px;
+  line-height:1.52;
+  color:var(--muted);
+}
+.globe-nodes{
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+  z-index:3;
+}
+.globe-node{
+  position:absolute;
+  pointer-events:auto;
+  transform:translate(-50%,-50%);
+  border:1px solid var(--line);
+  color:var(--cyan-hot);
+  background:rgba(3,8,14,.7);
+  box-shadow:0 0 14px rgba(57,214,255,.18), inset 0 0 12px rgba(57,214,255,.04);
+  padding:6px 8px;
+  min-width:74px;
+  font-family:"Courier New",Courier,monospace;
+  font-size:9px;
+  letter-spacing:1.2px;
+  text-transform:uppercase;
+}
+.globe-node::before{
+  content:"";
+  display:inline-block;
+  width:6px;
+  height:6px;
+  margin-right:6px;
+  border-radius:50%;
+  background:var(--runtime);
+  box-shadow:0 0 10px var(--runtime);
+}
+.globe-node:hover,.globe-node:focus-visible{
+  border-color:var(--runtime);
+  color:var(--text);
+  box-shadow:0 0 20px var(--runtime-soft);
+}
+.node-kernel{left:50%;top:78%}
+.node-twin{left:72%;top:38%}
+.node-tools{left:27%;top:43%}
+.node-governance{left:70%;top:68%}
+.node-token{left:31%;top:70%}
+.node-ledger{left:50%;top:22%}
+.node-loop{left:50%;top:50%;min-width:92px}
+.wire .event{margin-bottom:7px}
+.wire .ts{color:var(--cyan-deep)}
+.wire .actor{color:var(--cyan-hot)}
+.wire .warn{color:var(--amber)}
+.wire .ok{color:var(--green)}
+.blink{display:inline-block;width:7px;height:12px;background:var(--cyan);vertical-align:middle;animation:pulse 1s infinite}
+.approval-content{padding:10px}
+.approval-status{
+  color:var(--amber);
+  font-size:12px;
+  line-height:1.35;
+  margin-bottom:9px;
+}
+.evidence-list{
+  display:grid;
+  gap:6px;
+  margin:0 0 10px;
+  padding:0;
+  list-style:none;
+}
+.evidence-list li{
+  border:1px solid var(--line-soft);
+  color:var(--low);
+  padding:7px 8px;
+  font-size:11px;
+}
+.evidence-list li.ready{color:var(--green);border-color:rgba(91,255,176,.35);background:rgba(91,255,176,.045)}
+.approval-actions{display:flex;gap:8px;flex-wrap:wrap}
+.approval-actions button:disabled{opacity:.42;cursor:not-allowed}
+.side-stack{display:grid;gap:12px}
+.metrics{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:9px;
+}
+.metric{
+  border:1px solid var(--line-soft);
+  padding:10px;
+  background:rgba(57,214,255,.025);
+  min-height:76px;
+}
+.metric-label{
+  color:var(--low);
+  font-size:10px;
+  letter-spacing:1.2px;
+  text-transform:uppercase;
+}
+.metric-value{
+  margin-top:5px;
+  font-size:25px;
+  line-height:1;
+  font-weight:700;
+}
+.metric small{font-size:12px;color:var(--low)}
+.delta{margin-top:6px;color:var(--cyan);font-size:11px}
+.twin-grid,.token-grid,.gov-grid{
+  display:grid;
+  gap:8px;
+}
+.reading{
+  display:grid;
+  grid-template-columns:1fr auto;
+  gap:8px;
+  align-items:center;
+  border:1px solid var(--line-soft);
+  background:rgba(57,214,255,.025);
+  padding:8px;
+  font-size:12px;
+  color:var(--muted);
+}
+.reading b{color:var(--text)}
+.meter{
+  height:5px;
+  background:rgba(57,214,255,.1);
+  overflow:hidden;
+  grid-column:1/-1;
+}
+.meter span{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--cyan),var(--blue),var(--amber));transition:width .7s ease}
+.chip{
+  display:inline-flex;
+  align-items:center;
+  gap:5px;
+  border:1px solid var(--line-soft);
+  color:var(--muted);
+  padding:5px 7px;
+  font-size:10px;
+  letter-spacing:.9px;
+  text-transform:uppercase;
+}
+.chip.good{color:var(--green);border-color:rgba(91,255,176,.38)}
+.chip.hold{color:var(--amber);border-color:var(--line-amber)}
+.chip.bad{color:var(--red);border-color:rgba(255,95,134,.42)}
+.ledger{
+  display:grid;
+  gap:7px;
+  max-height:210px;
+  overflow:auto;
+}
+.ledger-row{
+  display:grid;
+  grid-template-columns:68px 1fr auto;
+  gap:8px;
+  border:1px solid var(--line-soft);
+  color:var(--muted);
+  padding:8px;
+  font-size:10.5px;
+  align-items:center;
+}
+.ledger-row b{color:var(--text);font-weight:500}
+.ledger-row .ok{color:var(--green)}
+.ledger-row .hold{color:var(--amber)}
+.modal{
+  position:fixed;
+  inset:0;
+  z-index:20;
+  display:none;
+  place-items:center;
+  background:rgba(3,6,11,.76);
+  padding:18px;
+}
+.modal.open{display:grid}
+.modal-panel{
+  width:min(900px,94vw);
+  max-height:86vh;
+  overflow:auto;
+  border:1px solid var(--line);
+  background:linear-gradient(160deg,rgba(9,19,30,.98),rgba(4,9,16,.98));
+  box-shadow:0 0 70px rgba(57,214,255,.16);
+}
+.modal-head{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:20px;
+  padding:22px;
+  border-bottom:1px solid var(--line-soft);
+}
+.modal-title{font-size:28px;font-weight:700;letter-spacing:.3px}
+.modal-sub{color:var(--muted);margin-top:6px;line-height:1.45;max-width:650px}
+.modal-body{padding:18px 22px 22px;display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.mini-card{
+  border:1px solid var(--line-soft);
+  background:rgba(57,214,255,.028);
+  padding:13px;
+}
+.mini-card h3{
+  margin:0 0 9px;
+  color:var(--cyan);
+  font-size:12px;
+  letter-spacing:1.7px;
+  text-transform:uppercase;
+}
+.mini-card p,.mini-card li{
+  color:var(--muted);
+  font-size:13px;
+  line-height:1.45;
+}
+.mini-card ul{margin:0;padding-left:18px}
+.close-btn{
+  border:1px solid var(--line);
+  color:var(--cyan-hot);
+  background:transparent;
+  padding:8px 12px;
+}
+.sr-note{
+  position:absolute;
+  width:1px;
+  height:1px;
+  overflow:hidden;
+  clip:rect(0,0,0,0);
+}
+@media(max-width:1180px){
+  .grid{grid-template-columns:260px 1fr}
+  .side-stack{grid-column:1/-1;grid-template-columns:repeat(2,1fr)}
+}
+@media(max-width:850px){
+  .app{padding:14px}
+  .topbar{grid-template-columns:1fr}
+  .mission{min-width:0}
+  .clock{text-align:left}
+  .grid{grid-template-columns:1fr}
+  .core-panel{min-height:0}
+  .runtime{grid-template-columns:1fr}
+  .timeline{grid-template-columns:repeat(3,1fr)}
+  .flow-formula{grid-template-columns:repeat(3,1fr)}
+  .side-stack{grid-template-columns:1fr}
+  .command-strip{grid-template-columns:1fr 1fr 1fr}
+  .command-input{grid-column:1/-1}
+  .modal-body{grid-template-columns:1fr}
+  .globe-node{font-size:8px;min-width:58px;padding:5px}
+}
+@media(max-width:520px){
+  .brand h1{letter-spacing:5px}
+  .metrics{grid-template-columns:1fr}
+  .timeline{grid-template-columns:1fr 1fr}
+  .flow-formula{grid-template-columns:1fr 1fr}
+  .command-strip{grid-template-columns:1fr}
+  .ledger-row{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+<div class="corner tl"></div><div class="corner tr"></div><div class="corner bl"></div><div class="corner br"></div>
+<main class="app">
+  <section class="topbar" aria-label="ARC/OS header">
+    <div class="brand">
+      <h1>ARC/OS</h1>
+      <div class="tag">v2 loop engine · ai-native telecom control plane</div>
+      <div class="status-line">
+        <span><i class="pulse-dot"></i>KERNEL <b>ONLINE</b></span>
+        <span>TOOLS <b>WHITELISTED</b></span>
+        <span>PRODUCTION COMMIT <b>HUMAN ONLY</b></span>
+      </div>
+    </div>
+    <div class="mission">
+      <div class="line">commercial operating system for AI-native telecom</div>
+      <div class="claim">BSS turns customer, network, product, partner, and sovereign AI signals into governed revenue loops.</div>
+    </div>
+    <div class="clock">
+      <div class="time" id="clock">00:00<small>:00</small></div>
+      <div class="date" id="dateLine">runtime · local operator console</div>
+    </div>
+  </section>
+
+  <section class="grid" aria-label="ARC/OS loop cockpit">
+    <aside class="panel">
+      <div class="panel-head">
+        <span class="eyebrow">Loop Deck <span class="muted">8 apps</span></span><span class="hairline"></span>
+      </div>
+      <div class="panel-body">
+        <div class="loop-deck" id="loopDeck"></div>
+      </div>
+    </aside>
+
+    <section class="panel core-panel">
+      <div class="core-stage">
+        <canvas id="core" aria-label="Animated ARC/OS loop core"></canvas>
+        <div class="core-overlay">
+          <div class="core-readout">
+            <div class="kicker" id="modeLabel">loop-led BSS</div>
+            <div class="state" id="coreState">READY</div>
+            <div class="sub" id="coreSub">Signal -> Agent -> BSS Action -> Governance -> Outcome -> Learning</div>
+          </div>
+        </div>
+        <div class="globe-nodes" id="globeNodes" aria-label="ARC/OS component nodes"></div>
+        <div class="flow-formula" id="flowFormula"></div>
+      </div>
+
+      <div class="command-strip">
+        <input id="intentInput" class="command-input" value="Launch a sovereign AI care bundle for SME customers." aria-label="Operator intent">
+        <button id="startDemo" class="hud-btn primary">Start Runtime</button>
+        <button id="pauseDemo" class="hud-btn warn">Pause</button>
+        <button id="resetDemo" class="hud-btn">Reset</button>
+      </div>
+
+      <div class="timeline" id="timeline"></div>
+
+      <div class="runtime">
+        <div class="wire-box">
+          <div class="box-title"><span>Agent Wire</span><span id="wireState">idle</span></div>
+          <div class="agent-pulse" id="agentPulse" aria-hidden="true"></div>
+          <div class="wire" id="wireLog" aria-live="polite"></div>
+        </div>
+        <div class="approval-box">
+          <div class="box-title"><span>Approval Gate</span><span id="approvalMode">blocked</span></div>
+          <div class="approval-content">
+            <div class="approval-status" id="approvalStatus">No production commit is open. Agents can draft, simulate, and assemble evidence only.</div>
+            <ul class="evidence-list" id="evidenceList">
+              <li>catalog delta pending</li>
+              <li>kernel check pending</li>
+              <li>digital twin evidence pending</li>
+              <li>policy and residency evidence pending</li>
+            </ul>
+            <div class="approval-actions">
+              <button id="approveBtn" class="hud-btn primary" disabled>Approve Commit</button>
+              <button id="rejectBtn" class="hud-btn danger" disabled>Reject</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <aside class="side-stack">
+      <section class="panel">
+        <div class="panel-head"><span class="eyebrow">System Vitals</span><span class="hairline"></span></div>
+        <div class="panel-body metrics">
+          <div class="metric"><div class="metric-label">Active loops</div><div class="metric-value" id="activeLoops">0</div><div class="delta">operator-owned</div></div>
+          <div class="metric"><div class="metric-label">Token meter</div><div class="metric-value" id="tokens">0<small>k</small></div><div class="delta">metered work</div></div>
+          <div class="metric"><div class="metric-label">Governance queue</div><div class="metric-value" id="queue">0</div><div class="delta">human gate</div></div>
+          <div class="metric"><div class="metric-label">Revenue impact</div><div class="metric-value" id="revenue">EUR 0</div><div class="delta">projected MRR</div></div>
+          <div class="metric"><div class="metric-label">Leakage recovered</div><div class="metric-value" id="leakage">EUR 0</div><div class="delta">verified anomalies</div></div>
+          <div class="metric"><div class="metric-label">Twin confidence</div><div class="metric-value" id="confidence">72<small>%</small></div><div class="delta">deterministic seed</div></div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head"><span class="eyebrow">Digital Twin</span><span class="hairline"></span></div>
+        <div class="panel-body twin-grid">
+          <div class="reading"><span>Simulation seed</span><b id="seed">4471</b></div>
+          <div class="reading"><span>Segment impact</span><b id="segmentImpact">waiting</b></div>
+          <div class="reading"><span>Churn delta</span><b id="churnDelta">waiting</b></div>
+          <div class="reading"><span>Margin band</span><b id="marginBand">waiting</b></div>
+          <div class="meter"><span id="twinMeter"></span></div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head"><span class="eyebrow">Token Metering</span><span class="hairline"></span></div>
+        <div class="panel-body token-grid">
+          <div class="reading"><span>Tokens</span><b id="tokenCount">0</b></div>
+          <div class="reading"><span>Requests</span><b id="requestCount">0</b></div>
+          <div class="reading"><span>Workflows</span><b id="workflowCount">0</b></div>
+          <div class="reading"><span>SLA tier</span><b id="slaTier">standard</b></div>
+          <div class="reading"><span>Quota position</span><b id="quota">0%</b></div>
+          <div class="reading"><span>Partner share</span><b id="partnerShare">waiting</b></div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head"><span class="eyebrow">Governance</span><span class="hairline"></span></div>
+        <div class="panel-body gov-grid">
+          <div><span class="chip hold">Autonomy L3</span> <span class="chip good">Audit on</span></div>
+          <div><span class="chip good">Rollback armed</span> <span class="chip bad">Kill switch live</span></div>
+          <div class="reading"><span>Commit permission</span><b>human only</b></div>
+          <div class="reading"><span>Policy boundary</span><b id="policyBoundary">no open commit</b></div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head"><span class="eyebrow">Loop Ledger</span><span class="hairline"></span></div>
+        <div class="panel-body">
+          <div class="ledger" id="ledger"></div>
+        </div>
+      </section>
+    </aside>
+  </section>
+</main>
+
+<div class="modal" id="loopModal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+  <div class="modal-panel">
+    <div class="modal-head">
+      <div>
+        <div class="eyebrow" id="modalEyebrow">Loop profile</div>
+        <div class="modal-title" id="modalTitle">Loop</div>
+        <div class="modal-sub" id="modalSub"></div>
+      </div>
+      <button class="close-btn" id="closeModal">Close</button>
+    </div>
+    <div class="modal-body">
+      <div class="mini-card">
+        <h3>Operational Path</h3>
+        <ul id="modalPath"></ul>
+      </div>
+      <div class="mini-card">
+        <h3>Commit Boundary</h3>
+        <p id="modalBoundary"></p>
+      </div>
+      <div class="mini-card">
+        <h3>Runtime Evidence</h3>
+        <ul id="modalEvidence"></ul>
+      </div>
+      <div class="mini-card">
+        <h3>Operator Action</h3>
+        <p id="modalAction"></p>
+        <button id="modalRun" class="hud-btn primary">Run This Loop</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const loops = [
+  {
+    id:"intent",
+    name:"Intent-to-Cash Loop",
+    short:"Intent becomes catalog, pricing, eligibility, charging, policy, approval, and launch.",
+    command:"Launch a sovereign AI care bundle for SME customers.",
+    proof:"catalog draft, price book, token meter, SLA tiers, policy evidence",
+    outcome:"SME sovereign care bundle approved for controlled launch",
+    revenue:128000,
+    leakage:0,
+    tokens:31.8,
+    confidence:88,
+    readings:["SME segment +18.4k eligible","churn -0.7pp","margin +6.2%"],
+    path:["Signal arrives from product strategy and enterprise demand","Bundle agent drafts catalog offer and charging rules","Kernel validates eligibility, rating, tax, and policy gates","Digital twin simulates margin, churn, quota, and SLA load","Human approves the controlled launch package","Learning updates catalog, pricing, and campaign signals"],
+    evidence:["catalog delta ARC-CAT-2811","token meter policy ARC-TOK-6402","residency proof ARC-SOV-1098","twin replay seed 4471"],
+    action:"Approve only after the evidence tree is complete. The agent cannot commit the commercial change."
+  },
+  {
+    id:"token",
+    name:"Token Monetization Loop",
+    short:"Tokens, requests, workflows, latency tiers, quotas, and partner share become billable units.",
+    command:"Meter sovereign AI care usage by tenant, token, workflow, and latency tier.",
+    proof:"usage meter, quota state, cost per token, partner settlement split",
+    outcome:"Token-based AI service monetization ready for billing run",
+    revenue:93000,
+    leakage:0,
+    tokens:44.6,
+    confidence:91,
+    readings:["enterprise tenants 42 active","latency tier premium","margin +11.8%"],
+    path:["AI usage signals enter the commercial control plane","Metering agent classifies tokens, requests, workflows, and SLA tier","Charging tools draft quota and overage rules","Settlement tool calculates partner share by tenant","Kernel verifies rating and invoice impact","Learning updates quota policy and margin guardrails"],
+    evidence:["token usage sample ARC-USG-7314","quota policy ARC-QTA-2230","partner split ARC-SET-8841","billing dry-run ARC-BIL-5027"],
+    action:"Approve the meter configuration, not individual model behavior. Financial rating remains deterministic."
+  },
+  {
+    id:"care",
+    name:"Customer Care to Revenue Loop",
+    short:"Care signals become retention, upsell, dispute resolution, or trust-building actions.",
+    command:"Convert high-risk SME care cases into governed save and upgrade actions.",
+    proof:"case evidence, eligibility, save offer, trust note, approval trail",
+    outcome:"Retention action approved with customer-specific evidence",
+    revenue:64000,
+    leakage:0,
+    tokens:18.7,
+    confidence:83,
+    readings:["at-risk cases 312","churn -1.2pp","save margin +4.1%"],
+    path:["Care signal flags high-risk enterprise accounts","Care agent assembles case, usage, billing, and sentiment evidence","BSS action drafts save offer and upgrade option","Policy checks fairness, eligibility, and customer consent","Human approves the proposed save action","Learning updates care playbook and next-best-action logic"],
+    evidence:["care evidence ARC-CARE-4102","eligibility proof ARC-ELG-2209","fairness check ARC-POL-6782","operator note ARC-HITL-0935"],
+    action:"Commit remains a human care decision with evidence, not an autonomous financial action."
+  },
+  {
+    id:"network",
+    name:"Network Experience Monetization Loop",
+    short:"OSS signals become credits, premium SLA tiers, assurance bundles, or experience pricing.",
+    command:"Turn repeated enterprise latency events into a premium assurance offer.",
+    proof:"network signal, SLA impact, credit policy, experience pricing simulation",
+    outcome:"Assurance bundle drafted with SLA evidence",
+    revenue:54000,
+    leakage:0,
+    tokens:14.2,
+    confidence:81,
+    readings:["latency events 1,284","SLA uplift +9.5%","credit exposure capped"],
+    path:["OSS experience signal crosses commercial threshold","Agent maps service impact to customer segments","BSS action drafts credit and assurance bundle","Kernel checks SLA, rating, and bill impact","Operator approves offer or credit action","Learning updates assurance pricing and campaign triggers"],
+    evidence:["OSS signal ARC-OSS-3381","SLA proof ARC-SLA-7810","credit cap ARC-CRD-4412","pricing twin ARC-TWN-8004"],
+    action:"Network events may propose commercial action; only approved actions enter production billing."
+  },
+  {
+    id:"partner",
+    name:"Partner Marketplace Loop",
+    short:"Partner offers, APIs, agents, IoT services, and content bundles become charged catalog entries.",
+    command:"Package a partner AI compliance assistant into the enterprise marketplace.",
+    proof:"partner contract, API meter, catalog entry, settlement rule",
+    outcome:"Partner SKU drafted for marketplace onboarding",
+    revenue:72000,
+    leakage:0,
+    tokens:21.9,
+    confidence:86,
+    readings:["partners 6 eligible","settlement 18%","API margin +8.7%"],
+    path:["Partner offer enters onboarding queue","Agent maps offer to catalog, API, and tenant rules","BSS tools draft charging and settlement configuration","Policy checks contract, data, and residency constraints","Human approves marketplace publication","Learning updates partner scoring and bundle recommendations"],
+    evidence:["partner contract ARC-PRT-7711","API meter ARC-API-5518","settlement rule ARC-SET-1840","catalog SKU ARC-CAT-6544"],
+    action:"Partner SKUs need contract and settlement evidence before any marketplace commit."
+  },
+  {
+    id:"leakage",
+    name:"Revenue Leakage Loop",
+    short:"Mediation, rating, discount, invoice, roaming, and settlement anomalies are traced and corrected.",
+    command:"Trace roaming settlement anomalies and draft controlled correction actions.",
+    proof:"anomaly chain, mediation trace, rating replay, correction proposal",
+    outcome:"Leakage correction package ready for finance approval",
+    revenue:0,
+    leakage:42000,
+    tokens:16.4,
+    confidence:89,
+    readings:["anomalies 91 traced","rating replay matched","recovery EUR 42k"],
+    path:["Revenue signal detects settlement anomaly","Agent traces mediation, rating, invoice, roaming, and partner records","Kernel replays deterministic rating path","BSS action drafts correction and rollback package","Finance approver accepts or rejects correction","Learning updates leakage rules and anomaly thresholds"],
+    evidence:["anomaly graph ARC-RA-9921","rating replay ARC-RAT-6509","correction draft ARC-COR-7220","rollback plan ARC-RBK-1911"],
+    action:"The loop can assemble the correction case. Finance approval is required before production correction."
+  },
+  {
+    id:"sovereign",
+    name:"Sovereign AI Trust Loop",
+    short:"Data residency, inference residency, model choice, audit evidence, and policy become enterprise SKUs.",
+    command:"Create a sovereign AI trust package for regulated enterprise tenants.",
+    proof:"residency matrix, inference route, model policy, audit package",
+    outcome:"Sovereign AI trust SKU prepared with compliance evidence",
+    revenue:118000,
+    leakage:0,
+    tokens:26.7,
+    confidence:90,
+    readings:["residency EU/IN mapped","audit pack complete","policy pass"],
+    path:["Enterprise trust signal enters product queue","Agent maps data, inference, model, and audit requirements","BSS action drafts trust SKU and quota plan","Policy tools verify residency and model routing boundaries","Human approves product and customer-facing claims","Learning updates sovereign offer templates"],
+    evidence:["residency matrix ARC-RES-5510","model routing ARC-MDL-3801","audit pack ARC-AUD-7742","policy proof ARC-POL-9019"],
+    action:"Claims about sovereignty are gated by evidence. The system refuses unsupported product commitments."
+  },
+  {
+    id:"governance",
+    name:"Agent Governance Loop",
+    short:"Every commercial agent has identity, owner, autonomy level, permissions, budget, audit, rollback, and kill switch.",
+    command:"Register a new partner-pricing agent with bounded autonomy and rollback.",
+    proof:"agent identity, owner, permissions, budget, audit, rollback, kill switch",
+    outcome:"Commercial agent registered without production commit rights",
+    revenue:0,
+    leakage:0,
+    tokens:9.3,
+    confidence:94,
+    readings:["autonomy L3","commit rights denied","rollback armed"],
+    path:["New agent request enters governance queue","Identity, owner, scope, and budget are assigned","Permission tools deny production commit authority","Audit, rollback, and kill switch are activated","Human approves the runtime profile","Learning updates autonomy scorecards"],
+    evidence:["agent profile ARC-AGT-1770","permission map ARC-PER-8102","budget cap ARC-BUD-4491","kill switch ARC-KILL-0101"],
+    action:"Agent autonomy can increase only through measured evidence and explicit operator approval."
+  }
+];
+
+const stages = [
+  "Signal",
+  "Agent",
+  "BSS Action",
+  "Governance",
+  "Outcome",
+  "Learning"
+];
+const runtimeSteps = [
+  {stage:0,state:"SIGNAL",text:"Signal detected",detail:"event stream crossed commercial threshold"},
+  {stage:1,state:"AGENT",text:"Agent spawned",detail:"process owner, scope, token budget, and kill switch assigned"},
+  {stage:2,state:"TOOLS",text:"Tools called",detail:"catalog, charging, policy, token, and evidence tools called through logged syscalls"},
+  {stage:3,state:"KERNEL",text:"Kernel check running",detail:"deterministic rating, eligibility, tax, and policy checks executing"},
+  {stage:3,state:"TWIN",text:"Digital twin simulation running",detail:"same seed, same result; agent interprets only"},
+  {stage:3,state:"EVIDENCE",text:"Evidence assembled",detail:"audit artifacts generated line by line"},
+  {stage:3,state:"APPROVAL",text:"Human approval required",detail:"production commit is blocked until operator decision"},
+  {stage:4,state:"OUTCOME",text:"Outcome recorded",detail:"ledger update waiting for operator action"},
+  {stage:5,state:"LEARNING",text:"Learning fed back",detail:"catalog, pricing, care, campaign, and policy signals updated"}
+];
+
+const componentNodes = [
+  {id:"kernel",label:"Kernel",cls:"node-kernel",title:"Deterministic Kernel",sub:"Rating, charging, eligibility, invoice, tax, and policy math stay exact, versioned, and audited.",evidence:["no LLM in compute path","production commit requires human authorization","same input, same output, same audit hash"],action:"Kernel accepts verified commits only. Agent output remains a proposal."},
+  {id:"twin",label:"Twin",cls:"node-twin",title:"Commercial Digital Twin",sub:"A reproducible simulation layer for product, pricing, quota, churn, margin, and SLA impact.",evidence:["seed 4471 replayable","assumption band visible","agent explains but does not calculate"],action:"Use before launch. No plan moves forward without deterministic twin evidence."},
+  {id:"tools",label:"Tools",cls:"node-tools",title:"Tool Syscalls",sub:"Agents touch BSS through typed, whitelisted, logged tool contracts.",evidence:["catalog.search read scope","tariff.draft sandbox scope","tariff.commit denied to agents"],action:"Permissions live in the tool layer, not the prompt."},
+  {id:"governance",label:"Governance",cls:"node-governance",title:"Governance Gate",sub:"Autonomy level, owner, budget, audit, rollback, and kill switch are attached to every commercial agent.",evidence:["autonomy L3","rollback armed","kill switch live"],action:"Approval is a system boundary, not a polite workflow step."},
+  {id:"token",label:"Token",cls:"node-token",title:"Token Meter",sub:"Tokens, requests, workflows, latency tiers, quotas, and partner share become billable commercial units.",evidence:["tenant quota tracked","latency tier priced","partner settlement generated"],action:"AI usage becomes a governed product meter before it reaches billing."},
+  {id:"ledger",label:"Ledger",cls:"node-ledger",title:"Loop Ledger",sub:"Every run records signal, tools, evidence, kernel checks, approval decision, outcome, and learning signal.",evidence:["run ID captured","operator decision captured","learning feedback captured"],action:"The ledger is how BSS becomes a system of commercial learning."},
+  {id:"loop",label:"Loop Engine",cls:"node-loop",title:"ARC/OS Loop Engine",sub:"Signal -> Agent -> BSS Action -> Governance -> Outcome -> Learning.",evidence:["loop route active","runtime state visible","commercial action controlled"],action:"Run a loop. Prove the business. Commit with control."}
+];
+
+const els = {
+  loopDeck:document.getElementById("loopDeck"),
+  timeline:document.getElementById("timeline"),
+  formula:document.getElementById("flowFormula"),
+  globeNodes:document.getElementById("globeNodes"),
+  agentPulse:document.getElementById("agentPulse"),
+  wire:document.getElementById("wireLog"),
+  wireState:document.getElementById("wireState"),
+  start:document.getElementById("startDemo"),
+  pause:document.getElementById("pauseDemo"),
+  reset:document.getElementById("resetDemo"),
+  input:document.getElementById("intentInput"),
+  coreState:document.getElementById("coreState"),
+  coreSub:document.getElementById("coreSub"),
+  modeLabel:document.getElementById("modeLabel"),
+  approve:document.getElementById("approveBtn"),
+  reject:document.getElementById("rejectBtn"),
+  approvalStatus:document.getElementById("approvalStatus"),
+  approvalMode:document.getElementById("approvalMode"),
+  evidence:document.getElementById("evidenceList"),
+  ledger:document.getElementById("ledger"),
+  modal:document.getElementById("loopModal"),
+  modalTitle:document.getElementById("modalTitle"),
+  modalSub:document.getElementById("modalSub"),
+  modalPath:document.getElementById("modalPath"),
+  modalEvidence:document.getElementById("modalEvidence"),
+  modalBoundary:document.getElementById("modalBoundary"),
+  modalAction:document.getElementById("modalAction"),
+  modalRun:document.getElementById("modalRun"),
+  closeModal:document.getElementById("closeModal")
+};
+const metricEls = {
+  activeLoops:document.getElementById("activeLoops"),
+  tokens:document.getElementById("tokens"),
+  queue:document.getElementById("queue"),
+  revenue:document.getElementById("revenue"),
+  leakage:document.getElementById("leakage"),
+  confidence:document.getElementById("confidence"),
+  seed:document.getElementById("seed"),
+  segmentImpact:document.getElementById("segmentImpact"),
+  churnDelta:document.getElementById("churnDelta"),
+  marginBand:document.getElementById("marginBand"),
+  twinMeter:document.getElementById("twinMeter"),
+  tokenCount:document.getElementById("tokenCount"),
+  requestCount:document.getElementById("requestCount"),
+  workflowCount:document.getElementById("workflowCount"),
+  slaTier:document.getElementById("slaTier"),
+  quota:document.getElementById("quota"),
+  partnerShare:document.getElementById("partnerShare"),
+  policyBoundary:document.getElementById("policyBoundary")
+};
+
+let state = {
+  activeLoop:null,
+  selectedLoop:loops[0],
+  running:false,
+  paused:false,
+  awaitingApproval:false,
+  abortId:0,
+  currentStage:-1,
+  tone:"idle",
+  runCounter:2048,
+  demoQueue:["intent","token","care"],
+  loopStatus:{},
+  metrics:{active:0,tokens:0,queue:0,revenue:0,leakage:0,confidence:72,requests:0,workflows:0,quota:0},
+  ledger:[]
+};
+
+function money(value){
+  if(value >= 1000) return "EUR " + Math.round(value/1000) + "k";
+  return "EUR " + Math.round(value);
+}
+function sleep(ms){
+  return new Promise(resolve=>setTimeout(resolve,ms));
+}
+async function waitWhilePaused(abortId){
+  while(state.paused && state.abortId === abortId) await sleep(150);
+}
+function setClock(){
+  const d = new Date();
+  document.getElementById("clock").innerHTML = String(d.getHours()).padStart(2,"0") + ":" + String(d.getMinutes()).padStart(2,"0") + "<small>:" + String(d.getSeconds()).padStart(2,"0") + "</small>";
+  document.getElementById("dateLine").textContent = d.toLocaleDateString(undefined,{weekday:"short",month:"short",day:"2-digit",year:"numeric"}) + " · local runtime";
+}
+setClock();
+setInterval(setClock,1000);
+
+function initDeck(){
+  els.loopDeck.innerHTML = "";
+  loops.forEach(loop=>{
+    const button = document.createElement("button");
+    button.className = "loop-card";
+    button.dataset.id = loop.id;
+    state.loopStatus[loop.id] = state.loopStatus[loop.id] || "idle";
+    button.innerHTML = `<span class="loop-name">${loop.name}</span><span class="loop-desc">${loop.short}</span><span class="loop-meta"><span class="loop-status">idle</span><span class="run-id">ARC-${loop.id.toUpperCase()}</span></span>`;
+    button.addEventListener("click",()=>openLoop(loop.id));
+    els.loopDeck.appendChild(button);
+  });
+  renderLoopStatuses();
+}
+function initTimeline(){
+  els.timeline.innerHTML = "";
+  els.formula.innerHTML = "";
+  stages.forEach((name,index)=>{
+    const s = document.createElement("div");
+    s.className = "stage";
+    s.dataset.stage = index;
+    s.innerHTML = `<div class="num">0${index+1}</div><div class="name">${name}</div><div class="bar"><div class="fill"></div></div>`;
+    els.timeline.appendChild(s);
+    const f = document.createElement("div");
+    f.className = "flow-step";
+    f.dataset.stage = index;
+    f.textContent = name;
+    els.formula.appendChild(f);
+  });
+}
+function initGlobeNodes(){
+  els.globeNodes.innerHTML = "";
+  componentNodes.forEach(node=>{
+    const button = document.createElement("button");
+    button.className = `globe-node ${node.cls}`;
+    button.textContent = node.label;
+    button.addEventListener("click",()=>openComponentNode(node.id));
+    els.globeNodes.appendChild(button);
+  });
+}
+function initAgentPulse(){
+  els.agentPulse.innerHTML = "";
+  for(let i=0;i<32;i++){
+    const bar = document.createElement("i");
+    bar.style.animationDelay = `${i * .045}s`;
+    bar.style.animationDuration = `${.72 + (i % 7) * .08}s`;
+    els.agentPulse.appendChild(bar);
+  }
+}
+function setTone(tone){
+  state.tone = tone;
+  document.body.classList.remove("runtime-active","runtime-blocked","runtime-complete");
+  if(tone === "active" || tone === "approval") document.body.classList.add("runtime-active");
+  if(tone === "blocked") document.body.classList.add("runtime-blocked");
+  if(tone === "complete") document.body.classList.add("runtime-complete");
+}
+function setLoopStatus(id,status){
+  state.loopStatus[id] = status;
+  renderLoopStatuses();
+}
+function renderLoopStatuses(){
+  document.querySelectorAll(".loop-card").forEach(card=>{
+    const status = state.loopStatus[card.dataset.id] || "idle";
+    card.classList.toggle("blocked",status === "blocked");
+    card.classList.toggle("complete",status === "complete");
+    const chip = card.querySelector(".loop-status");
+    if(chip){
+      chip.className = `loop-status ${status}`;
+      chip.textContent = status;
+    }
+  });
+}
+function markActiveLoop(id,running=false){
+  document.querySelectorAll(".loop-card").forEach(card=>{
+    card.classList.toggle("active",card.dataset.id === id);
+    card.classList.toggle("running",running && card.dataset.id === id);
+  });
+}
+function setStage(stageIndex,progress=100){
+  state.currentStage = stageIndex;
+  if(stageIndex >= 0) setTone("active");
+  document.querySelectorAll(".stage").forEach((stage,i)=>{
+    stage.classList.toggle("active",i === stageIndex);
+    stage.classList.toggle("done",i < stageIndex);
+    stage.querySelector(".fill").style.width = i < stageIndex ? "100%" : (i === stageIndex ? progress + "%" : "0");
+  });
+  document.querySelectorAll(".flow-step").forEach((step,i)=>{
+    step.classList.toggle("on",i === stageIndex);
+    step.classList.toggle("done",i < stageIndex);
+  });
+}
+function resetStage(){
+  state.currentStage = -1;
+  document.querySelectorAll(".stage").forEach(stage=>{
+    stage.classList.remove("active","done");
+    stage.querySelector(".fill").style.width = "0";
+  });
+  document.querySelectorAll(".flow-step").forEach(step=>step.classList.remove("on","done"));
+}
+function writeWire(text,kind=""){
+  const row = document.createElement("div");
+  row.className = "event " + kind;
+  const stamp = new Date().toLocaleTimeString([], {hour12:false,hour:"2-digit",minute:"2-digit",second:"2-digit"});
+  row.innerHTML = `<span class="ts">${stamp}</span> <span class="actor">arc/os</span> ${text}`;
+  els.wire.appendChild(row);
+  els.wire.scrollTop = els.wire.scrollHeight;
+}
+async function typeWire(prefix,text,kind="",abortId=state.abortId){
+  const row = document.createElement("div");
+  row.className = "event " + kind;
+  const stamp = new Date().toLocaleTimeString([], {hour12:false,hour:"2-digit",minute:"2-digit",second:"2-digit"});
+  row.innerHTML = `<span class="ts">${stamp}</span> <span class="actor">${prefix}</span> <span class="typed"></span><span class="blink"></span>`;
+  els.wire.appendChild(row);
+  const typed = row.querySelector(".typed");
+  for(let i=0;i<text.length;i++){
+    if(state.abortId !== abortId) return;
+    await waitWhilePaused(abortId);
+    typed.textContent += text[i];
+    els.wire.scrollTop = els.wire.scrollHeight;
+    await sleep(12);
+  }
+  const cursor = row.querySelector(".blink");
+  if(cursor) cursor.remove();
+}
+function setEvidence(items=[],readyCount=0){
+  els.evidence.innerHTML = "";
+  const fallback = ["catalog delta pending","kernel check pending","digital twin evidence pending","policy and residency evidence pending"];
+  const list = items.length ? items : fallback;
+  list.forEach((item,index)=>{
+    const li = document.createElement("li");
+    li.textContent = (index < readyCount ? "ready: " : "") + item;
+    if(index < readyCount) li.classList.add("ready");
+    els.evidence.appendChild(li);
+  });
+}
+function setApproval(mode,loop=null){
+  if(mode === "blocked"){
+    state.awaitingApproval = false;
+    els.approve.disabled = true;
+    els.reject.disabled = true;
+    els.approvalMode.textContent = "blocked";
+    els.approvalStatus.textContent = "Evidence is incomplete. Production commit remains locked.";
+    metricEls.policyBoundary.textContent = "evidence incomplete";
+  }
+  if(mode === "ready" && loop){
+    state.awaitingApproval = true;
+    setTone("approval");
+    els.approve.disabled = false;
+    els.reject.disabled = false;
+    els.approvalMode.textContent = "human required";
+    els.approvalStatus.textContent = loop.name + " proposes a production-impacting commit. Kernel checks passed; operator approval is required.";
+    metricEls.policyBoundary.textContent = "commit locked";
+  }
+  if(mode === "closed"){
+    state.awaitingApproval = false;
+    els.approve.disabled = true;
+    els.reject.disabled = true;
+    els.approvalMode.textContent = "closed";
+    metricEls.policyBoundary.textContent = "human-only commit";
+  }
+}
+function updateMetrics(target,steps=18){
+  const start = {...state.metrics};
+  const end = {...state.metrics,...target};
+  let tick = 0;
+  const timer = setInterval(()=>{
+    tick++;
+    const pct = Math.min(1,tick/steps);
+    const ease = 1 - Math.pow(1-pct,3);
+    Object.keys(end).forEach(key=>{
+      state.metrics[key] = start[key] + (end[key] - start[key]) * ease;
+    });
+    renderMetrics();
+    if(pct === 1) clearInterval(timer);
+  },90);
+}
+function renderMetrics(){
+  metricEls.activeLoops.textContent = Math.round(state.metrics.active);
+  metricEls.tokens.innerHTML = state.metrics.tokens.toFixed(1) + "<small>k</small>";
+  metricEls.queue.textContent = Math.round(state.metrics.queue);
+  metricEls.revenue.textContent = money(state.metrics.revenue);
+  metricEls.leakage.textContent = money(state.metrics.leakage);
+  metricEls.confidence.innerHTML = Math.round(state.metrics.confidence) + "<small>%</small>";
+  metricEls.tokenCount.textContent = Math.round(state.metrics.tokens * 1000).toLocaleString();
+  metricEls.requestCount.textContent = Math.round(state.metrics.requests).toLocaleString();
+  metricEls.workflowCount.textContent = Math.round(state.metrics.workflows).toLocaleString();
+  metricEls.quota.textContent = Math.round(state.metrics.quota) + "%";
+}
+function updateTwin(loop,stage){
+  if(stage < 4){
+    metricEls.segmentImpact.textContent = "simulating";
+    metricEls.churnDelta.textContent = "simulating";
+    metricEls.marginBand.textContent = "simulating";
+    metricEls.twinMeter.style.width = "48%";
+    return;
+  }
+  metricEls.segmentImpact.textContent = loop.readings[0];
+  metricEls.churnDelta.textContent = loop.readings[1];
+  metricEls.marginBand.textContent = loop.readings[2];
+  metricEls.twinMeter.style.width = loop.confidence + "%";
+}
+function updateTokenPanel(loop){
+  metricEls.slaTier.textContent = loop.id === "token" ? "premium latency" : (loop.id === "sovereign" ? "sovereign enterprise" : "controlled launch");
+  metricEls.partnerShare.textContent = loop.id === "token" || loop.id === "partner" ? "18% settlement" : "not applicable";
+}
+function addLedger(loop,status){
+  const result = status === "approved" ? "committed by operator" : "rejected by operator";
+  state.ledger.unshift({time:new Date().toLocaleTimeString([], {hour12:false,hour:"2-digit",minute:"2-digit"}),loop:loop.name,result,status,revenue:loop.revenue,leakage:loop.leakage});
+  renderLedger();
+}
+function renderLedger(){
+  if(state.ledger.length === 0){
+    els.ledger.innerHTML = `<div class="ledger-row"><span>no runs</span><b>Loop ledger waiting for governed outcomes</b><span class="hold">open</span></div>`;
+    return;
+  }
+  els.ledger.innerHTML = "";
+  state.ledger.slice(0,8).forEach(item=>{
+    const row = document.createElement("div");
+    row.className = "ledger-row";
+    row.innerHTML = `<span>${item.time}</span><b>${item.loop}<br><span class="${item.status === "approved" ? "ok" : "hold"}">${item.result}</span></b><span>${item.revenue ? money(item.revenue) : money(item.leakage)}</span>`;
+    els.ledger.appendChild(row);
+  });
+}
+function openLoop(id){
+  const loop = loops.find(item=>item.id === id);
+  if(!loop) return;
+  state.selectedLoop = loop;
+  els.input.value = loop.command;
+  markActiveLoop(id,state.activeLoop && state.activeLoop.id === id);
+  els.modalTitle.textContent = loop.name;
+  els.modalSub.textContent = loop.short;
+  els.modalPath.innerHTML = loop.path.map(item=>`<li>${item}</li>`).join("");
+  els.modalEvidence.innerHTML = loop.evidence.map(item=>`<li>${item}</li>`).join("");
+  els.modalBoundary.textContent = "Agents may draft and simulate. Kernel checks and human approval are mandatory before any financial production change.";
+  els.modalAction.textContent = loop.action;
+  els.modal.classList.add("open");
+}
+function openComponentNode(id){
+  const node = componentNodes.find(item=>item.id === id);
+  if(!node) return;
+  els.modalTitle.textContent = node.title;
+  els.modalSub.textContent = node.sub;
+  els.modalPath.innerHTML = [
+    "Component state follows the live runtime color.",
+    "Blue is normal, yellow is active verification, red is stoppage, green is committed learning.",
+    "Node actions open operator evidence and control boundaries."
+  ].map(item=>`<li>${item}</li>`).join("");
+  els.modalEvidence.innerHTML = node.evidence.map(item=>`<li>${item}</li>`).join("");
+  els.modalBoundary.textContent = node.action;
+  els.modalAction.textContent = state.activeLoop ? `Current loop: ${state.activeLoop.name}. Current stage: ${state.currentStage >= 0 ? stages[state.currentStage] : "idle"}.` : "No loop is currently running. Select a loop or start the runtime.";
+  els.modalRun.textContent = "Run Selected Loop";
+  els.modal.classList.add("open");
+}
+function closeLoopModal(){
+  els.modal.classList.remove("open");
+  els.modalRun.textContent = "Run This Loop";
+}
+async function runSelectedFromModal(){
+  const loop = state.selectedLoop;
+  closeLoopModal();
+  await runLoop(loop,{continueAfterApproval:false});
+}
+async function runDemo(){
+  if(state.running) return;
+  state.running = true;
+  state.paused = false;
+  setTone("active");
+  els.pause.textContent = "Pause";
+  const abortId = ++state.abortId;
+  writeWire("runtime sequence accepted: three loops queued, manual commit gates remain active","ok");
+  for(const id of state.demoQueue){
+    if(state.abortId !== abortId) break;
+    const loop = loops.find(item=>item.id === id);
+    await runLoop(loop,{continueAfterApproval:true,abortId});
+    if(state.abortId !== abortId) break;
+  }
+  if(state.abortId === abortId){
+    els.coreState.textContent = "LEARNING";
+    els.coreSub.textContent = "BSS is no longer only the system of record. It is the system of commercial learning.";
+    els.modeLabel.textContent = "loop ledger";
+    setTone("complete");
+    writeWire("loop engine idle: governed outcomes fed back into catalog, pricing, care, campaign, and policy memory","ok");
+  }
+  state.running = false;
+  markActiveLoop(state.selectedLoop.id,false);
+}
+async function runLoop(loop,opts={}){
+  const abortId = opts.abortId || ++state.abortId;
+  state.activeLoop = loop;
+  state.selectedLoop = loop;
+  const runId = "RUN-ARC-" + (++state.runCounter);
+  setTone("active");
+  setLoopStatus(loop.id,"running");
+  markActiveLoop(loop.id,true);
+  resetStage();
+  setApproval("blocked");
+  setEvidence(loop.evidence,0);
+  updateTokenPanel(loop);
+  updateMetrics({
+    active:1,
+    queue:0,
+    tokens:state.metrics.tokens + Math.max(2,loop.tokens * .18),
+    requests:state.metrics.requests + 120,
+    workflows:state.metrics.workflows + 1,
+    quota:Math.min(92,state.metrics.quota + 9)
+  },10);
+  els.wireState.textContent = "running";
+  els.coreState.textContent = "RUNNING";
+  els.coreSub.textContent = loop.command;
+  els.modeLabel.textContent = loop.name;
+  els.input.value = loop.command;
+  writeWire(`${runId} accepted: ${loop.command}`);
+  for(let i=0;i<runtimeSteps.length;i++){
+    if(state.abortId !== abortId) return;
+    await waitWhilePaused(abortId);
+    const step = runtimeSteps[i];
+    setStage(step.stage, i === 3 ? 50 : 100);
+    els.coreState.textContent = step.state;
+    els.coreSub.textContent = step.text + " · " + step.detail;
+    if(i < 6) setEvidence(loop.evidence,Math.max(0,i-1));
+    if(i === 3) updateTwin(loop,3);
+    if(i === 4) updateTwin(loop,4);
+    if(i === 5) setEvidence(loop.evidence,loop.evidence.length);
+    if(i === 6){
+      updateMetrics({queue:1,tokens:state.metrics.tokens + loop.tokens * .22,requests:state.metrics.requests + 260,workflows:state.metrics.workflows + 2,confidence:loop.confidence,quota:Math.min(95,state.metrics.quota + 12)},12);
+      setApproval("ready",loop);
+      setLoopStatus(loop.id,"approval");
+    }
+    await typeWire(step.state.toLowerCase(),`${runId} · ${step.text}: ${step.detail}`,(i === 6 ? "warn" : ""),abortId);
+    await sleep(520 + Math.floor(Math.random()*760));
+    if(i === 6){
+      els.wireState.textContent = "approval";
+      await waitForApproval(loop,abortId);
+      if(state.abortId !== abortId) return;
+      if(state.loopStatus[loop.id] === "blocked"){
+        els.wireState.textContent = "stopped";
+        updateMetrics({active:0,queue:0},8);
+        markActiveLoop(loop.id,false);
+        return;
+      }
+    }
+  }
+  setStage(5,100);
+  if(state.loopStatus[loop.id] === "complete") setTone("complete");
+  els.wireState.textContent = "idle";
+  updateMetrics({active:0,queue:0},8);
+  markActiveLoop(loop.id,false);
+}
+function waitForApproval(loop,abortId){
+  return new Promise(resolve=>{
+    const approve = ()=>{
+      cleanup();
+      state.awaitingApproval = false;
+      setApproval("closed");
+      setTone("complete");
+      setLoopStatus(loop.id,"complete");
+      addLedger(loop,"approved");
+      updateMetrics({
+        active:0,
+        queue:0,
+        revenue:state.metrics.revenue + loop.revenue,
+        leakage:state.metrics.leakage + loop.leakage,
+        tokens:state.metrics.tokens + loop.tokens * .6,
+        requests:state.metrics.requests + 410,
+        workflows:state.metrics.workflows + 3,
+        quota:Math.min(98,state.metrics.quota + 8),
+        confidence:loop.confidence
+      },16);
+      els.coreState.textContent = "COMMITTED";
+      els.coreSub.textContent = loop.outcome + " · human commit recorded";
+      writeWire(`human approval recorded: ${loop.outcome}`,"ok");
+      resolve();
+    };
+    const reject = ()=>{
+      cleanup();
+      state.awaitingApproval = false;
+      setApproval("closed");
+      setTone("blocked");
+      setLoopStatus(loop.id,"blocked");
+      addLedger(loop,"rejected");
+      updateMetrics({active:0,queue:0},8);
+      els.coreState.textContent = "REJECTED";
+      els.coreSub.textContent = "Operator rejected the production-impacting action. Feedback retained for next run.";
+      writeWire("operator rejected commit: no production change made","warn");
+      resolve();
+    };
+    const cleanup = ()=>{
+      els.approve.removeEventListener("click",approve);
+      els.reject.removeEventListener("click",reject);
+    };
+    els.approve.addEventListener("click",approve);
+    els.reject.addEventListener("click",reject);
+    const watcher = setInterval(()=>{
+      if(state.abortId !== abortId){
+        clearInterval(watcher);
+        cleanup();
+        resolve();
+      }
+    },250);
+  });
+}
+function resetRuntime(){
+  state.abortId++;
+  state.running = false;
+  state.paused = false;
+  state.awaitingApproval = false;
+  state.activeLoop = null;
+  state.selectedLoop = loops[0];
+  state.tone = "idle";
+  state.loopStatus = {};
+  state.metrics = {active:0,tokens:0,queue:0,revenue:0,leakage:0,confidence:72,requests:0,workflows:0,quota:0};
+  state.ledger = [];
+  els.pause.textContent = "Pause";
+  els.wire.innerHTML = "";
+  els.wireState.textContent = "idle";
+  els.coreState.textContent = "READY";
+  els.coreSub.textContent = "Signal -> Agent -> BSS Action -> Governance -> Outcome -> Learning";
+  els.modeLabel.textContent = "loop-led BSS";
+  els.input.value = loops[0].command;
+  loops.forEach(loop=>state.loopStatus[loop.id] = "idle");
+  setTone("idle");
+  markActiveLoop(loops[0].id,false);
+  renderLoopStatuses();
+  resetStage();
+  setApproval("closed");
+  setEvidence([],0);
+  renderMetrics();
+  renderLedger();
+  metricEls.segmentImpact.textContent = "waiting";
+  metricEls.churnDelta.textContent = "waiting";
+  metricEls.marginBand.textContent = "waiting";
+  metricEls.twinMeter.style.width = "0";
+  metricEls.slaTier.textContent = "standard";
+  metricEls.partnerShare.textContent = "waiting";
+  metricEls.policyBoundary.textContent = "human-only commit";
+  writeWire("runtime reset: no production changes open");
+}
+els.start.addEventListener("click",runDemo);
+els.pause.addEventListener("click",()=>{
+  if(!state.running && !state.awaitingApproval) return;
+  state.paused = !state.paused;
+  els.pause.textContent = state.paused ? "Resume" : "Pause";
+  writeWire(state.paused ? "runtime paused by operator" : "runtime resumed by operator");
+});
+els.reset.addEventListener("click",resetRuntime);
+els.closeModal.addEventListener("click",closeLoopModal);
+els.modal.addEventListener("click",event=>{if(event.target === els.modal) closeLoopModal()});
+els.modalRun.addEventListener("click",runSelectedFromModal);
+document.addEventListener("keydown",event=>{if(event.key === "Escape") closeLoopModal()});
+
+initDeck();
+initTimeline();
+initGlobeNodes();
+initAgentPulse();
+renderMetrics();
+renderLedger();
+resetRuntime();
+
+const coreCanvas = document.getElementById("core");
+const ctx = coreCanvas.getContext("2d");
+let cw = 0, ch = 0, spin = 0;
+const toneColors = {
+  idle:{core:"rgba(57,214,255,.22)",soft:"rgba(57,214,255,.07)",line:"rgba(57,214,255,",particle:"rgba(180,238,255,",ring:"rgba(57,214,255,.24)",accent:"rgba(57,214,255,.42)"},
+  active:{core:"rgba(234,255,47,.18)",soft:"rgba(57,214,255,.08)",line:"rgba(234,255,47,",particle:"rgba(230,255,138,",ring:"rgba(234,255,47,.35)",accent:"rgba(234,255,47,.62)"},
+  approval:{core:"rgba(234,255,47,.2)",soft:"rgba(254,148,36,.09)",line:"rgba(234,255,47,",particle:"rgba(250,255,166,",ring:"rgba(234,255,47,.44)",accent:"rgba(254,148,36,.58)"},
+  blocked:{core:"rgba(255,95,134,.18)",soft:"rgba(255,95,134,.08)",line:"rgba(255,95,134,",particle:"rgba(255,150,174,",ring:"rgba(255,95,134,.44)",accent:"rgba(255,95,134,.68)"},
+  complete:{core:"rgba(91,255,176,.18)",soft:"rgba(57,214,255,.07)",line:"rgba(91,255,176,",particle:"rgba(178,255,214,",ring:"rgba(91,255,176,.42)",accent:"rgba(91,255,176,.68)"}
+};
+const particles = [];
+for(let i=0;i<520;i++){
+  const y = 1 - (i / 519) * 2;
+  const radius = Math.sqrt(1 - y*y);
+  const theta = i * 2.399963;
+  particles.push({
+    x:Math.cos(theta)*radius,
+    y,
+    z:Math.sin(theta)*radius,
+    phase:Math.random()*Math.PI*2,
+    speed:.7 + Math.random()*.8
+  });
+}
+function sizeCanvas(){
+  const rect = coreCanvas.getBoundingClientRect();
+  cw = Math.max(320,Math.floor(rect.width * devicePixelRatio));
+  ch = Math.floor(350 * devicePixelRatio);
+  coreCanvas.width = cw;
+  coreCanvas.height = ch;
+}
+window.addEventListener("resize",sizeCanvas);
+sizeCanvas();
+function projectPoint(p,rot){
+  const cos = Math.cos(rot);
+  const sin = Math.sin(rot);
+  const x = p.x*cos - p.z*sin;
+  const z = p.x*sin + p.z*cos;
+  const y = p.y;
+  const r = Math.min(cw,ch) * .31;
+  const perspective = 1 / (1 + z*.36);
+  return {
+    x:cw/2 + x*r*perspective,
+    y:ch/2 + y*r*perspective,
+    z,
+    perspective
+  };
+}
+function drawCore(t){
+  spin += state.running ? .0042 : .0017;
+  const palette = toneColors[state.tone] || toneColors.idle;
+  ctx.clearRect(0,0,cw,ch);
+  const grd = ctx.createRadialGradient(cw/2,ch/2,0,cw/2,ch/2,Math.min(cw,ch)*.46);
+  grd.addColorStop(0,palette.core);
+  grd.addColorStop(.42,palette.soft);
+  grd.addColorStop(1,"rgba(57,214,255,0)");
+  ctx.fillStyle = grd;
+  ctx.beginPath();
+  ctx.arc(cw/2,ch/2,Math.min(cw,ch)*.46,0,Math.PI*2);
+  ctx.fill();
+  const projected = particles.map(p=>({...projectPoint(p,spin),p}));
+  ctx.lineWidth = devicePixelRatio;
+  for(let i=0;i<projected.length;i+=4){
+    const a = projected[i];
+    for(let j=i+1;j<i+8 && j<projected.length;j++){
+      const b = projected[j];
+      const dx = a.x-b.x;
+      const dy = a.y-b.y;
+      const dist = dx*dx + dy*dy;
+      if(dist < 3600 * devicePixelRatio){
+        const alpha = (1 - dist/(3600*devicePixelRatio)) * .13 * ((a.z+b.z+2)/4);
+        ctx.strokeStyle = `${palette.line}${alpha})`;
+        ctx.beginPath();
+        ctx.moveTo(a.x,a.y);
+        ctx.lineTo(b.x,b.y);
+        ctx.stroke();
+      }
+    }
+  }
+  projected.forEach(pr=>{
+    const depth = (pr.z + 1) / 2;
+    const blink = .58 + .42 * Math.sin(t*.001*pr.p.speed + pr.p.phase);
+    const alpha = (.2 + depth*.62) * blink;
+    const size = (1.1 + depth*2.2) * devicePixelRatio;
+    const sweep = state.tone !== "idle" && Math.sin(pr.x * .012 + spin * 5) > .18;
+    ctx.fillStyle = sweep ? `${palette.particle}${Math.min(.95, alpha + .22)})` : `rgba(180,238,255,${alpha})`;
+    ctx.beginPath();
+    ctx.arc(pr.x,pr.y,size,0,Math.PI*2);
+    ctx.fill();
+  });
+  const rings = state.currentStage < 0 ? 2 : 3;
+  for(let i=0;i<rings;i++){
+    const rr = Math.min(cw,ch) * (.19 + i*.075);
+    ctx.strokeStyle = i === 2 ? palette.accent : (state.tone === "idle" ? "rgba(57,214,255,.24)" : palette.ring);
+    ctx.lineWidth = (i === 2 ? 1.4 : 1) * devicePixelRatio;
+    ctx.beginPath();
+    ctx.ellipse(cw/2,ch/2,rr,rr*.23,spin*(i+1),0,Math.PI*2);
+    ctx.stroke();
+  }
+  if(state.tone === "active" || state.tone === "approval"){
+    const sweepX = cw/2 + Math.sin(spin * 2.2) * Math.min(cw,ch) * .22;
+    const sweepGrad = ctx.createLinearGradient(sweepX - 90*devicePixelRatio,0,sweepX + 90*devicePixelRatio,0);
+    sweepGrad.addColorStop(0,"rgba(234,255,47,0)");
+    sweepGrad.addColorStop(.5,"rgba(234,255,47,.26)");
+    sweepGrad.addColorStop(1,"rgba(234,255,47,0)");
+    ctx.fillStyle = sweepGrad;
+    ctx.beginPath();
+    ctx.ellipse(cw/2,ch/2,Math.min(cw,ch)*.31,Math.min(cw,ch)*.31,0,0,Math.PI*2);
+    ctx.fill();
+  }
+  if(state.tone === "blocked"){
+    ctx.strokeStyle = "rgba(255,95,134,.72)";
+    ctx.lineWidth = 2 * devicePixelRatio;
+    ctx.setLineDash([8 * devicePixelRatio, 7 * devicePixelRatio]);
+    ctx.beginPath();
+    ctx.ellipse(cw/2,ch/2,Math.min(cw,ch)*.37,Math.min(cw,ch)*.1,spin * 1.7,0,Math.PI*2);
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
+  if(state.tone === "complete"){
+    const pulse = .34 + .04 * Math.sin(t * .005);
+    ctx.strokeStyle = "rgba(91,255,176,.62)";
+    ctx.lineWidth = 1.7 * devicePixelRatio;
+    ctx.beginPath();
+    ctx.arc(cw/2,ch/2,Math.min(cw,ch)*pulse,0,Math.PI*2);
+    ctx.stroke();
+  }
+  requestAnimationFrame(drawCore);
+}
+requestAnimationFrame(drawCore);
+</script>
+</body>
+</html>
