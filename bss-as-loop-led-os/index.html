@@ -6,20 +6,20 @@
 <title>ARC/OS v2 - Loop Engine for AI-Native Telecom</title>
 <style>
 :root{
-  --cyan:#39d6ff;
-  --cyan-hot:#8ff0ff;
-  --cyan-deep:#0a89b8;
-  --blue:#2b7fff;
+  --cyan:#39D6FF;
+  --cyan-hot:#8FF0FF;
+  --cyan-deep:#1E88AA;
+  --blue:#2B7FFF;
   --amber:#fe9424;
   --green:#5bffb0;
   --red:#ff5f86;
-  --yellow:#eaff2f;
+  --yellow:#DFFF45;
   --magenta:#ff6bd6;
   --ink:#03060b;
   --ink-2:#07111c;
   --ink-3:#0b1724;
-  --line:rgba(57,214,255,0.24);
-  --line-soft:rgba(57,214,255,0.11);
+  --line:rgba(57,214,255,0.22);
+  --line-soft:rgba(57,214,255,0.10);
   --line-amber:rgba(254,148,36,0.38);
   --text:#dff6ff;
   --muted:rgba(190,226,244,0.66);
@@ -28,6 +28,7 @@
   --runtime:var(--cyan);
   --runtime-soft:rgba(57,214,255,0.16);
   --runtime-glow:rgba(57,214,255,0.42);
+  --runtime-line:rgba(57,214,255,0.22);
 }
 *{box-sizing:border-box}
 html,body{margin:0;min-height:100%;background:var(--ink);color:var(--text)}
@@ -35,7 +36,7 @@ body{
   font-family:"Trebuchet MS","Segoe UI",Arial,sans-serif;
   overflow-x:hidden;
   background:
-    radial-gradient(ellipse 72% 58% at 50% 35%, rgba(13,34,54,0.96) 0%, rgba(6,13,23,0.98) 42%, #03060b 100%),
+    radial-gradient(ellipse 60% 50% at 50% 44%, #0A1826 0%, #050A12 45%, #03060B 100%),
     linear-gradient(120deg, rgba(43,127,255,0.08), transparent 35%, rgba(254,148,36,0.06));
 }
 body::before{
@@ -69,18 +70,30 @@ body::after{
 }
 body.runtime-active{
   --runtime:var(--yellow);
-  --runtime-soft:rgba(234,255,47,0.15);
-  --runtime-glow:rgba(234,255,47,0.5);
+  --runtime-soft:rgba(223,255,69,0.18);
+  --runtime-glow:rgba(223,255,69,0.52);
+  --runtime-line:rgba(223,255,69,0.28);
+  background:
+    radial-gradient(ellipse 70% 58% at 50% 43%, rgba(54,76,12,0.46) 0%, rgba(16,24,12,0.86) 38%, #03060B 100%),
+    linear-gradient(120deg, rgba(223,255,69,0.09), transparent 38%, rgba(57,214,255,0.035));
 }
 body.runtime-blocked{
   --runtime:var(--red);
   --runtime-soft:rgba(255,95,134,0.16);
   --runtime-glow:rgba(255,95,134,0.48);
+  --runtime-line:rgba(255,95,134,0.3);
+  background:
+    radial-gradient(ellipse 70% 58% at 50% 43%, rgba(82,20,34,0.48) 0%, rgba(24,8,13,0.9) 40%, #03060B 100%),
+    linear-gradient(120deg, rgba(255,95,134,0.08), transparent 38%, rgba(57,214,255,0.025));
 }
 body.runtime-complete{
   --runtime:var(--green);
   --runtime-soft:rgba(91,255,176,0.16);
   --runtime-glow:rgba(91,255,176,0.5);
+  --runtime-line:rgba(91,255,176,0.28);
+  background:
+    radial-gradient(ellipse 70% 58% at 50% 43%, rgba(15,82,58,0.46) 0%, rgba(6,28,25,0.88) 40%, #03060B 100%),
+    linear-gradient(120deg, rgba(91,255,176,0.08), transparent 38%, rgba(57,214,255,0.05));
 }
 button,input{font:inherit}
 button{cursor:pointer}
@@ -137,7 +150,7 @@ button{cursor:pointer}
   letter-spacing:1.4px;
   text-transform:uppercase;
 }
-.status-line b{color:var(--cyan);font-weight:500}
+.status-line b{color:var(--runtime);font-weight:500}
 .pulse-dot{
   display:inline-block;
   width:7px;
@@ -189,9 +202,9 @@ button{cursor:pointer}
   align-items:start;
 }
 .panel{
-  border:1px solid var(--line);
+  border:1px solid var(--runtime-line);
   background:linear-gradient(160deg,rgba(8,18,29,.86),rgba(4,9,16,.78));
-  box-shadow:0 0 30px rgba(57,214,255,.08), inset 0 0 24px rgba(57,214,255,.028);
+  box-shadow:0 0 30px var(--runtime-soft), inset 0 0 24px rgba(57,214,255,.028);
   position:relative;
 }
 .panel::before,.panel::after{
@@ -215,11 +228,11 @@ button{cursor:pointer}
 .eyebrow{
   font-size:10px;
   letter-spacing:2.2px;
-  color:var(--cyan);
+  color:var(--runtime);
   text-transform:uppercase;
 }
 .muted{color:var(--low)}
-.hairline{height:1px;flex:1;background:linear-gradient(90deg,var(--cyan),transparent);opacity:.48}
+.hairline{height:1px;flex:1;background:linear-gradient(90deg,var(--runtime),transparent);opacity:.48}
 .panel-body{padding:12px}
 .loop-deck{
   display:grid;
@@ -287,12 +300,12 @@ button{cursor:pointer}
 .loop-status.blocked{color:var(--red);border-color:rgba(255,95,134,.45)}
 .run-id{color:var(--low)}
 .core-panel{
-  min-height:665px;
+  min-height:735px;
   overflow:hidden;
 }
 .core-stage{
   position:relative;
-  min-height:350px;
+  min-height:430px;
   border-bottom:1px solid var(--line-soft);
 }
 .core-stage::after{
@@ -307,7 +320,7 @@ button{cursor:pointer}
 }
 canvas#core{
   width:100%;
-  height:350px;
+  height:430px;
   display:block;
 }
 .core-overlay{
@@ -469,7 +482,7 @@ body.runtime-complete .agent-pulse i{animation-duration:1.45s}
   align-items:center;
   padding:9px 10px;
   border-bottom:1px solid var(--line-soft);
-  color:var(--cyan);
+  color:var(--runtime);
   font-size:10px;
   letter-spacing:1.8px;
   text-transform:uppercase;
@@ -579,7 +592,7 @@ body.runtime-complete .agent-pulse i{animation-duration:1.45s}
   font-weight:700;
 }
 .metric small{font-size:12px;color:var(--low)}
-.delta{margin-top:6px;color:var(--cyan);font-size:11px}
+.delta{margin-top:6px;color:var(--runtime);font-size:11px}
 .twin-grid,.token-grid,.gov-grid{
   display:grid;
   gap:8px;
@@ -1605,8 +1618,8 @@ const ctx = coreCanvas.getContext("2d");
 let cw = 0, ch = 0, spin = 0;
 const toneColors = {
   idle:{core:"rgba(57,214,255,.22)",soft:"rgba(57,214,255,.07)",line:"rgba(57,214,255,",particle:"rgba(180,238,255,",ring:"rgba(57,214,255,.24)",accent:"rgba(57,214,255,.42)"},
-  active:{core:"rgba(234,255,47,.18)",soft:"rgba(57,214,255,.08)",line:"rgba(234,255,47,",particle:"rgba(230,255,138,",ring:"rgba(234,255,47,.35)",accent:"rgba(234,255,47,.62)"},
-  approval:{core:"rgba(234,255,47,.2)",soft:"rgba(254,148,36,.09)",line:"rgba(234,255,47,",particle:"rgba(250,255,166,",ring:"rgba(234,255,47,.44)",accent:"rgba(254,148,36,.58)"},
+  active:{core:"rgba(223,255,69,.22)",soft:"rgba(57,214,255,.06)",line:"rgba(223,255,69,",particle:"rgba(232,255,138,",ring:"rgba(223,255,69,.38)",accent:"rgba(223,255,69,.68)"},
+  approval:{core:"rgba(223,255,69,.24)",soft:"rgba(254,148,36,.08)",line:"rgba(223,255,69,",particle:"rgba(250,255,166,",ring:"rgba(223,255,69,.46)",accent:"rgba(254,148,36,.62)"},
   blocked:{core:"rgba(255,95,134,.18)",soft:"rgba(255,95,134,.08)",line:"rgba(255,95,134,",particle:"rgba(255,150,174,",ring:"rgba(255,95,134,.44)",accent:"rgba(255,95,134,.68)"},
   complete:{core:"rgba(91,255,176,.18)",soft:"rgba(57,214,255,.07)",line:"rgba(91,255,176,",particle:"rgba(178,255,214,",ring:"rgba(91,255,176,.42)",accent:"rgba(91,255,176,.68)"}
 };
@@ -1626,7 +1639,7 @@ for(let i=0;i<520;i++){
 function sizeCanvas(){
   const rect = coreCanvas.getBoundingClientRect();
   cw = Math.max(320,Math.floor(rect.width * devicePixelRatio));
-  ch = Math.floor(350 * devicePixelRatio);
+  ch = Math.floor(430 * devicePixelRatio);
   coreCanvas.width = cw;
   coreCanvas.height = ch;
 }
@@ -1638,7 +1651,7 @@ function projectPoint(p,rot){
   const x = p.x*cos - p.z*sin;
   const z = p.x*sin + p.z*cos;
   const y = p.y;
-  const r = Math.min(cw,ch) * .31;
+  const r = Math.min(cw,ch) * .39;
   const perspective = 1 / (1 + z*.36);
   return {
     x:cw/2 + x*r*perspective,
@@ -1701,12 +1714,12 @@ function drawCore(t){
   if(state.tone === "active" || state.tone === "approval"){
     const sweepX = cw/2 + Math.sin(spin * 2.2) * Math.min(cw,ch) * .22;
     const sweepGrad = ctx.createLinearGradient(sweepX - 90*devicePixelRatio,0,sweepX + 90*devicePixelRatio,0);
-    sweepGrad.addColorStop(0,"rgba(234,255,47,0)");
-    sweepGrad.addColorStop(.5,"rgba(234,255,47,.26)");
-    sweepGrad.addColorStop(1,"rgba(234,255,47,0)");
+    sweepGrad.addColorStop(0,"rgba(223,255,69,0)");
+    sweepGrad.addColorStop(.5,"rgba(223,255,69,.32)");
+    sweepGrad.addColorStop(1,"rgba(223,255,69,0)");
     ctx.fillStyle = sweepGrad;
     ctx.beginPath();
-    ctx.ellipse(cw/2,ch/2,Math.min(cw,ch)*.31,Math.min(cw,ch)*.31,0,0,Math.PI*2);
+    ctx.ellipse(cw/2,ch/2,Math.min(cw,ch)*.39,Math.min(cw,ch)*.39,0,0,Math.PI*2);
     ctx.fill();
   }
   if(state.tone === "blocked"){
