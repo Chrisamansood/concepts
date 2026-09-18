@@ -162,5 +162,20 @@
     "status": "Live",
     "path": "bss-as-loop-led-os/",
     "color": "#39D6FF"
+  },
+  {
+    "id": "ufiniti",
+    "title": "UFiniti",
+    "subtitle": "Financial services for every connection",
+    "description": "A UK-first, partner-enabled financial services platform for MVNOs, bringing wallets, remittance, banking, cards and digital assets together through one modular integration layer.",
+    "tags": [
+      "MVNO",
+      "Wallets",
+      "Banking",
+      "Digital assets"
+    ],
+    "status": "Live",
+    "path": "ufiniti/",
+    "color": "#087C70"
   }
 ]
