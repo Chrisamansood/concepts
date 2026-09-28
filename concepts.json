@@ -162,5 +162,20 @@
     "status": "Live",
     "path": "bss-as-loop-led-os/",
     "color": "#39D6FF"
+  },
+  {
+    "id": "science-and-spirituality",
+    "title": "Science and Spirituality",
+    "subtitle": "Understand Sanatan Dharma",
+    "description": "A cosmic exploration interface for questions about matter, consciousness, action and the self, with a visible path back to source texts.",
+    "tags": [
+      "Science",
+      "Spirituality",
+      "Sanatan Dharma",
+      "Cosmos"
+    ],
+    "status": "Live",
+    "path": "science-and-spirituality/",
+    "color": "#D68A4D"
   }
 ]

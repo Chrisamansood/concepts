@@ -1,0 +1,601 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Science and Spirituality | Understand Sanatan Dharma</title>
+    <meta
+      name="description"
+      content="Explore Sanatan Dharma through questions of cosmos, consciousness, action and the self."
+    />
+    <style>
+      :root {
+        --ink: #f3f5ef;
+        --ink-soft: #aab3b5;
+        --paper: #07090d;
+        --paper-deep: #0d1218;
+        --panel: rgba(16, 22, 29, 0.78);
+        --line: rgba(243, 245, 239, 0.16);
+        --accent: #d68a4d;
+        --accent-deep: #b96735;
+        --moss: #18302f;
+        --shadow: 0 30px 90px rgba(0, 0, 0, 0.4);
+        color-scheme: dark;
+      }
+
+      [data-theme="light"] {
+        --ink: #162027;
+        --ink-soft: #59666a;
+        --paper: #edf0ed;
+        --paper-deep: #dfe5e4;
+        --panel: rgba(247, 249, 246, 0.78);
+        --line: rgba(22, 32, 39, 0.15);
+        --accent: #a95d2f;
+        --accent-deep: #864723;
+        --moss: #254b4a;
+        --shadow: 0 24px 70px rgba(22, 34, 37, 0.16);
+        color-scheme: light;
+      }
+
+      * { box-sizing: border-box; }
+      html { scroll-behavior: smooth; }
+      body {
+        margin: 0;
+        background: var(--paper);
+        color: var(--ink);
+        font-family: "Avenir Next", "Helvetica Neue", Arial, sans-serif;
+        line-height: 1.5;
+        transition: background 260ms ease, color 260ms ease;
+      }
+
+      button, input { font: inherit; }
+      button { cursor: pointer; }
+      a { color: inherit; text-decoration: none; }
+
+      .shell {
+        width: min(1240px, calc(100% - 48px));
+        margin: 0 auto;
+      }
+
+      .topbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        height: 78px;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .wordmark {
+        display: inline-flex;
+        align-items: center;
+        gap: 12px;
+        font-size: 14px;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+      }
+
+      .mark {
+        display: grid;
+        place-items: center;
+        width: 29px;
+        height: 29px;
+        border: 1px solid var(--accent);
+        border-radius: 50%;
+        color: var(--accent);
+        font-family: Georgia, "Times New Roman", serif;
+        font-size: 15px;
+      }
+
+      nav { display: flex; align-items: center; gap: 28px; }
+      nav a, .theme-toggle {
+        color: var(--ink-soft);
+        font-size: 13px;
+        transition: color 180ms ease;
+      }
+      nav a:hover, nav a:focus-visible, .theme-toggle:hover, .theme-toggle:focus-visible { color: var(--ink); }
+      .theme-toggle {
+        padding: 7px 10px;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        background: transparent;
+      }
+
+      .hero {
+        position: relative;
+        display: grid;
+        grid-template-columns: minmax(0, 0.88fr) minmax(0, 1.12fr);
+        min-height: 690px;
+        padding: 62px 0 84px;
+        gap: 62px;
+        align-items: center;
+      }
+
+      .hero-copy { position: relative; z-index: 1; max-width: 530px; }
+      .eyebrow {
+        margin: 0 0 18px;
+        color: var(--accent);
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+      }
+
+      h1, h2, h3, p { margin-top: 0; }
+      h1 {
+        max-width: 520px;
+        margin-bottom: 22px;
+        font-size: clamp(3.5rem, 7.2vw, 6.9rem);
+        font-weight: 650;
+        letter-spacing: -0.075em;
+        line-height: 0.93;
+      }
+      h1 span { color: var(--accent); font-family: Georgia, "Times New Roman", serif; font-style: italic; font-weight: 400; letter-spacing: -0.08em; }
+      .hero-copy > p { max-width: 440px; color: var(--ink-soft); font-size: 17px; line-height: 1.65; }
+
+      .hero-actions { display: flex; align-items: center; gap: 18px; margin-top: 30px; }
+      .primary, .secondary {
+        min-height: 46px;
+        padding: 0 18px;
+        border-radius: 999px;
+        transition: transform 180ms ease, background 180ms ease, color 180ms ease;
+      }
+      .primary { border: 1px solid var(--accent-deep); background: var(--accent-deep); color: #fffaf4; }
+      .secondary { border: 1px solid var(--line); background: transparent; color: var(--ink); }
+      .primary:hover, .secondary:hover { transform: translateY(-2px); }
+      .primary:active, .secondary:active { transform: scale(0.98); }
+
+      .hero-image {
+        position: relative;
+        min-height: 510px;
+        overflow: hidden;
+        border: 1px solid rgba(243, 245, 239, 0.18);
+        border-radius: 24px;
+        background: #020306 url("assets/cosmic-equations.jpeg") center / cover no-repeat;
+        box-shadow: var(--shadow);
+      }
+      .hero-image::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(90deg, rgba(7, 9, 13, 0.56), transparent 56%), linear-gradient(180deg, rgba(4, 7, 11, 0.12), rgba(4, 7, 11, 0.36));
+      }
+      .hero-image::before {
+        content: "∂ψ / ∂t   =   Ĥψ   ·   E = mc²   ·   S = k ln Ω";
+        position: absolute;
+        z-index: 1;
+        top: 18px;
+        left: 20px;
+        color: rgba(243, 245, 239, 0.74);
+        font-family: Georgia, "Times New Roman", serif;
+        font-size: 11px;
+        letter-spacing: 0.03em;
+        writing-mode: vertical-rl;
+        transform: rotate(180deg);
+        text-shadow: 0 1px 10px rgba(0,0,0,0.6);
+      }
+      .hero-note {
+        position: absolute;
+        z-index: 1;
+        right: 22px;
+        bottom: 22px;
+        max-width: 170px;
+        padding: 13px 15px;
+        border: 1px solid rgba(255,255,255,0.28);
+        border-radius: 14px;
+        background: rgba(5, 8, 12, 0.66);
+        color: #f7f6ef;
+        font-size: 12px;
+        backdrop-filter: blur(12px);
+      }
+
+      .question-panel {
+        display: grid;
+        grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+        gap: 44px;
+        padding: 54px 0 70px;
+        border-top: 1px solid var(--line);
+      }
+      .section-title { max-width: 380px; }
+      h2 { margin-bottom: 14px; font-size: clamp(2.1rem, 4vw, 3.8rem); letter-spacing: -0.065em; line-height: 0.98; }
+      .section-title p { color: var(--ink-soft); font-size: 15px; line-height: 1.65; }
+
+      .ask-box {
+        padding: 22px;
+        border: 1px solid var(--line);
+        border-radius: 20px;
+        background: var(--panel);
+        box-shadow: 0 18px 58px rgba(0, 0, 0, 0.18);
+      }
+      .ask-label { display: block; margin-bottom: 10px; color: var(--ink-soft); font-size: 12px; font-weight: 700; }
+      .ask-row { display: flex; gap: 10px; }
+      .ask-row input {
+        min-width: 0;
+        flex: 1;
+        height: 48px;
+        padding: 0 15px;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        outline: none;
+        background: var(--paper);
+        color: var(--ink);
+      }
+      .ask-row input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 20%, transparent); }
+      .ask-row button { border: 0; border-radius: 12px; padding: 0 19px; background: var(--ink); color: var(--paper); }
+      .suggestions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+      .suggestion { border: 1px solid var(--line); border-radius: 999px; padding: 7px 10px; background: transparent; color: var(--ink-soft); font-size: 12px; }
+      .suggestion:hover { border-color: var(--accent); color: var(--ink); }
+
+      .answer-preview {
+        display: none;
+        margin-top: 18px;
+        padding-top: 18px;
+        border-top: 1px solid var(--line);
+      }
+      .answer-preview.visible { display: block; animation: rise 420ms ease both; }
+      .answer-kicker { margin-bottom: 8px; color: var(--accent); font-size: 11px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; }
+      .answer-preview h3 { margin-bottom: 8px; font-size: 21px; letter-spacing: -0.035em; }
+      .answer-preview p { margin-bottom: 14px; color: var(--ink-soft); font-size: 14px; }
+      .answer-meta { display: flex; flex-wrap: wrap; gap: 8px; }
+      .answer-meta span { padding: 5px 8px; border-radius: 7px; background: var(--paper-deep); color: var(--ink-soft); font-size: 11px; }
+      .answer-preview[aria-busy="true"] .answer-content { opacity: 0.42; }
+      .answer-loading { display: none; gap: 6px; align-items: center; color: var(--accent); font-size: 12px; }
+      .answer-preview[aria-busy="true"] .answer-loading { display: inline-flex; }
+      .answer-loading::before { content: ""; width: 7px; height: 7px; border: 1px solid var(--accent); border-top-color: transparent; border-radius: 50%; animation: spin 700ms linear infinite; }
+      .question-context { margin-top: 13px; color: var(--ink-soft); font-size: 12px; }
+
+      .themes { padding: 76px 0 96px; background: var(--paper-deep); }
+      .themes-head { display: flex; align-items: end; justify-content: space-between; gap: 24px; margin-bottom: 30px; }
+      .themes-head p { max-width: 390px; margin-bottom: 4px; color: var(--ink-soft); font-size: 14px; }
+      .theme-grid { display: grid; grid-template-columns: 1.2fr 0.8fr 0.8fr; gap: 14px; }
+      .theme-card { min-height: 190px; padding: 22px; border: 1px solid var(--line); border-radius: 18px; background: var(--panel); transition: transform 200ms ease, border-color 200ms ease; }
+      .theme-card:hover { transform: translateY(-4px); border-color: var(--accent); }
+      .theme-card.large { min-height: 300px; background: var(--moss); color: #f3f4ec; }
+      .theme-card small { color: var(--accent); font-size: 11px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; }
+      .theme-card.large small { color: #e6b38c; }
+      .theme-card h3 { margin: 46px 0 8px; font-size: 29px; letter-spacing: -0.06em; }
+      .theme-card p { max-width: 260px; margin-bottom: 0; color: var(--ink-soft); font-size: 13px; }
+      .theme-card.large p { color: rgba(243,244,236,0.78); }
+      .theme-card:focus-visible, .suggestion:focus-visible, .primary:focus-visible, .secondary:focus-visible, nav a:focus-visible, .theme-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
+      .theme-card small { display: block; }
+      .theme-card .theme-prompt { display: block; margin-top: 18px; color: var(--accent); font-size: 11px; opacity: 0; transform: translateY(4px); transition: opacity 180ms ease, transform 180ms ease; }
+      .theme-card:hover .theme-prompt, .theme-card:focus-visible .theme-prompt { opacity: 1; transform: translateY(0); }
+
+      .equation-rail {
+        display: flex;
+        gap: 28px;
+        overflow: hidden;
+        padding: 18px 0;
+        border-top: 1px solid var(--line);
+        border-bottom: 1px solid var(--line);
+        color: var(--ink-soft);
+        font-family: Georgia, "Times New Roman", serif;
+        font-size: 14px;
+        white-space: nowrap;
+      }
+      .equation-rail span:nth-child(2) { color: var(--accent); }
+      .source-block { padding: 80px 0 70px; }
+      .source-block h2 { max-width: 680px; }
+      .source-block > p:last-child { max-width: 620px; color: var(--ink-soft); line-height: 1.7; }
+      .source-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 38px; }
+      .source-item { min-height: 154px; padding: 18px; border-top: 1px solid var(--line); }
+      .source-item small { color: var(--accent); font-size: 11px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; }
+      .source-item h3 { margin: 26px 0 7px; font-size: 18px; letter-spacing: -0.04em; }
+      .source-item p { margin: 0; color: var(--ink-soft); font-size: 13px; }
+      .source-note { margin-top: 34px; padding: 14px 16px; border: 1px solid var(--line); border-radius: 12px; color: var(--ink-soft); font-size: 12px; }
+      .source-note strong { color: var(--ink); }
+
+      .footer { display: flex; justify-content: space-between; gap: 20px; padding: 28px 0 40px; color: var(--ink-soft); font-size: 12px; }
+      .footer strong { color: var(--ink); }
+
+      @keyframes rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+      @keyframes spin { to { transform: rotate(360deg); } }
+      @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; } }
+      @media (max-width: 800px) {
+        .shell { width: min(100% - 32px, 680px); }
+        nav { gap: 12px; }
+        nav a { font-size: 11px; }
+        .hero, .question-panel { grid-template-columns: 1fr; gap: 30px; }
+        .hero { padding-top: 42px; }
+        .hero-image { min-height: 390px; order: -1; }
+        h1 { font-size: clamp(3.2rem, 15vw, 5.6rem); }
+        .question-panel { padding: 54px 0; }
+        .themes-head { display: block; }
+        .themes-head p { margin-top: 15px; }
+        .theme-grid { grid-template-columns: 1fr; }
+        .theme-card.large { min-height: 220px; }
+        .source-grid { grid-template-columns: 1fr; gap: 0; }
+      }
+      @media (max-width: 520px) {
+        .topbar { height: 68px; }
+        nav { gap: 7px; }
+        nav a { display: none; }
+        .hero-actions, .ask-row, .footer { align-items: stretch; flex-direction: column; }
+        .hero-actions button { width: 100%; }
+        .ask-row button { min-height: 46px; }
+        .hero-image { min-height: 300px; border-radius: 18px; }
+        .footer { gap: 9px; }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="shell topbar">
+      <a class="wordmark" href="#top" aria-label="Understand Sanatan Dharma home">
+        <span class="mark" aria-hidden="true">∴</span>
+        <span>Understand Sanatan Dharma</span>
+      </a>
+      <nav aria-label="Primary navigation">
+        <a href="#ask">Ask</a>
+        <a href="#themes">Explore</a>
+        <a href="#sources">Sources</a>
+        <button class="theme-toggle" type="button" id="themeToggle">Light mode</button>
+      </nav>
+    </header>
+
+    <main id="top">
+      <section class="shell hero" aria-labelledby="hero-title">
+        <div class="hero-copy">
+          <p class="eyebrow">Cosmos and consciousness</p>
+          <h1 id="hero-title">Some questions begin in <span>physics.</span></h1>
+          <p>Explore Sanatan Dharma through questions of matter, mind, action and the self. Move between careful explanation, original sources and your own experience.</p>
+          <div class="hero-actions">
+            <a class="primary" href="#ask">Ask a question</a>
+            <a class="secondary" href="#themes">Explore themes</a>
+          </div>
+        </div>
+        <div class="hero-image" role="img" aria-label="A black hole bending a field of mathematical equations across a star-filled sky">
+          <div class="hero-note">Science maps the world. Reflection asks how we meet it.</div>
+        </div>
+      </section>
+
+      <div class="shell equation-rail" aria-label="Scientific and mathematical notation">
+        <span>E = mc²</span>
+        <span>चित्त · मनस् · बुद्धि</span>
+        <span>iℏ ∂ψ / ∂t = Ĥψ</span>
+        <span>सत् · चित् · आनन्द</span>
+        <span>∫ meaning · attention · action</span>
+      </div>
+
+      <section class="shell question-panel" id="ask" aria-labelledby="ask-title">
+        <div class="section-title">
+          <h2 id="ask-title">Bring the question behind the question.</h2>
+          <p>The conversation begins in ordinary language. The answer should take you back to the source, then leave room for thought.</p>
+        </div>
+        <div class="ask-box">
+          <label class="ask-label" for="questionInput">Ask about Sanatan Dharma</label>
+          <div class="ask-row">
+            <input id="questionInput" type="text" value="Why does the Gita speak about detachment?" />
+            <button type="button" id="askButton">Ask</button>
+          </div>
+          <p class="question-context" id="questionContext">Try a question about action, awareness, matter or the self.</p>
+          <div class="suggestions" aria-label="Suggested questions">
+            <button class="suggestion" type="button">What is dharma?</button>
+            <button class="suggestion" type="button">How are the four yogas different?</button>
+            <button class="suggestion" type="button">What is the self?</button>
+          </div>
+          <div class="answer-preview" id="answerPreview" aria-live="polite" aria-busy="false">
+            <span class="answer-loading">Reading the question</span>
+            <div class="answer-content">
+              <p class="answer-kicker" id="answerKicker">A first response</p>
+              <h3 id="answerTitle">Work fully. Hold the result lightly.</h3>
+              <p id="answerText">In this context, detachment points to a different relationship with the result. You still care about the work. You loosen the fear that the result must prove your worth.</p>
+              <div class="answer-meta">
+                <span id="answerSource">Bhagavad Gita 2.47-48</span>
+                <span id="answerType">Paraphrase</span>
+                <span>Reflection included</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="themes" id="themes" aria-labelledby="themes-title">
+        <div class="shell">
+          <div class="themes-head">
+            <div>
+              <p class="eyebrow">A map for exploration</p>
+              <h2 id="themes-title">Follow the thread.</h2>
+            </div>
+            <p>There is no single doorway into this tradition. Follow the idea that is close to your life today.</p>
+          </div>
+          <div class="theme-grid">
+            <a class="theme-card large" href="#ask" data-question="Does Sanatan Dharma have a view of the cosmos?">
+              <small>01</small>
+              <h3>Cosmos</h3>
+              <p>Order, change, time and the place of a human life within a larger whole.</p>
+              <span class="theme-prompt">Ask about the cosmos →</span>
+            </a>
+            <a class="theme-card" href="#ask" data-question="What is consciousness in the Upanishads?">
+              <small>02</small>
+              <h3>Consciousness</h3>
+              <p>Attention, awareness and the witness behind experience.</p>
+              <span class="theme-prompt">Ask about awareness →</span>
+            </a>
+            <a class="theme-card" href="#ask" data-question="What are the three gunas?">
+              <small>03</small>
+              <h3>Prakriti</h3>
+              <p>Matter, energy and the qualities that shape perception and action.</p>
+              <span class="theme-prompt">Ask about matter →</span>
+            </a>
+            <a class="theme-card" href="#ask" data-question="What is dharma in ordinary life?">
+              <small>04</small>
+              <h3>Dharma</h3>
+              <p>Action, responsibility and the pattern of response that a moment calls for.</p>
+              <span class="theme-prompt">Ask about dharma →</span>
+            </a>
+            <a class="theme-card" href="#ask" data-question="What does moksha mean?">
+              <small>05</small>
+              <h3>Moksha</h3>
+              <p>Freedom as a change in how the self relates to thought, desire and fear.</p>
+              <span class="theme-prompt">Ask about freedom →</span>
+            </a>
+          </div>
+        </div>
+      </section>
+
+      <section class="shell source-block" id="sources" aria-labelledby="sources-title">
+        <p class="eyebrow">Sources matter</p>
+        <h2 id="sources-title">Every answer should leave a trail back to the text.</h2>
+        <p>Scripture, translation, commentary and modern explanation should remain visible as different layers. You can read the answer, then decide how far you want to go.</p>
+        <div class="source-grid">
+          <article class="source-item">
+            <small>Text</small>
+            <h3>Bhagavad Gita</h3>
+            <p>Action, attention and the problem of acting without being owned by the result.</p>
+          </article>
+          <article class="source-item">
+            <small>Text</small>
+            <h3>Upanishads</h3>
+            <p>Questions about the self, consciousness and the ground of experience.</p>
+          </article>
+          <article class="source-item">
+            <small>Method</small>
+            <h3>Layers stay visible</h3>
+            <p>Paraphrase, commentary and personal reflection should never be presented as the same thing.</p>
+          </article>
+        </div>
+        <p class="source-note"><strong>Early build.</strong> The guide currently demonstrates the conversation shape. A connected source library and live answer engine come next.</p>
+      </section>
+    </main>
+
+    <footer class="shell footer">
+      <span><strong>Understand Sanatan Dharma</strong></span>
+      <span>For study, reflection and practice.</span>
+    </footer>
+
+    <script>
+      const root = document.documentElement;
+      const toggle = document.getElementById("themeToggle");
+      const input = document.getElementById("questionInput");
+      const answer = document.getElementById("answerPreview");
+      const askButton = document.getElementById("askButton");
+      const questionContext = document.getElementById("questionContext");
+      const answerKicker = document.getElementById("answerKicker");
+      const answerTitle = document.getElementById("answerTitle");
+      const answerText = document.getElementById("answerText");
+      const answerSource = document.getElementById("answerSource");
+      const answerType = document.getElementById("answerType");
+
+      const responses = [
+        {
+          matches: ["detachment", "gita"],
+          kicker: "A first response",
+          title: "Work fully. Hold the result lightly.",
+          text: "In this context, detachment points to a different relationship with the result. You still care about the work. You loosen the fear that the result must prove your worth.",
+          source: "Bhagavad Gita 2.47-48",
+          type: "Paraphrase"
+        },
+        {
+          matches: ["what is dharma", "dharma"],
+          kicker: "A first response",
+          title: "Dharma changes with the life in front of you.",
+          text: "The word can point to a way of living, a responsibility, or the order that lets life continue. A useful question is: what response is this moment asking from me, given my role and my relationships?",
+          source: "Bhagavad Gita 3.35",
+          type: "Orientation"
+        },
+        {
+          matches: ["four yogas", "yogas"],
+          kicker: "A first response",
+          title: "Yoga names more than one way of turning toward freedom.",
+          text: "Karma, jnana, bhakti and dhyana describe different emphases: action, discernment, devotion and meditation. They are better read as paths that can overlap than as four boxes for four kinds of people.",
+          source: "Bhagavad Gita 2, 12 and 18",
+          type: "Orientation"
+        },
+        {
+          matches: ["self", "consciousness", "witness"],
+          kicker: "A first response",
+          title: "The self is the question, not only the answer.",
+          text: "The Upanishadic inquiry looks at the changing body, thoughts and roles, then asks what makes experience knowable at all. Different schools interpret that inquiry differently. The text invites sustained attention before a conclusion.",
+          source: "Chandogya Upanishad 6.8.7",
+          type: "Orientation"
+        },
+        {
+          matches: ["cosmos", "creation", "universe"],
+          kicker: "A first response",
+          title: "The tradition leaves room for a question mark at the beginning.",
+          text: "The Nasadiya Sukta speaks about a time before familiar distinctions and ends with uncertainty about who could know how creation began. Curiosity belongs inside the tradition alongside devotion and practice.",
+          source: "Rig Veda 10.129",
+          type: "Paraphrase"
+        },
+        {
+          matches: ["gunas", "prakriti", "matter"],
+          kicker: "A first response",
+          title: "Prakriti describes the field in which experience moves.",
+          text: "The three gunas are described as qualities of prakriti: clarity and balance, activity and drive, heaviness and inertia. They are a way to notice patterns in mind and behaviour, rather than fixed labels for a person.",
+          source: "Bhagavad Gita 14.5-8",
+          type: "Paraphrase"
+        },
+        {
+          matches: ["moksha", "freedom", "liberation"],
+          kicker: "A first response",
+          title: "Moksha points to freedom in the relationship with experience.",
+          text: "Across Hindu traditions, moksha is discussed in different ways. A shared thread is release from the patterns that keep the self bound to ignorance, compulsion and repeated suffering.",
+          source: "Bhagavad Gita 2.55-72",
+          type: "Orientation"
+        }
+      ];
+
+      function findResponse(question) {
+        const normalized = question.trim().toLowerCase();
+        return responses.find((response) => response.matches.some((match) => normalized.includes(match))) || {
+          kicker: "A first response",
+          title: "Let us make the question more precise.",
+          text: "A useful starting point is to separate the words in the question, find the passage where they appear, and then ask what the idea changes in ordinary life. The connected source library will make that trail visible here.",
+          source: "Source trail pending",
+          type: "Guided placeholder"
+        };
+      }
+
+      function askQuestion() {
+        const question = input.value.trim();
+        if (!question) {
+          input.focus();
+          questionContext.textContent = "Begin with a word, a line from a text or something happening in your life.";
+          return;
+        }
+
+        const response = findResponse(question);
+        answer.classList.add("visible");
+        answer.setAttribute("aria-busy", "true");
+        questionContext.textContent = "The guide is treating this as a starting point for study and reflection.";
+
+        window.setTimeout(() => {
+          answerKicker.textContent = response.kicker;
+          answerTitle.textContent = response.title;
+          answerText.textContent = response.text;
+          answerSource.textContent = response.source;
+          answerType.textContent = response.type;
+          answer.setAttribute("aria-busy", "false");
+          answer.scrollIntoView({ behavior: "smooth", block: "nearest" });
+        }, 420);
+      }
+
+      toggle.addEventListener("click", () => {
+        const dark = root.dataset.theme === "dark";
+        root.dataset.theme = dark ? "light" : "dark";
+        toggle.textContent = root.dataset.theme === "dark" ? "Light mode" : "Dark mode";
+      });
+
+      askButton.addEventListener("click", askQuestion);
+      input.addEventListener("keydown", (event) => {
+        if (event.key === "Enter") askQuestion();
+      });
+
+      document.querySelectorAll(".suggestion").forEach((button) => {
+        button.addEventListener("click", () => {
+          input.value = button.textContent;
+          input.focus();
+        });
+      });
+
+      document.querySelectorAll(".theme-card").forEach((card) => {
+        card.addEventListener("click", (event) => {
+          event.preventDefault();
+          input.value = card.dataset.question;
+          answer.classList.remove("visible");
+          document.getElementById("ask").scrollIntoView({ behavior: "smooth", block: "start" });
+          window.setTimeout(() => input.focus(), 350);
+        });
+      });
+    </script>
+  </body>
+</html>
