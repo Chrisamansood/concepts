@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#080808" />
+    <meta name="description" content="The Living Equation — mathematical ideas becoming observable worlds." />
+    <title>The Living Equation — Mathematical Observatory</title>
+  </head>
+  <body>
+    <a class="skip-link" href="#observatory">Skip to the observatory</a>
+    <div id="app" data-quality="auto">
+      <div id="loading-state" class="loading-state" role="status">Preparing the observatory<span aria-hidden="true">…</span></div>
+
+      <header class="site-header">
+        <a class="wordmark" href="/" aria-label="The Living Equation home">
+          <span class="wordmark-mark" aria-hidden="true">∴</span>
+          <span>The Living Equation</span>
+        </a>
+        <div class="header-meta">
+          <span class="eyebrow">A STUDY IN MOTION</span>
+          <button id="header-sound" class="icon-button" type="button" aria-pressed="false" aria-label="Sound is off">Sound off</button>
+        </div>
+      </header>
+
+      <main>
+        <section id="entry-screen" class="entry-screen" aria-labelledby="entry-title">
+          <div class="entry-copy">
+            <p class="eyebrow">MATHEMATICS, MADE VISIBLE</p>
+            <h1 id="entry-title">Where equations<br /><em>begin to breathe.</em></h1>
+            <p class="entry-deck">A quiet observatory for the patterns hiding inside theorems, ratios, waves, and worlds.</p>
+            <div class="entry-actions">
+              <button id="enter-button" class="button button-primary" type="button">Enter the observatory <span aria-hidden="true">↗</span></button>
+              <button id="atlas-button" class="button button-ghost" type="button">Explore the atlas <span aria-hidden="true">↓</span></button>
+            </div>
+          </div>
+          <div class="entry-field" aria-hidden="true">
+            <div class="field-caption">FIELD 01 / FIBONACCI</div>
+            <div id="entry-visual" class="visual-shell visual-shell-entry"><canvas id="entry-canvas"></canvas></div>
+            <div class="field-coordinate">φ = 1.6180339887<br />the pattern is already here</div>
+          </div>
+        </section>
+
+        <section id="atlas" class="atlas-section" aria-labelledby="atlas-title">
+          <div class="section-heading">
+            <p class="eyebrow">THE ATLAS</p>
+            <h2 id="atlas-title">Six ways to look at a rule.</h2>
+            <p>Choose a question. The observatory will give it a field, a voice, and a place to start.</p>
+          </div>
+          <nav id="theorem-index" class="theorem-index" aria-label="Theorem atlas"></nav>
+        </section>
+
+        <section id="observatory" class="observatory-section" aria-labelledby="theorem-title" hidden>
+          <div class="observatory-grid">
+            <aside class="index-rail" aria-label="Observatory navigation">
+              <div class="rail-label">OBSERVATORY / <span id="rail-index">01</span></div>
+              <nav id="theorem-index-rail" class="theorem-index theorem-index-rail" aria-label="Choose a theorem"></nav>
+              <button id="back-to-atlas" class="text-button" type="button">← Atlas</button>
+            </aside>
+
+            <div class="scene-column">
+              <div id="visual-field" class="visual-shell" aria-label="Interactive mathematical visual field">
+                <canvas id="scene-canvas" aria-hidden="true"></canvas>
+                <div id="fallback-scene" class="fallback-scene" hidden></div>
+                <p id="scene-story" class="scene-story" aria-live="polite">F₀ = 0   ·   F₁ = 1</p>
+                <div class="scene-overlay scene-overlay-top"><span id="scene-kind">PROCEDURAL FIELD</span><span id="scene-status">LIVE</span></div>
+                <div class="scene-overlay scene-overlay-bottom"><span id="scene-seed">SEED 0314</span><span id="scene-quality">QUALITY AUTO</span></div>
+              </div>
+              <div class="scene-toolbar" aria-label="Scene controls">
+                <button id="pause-button" class="toolbar-button" type="button"><span aria-hidden="true">Ⅱ</span><span>Pause field</span></button>
+                <button id="replay-button" class="toolbar-button" type="button" aria-label="Replay construction"><span aria-hidden="true">↻</span><span>Replay construction</span></button>
+                <button id="reset-button" class="toolbar-button" type="button"><span aria-hidden="true">↺</span><span>Reset values</span></button>
+                <span id="motion-status" class="toolbar-status">Motion: full</span>
+              </div>
+            </div>
+
+            <aside class="control-rail" aria-label="Theorem controls">
+              <div class="rail-label">VARIABLES</div>
+              <div id="controls"></div>
+              <div class="control-divider"></div>
+              <div id="audio-controls" class="audio-controls"></div>
+              <button id="export-button" class="button button-outline" type="button">Export study clip <span aria-hidden="true">↗</span></button>
+              <p id="export-status" class="assistive-status" role="status" aria-live="polite"></p>
+            </aside>
+          </div>
+
+          <div class="lesson-grid">
+            <article class="lesson-copy" aria-labelledby="theorem-title">
+              <p class="eyebrow" id="theorem-kicker">THEOREM 01 / GROWTH</p>
+              <h2 id="theorem-title">Fibonacci and the Golden Ratio</h2>
+              <p id="theorem-question" class="lesson-question"></p>
+              <div id="equation" class="equation" aria-label="Theorem equation"></div>
+              <div id="explanation" class="explanation"></div>
+            </article>
+            <aside class="insight-card" aria-labelledby="insight-title">
+              <p class="eyebrow">FIELD NOTE</p>
+              <h3 id="insight-title">What to notice</h3>
+              <p id="insight-text"></p>
+              <p class="insight-meta">Change a value. Watch the rule reveal itself.</p>
+            </aside>
+          </div>
+        </section>
+      </main>
+
+      <footer class="site-footer">
+        <span>THE LIVING EQUATION / 2026</span>
+        <span>Built for curious minds</span>
+      </footer>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
