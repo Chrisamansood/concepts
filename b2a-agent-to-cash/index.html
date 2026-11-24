@@ -1,0 +1,503 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>B2A Agent-to-Cash</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Rajdhani:wght@400;500;600&display=swap">
+<style>
+/* Layout: HUD cockpit. Left rail = live transaction record, centre = agent sphere + hero earnings, right rail = Agent-to-Cash steps + wire. Console view = CFO grid in the same chrome. */
+:root{
+  --cyan:#39D6FF; --cyan-hot:#A8F0FF; --cyan-dim:#1B6F86; --accent-rgb:57,214,255;
+  --bg:#000; --bg-0:#06121A; --bg-1:#030A10;
+  --text:#D8F6FF; --text-dim:rgba(216,246,255,.62); --text-mute:rgba(216,246,255,.38);
+  --line-faint:rgba(57,214,255,.12); --line:rgba(57,214,255,.22); --line-strong:rgba(57,214,255,.45); --tick:rgba(57,214,255,.85);
+  --panel-bg:rgba(57,214,255,.03);
+  --human:#FFCE7A; --block:#FF7A8A;
+  --glow-text:0 0 8px rgba(57,214,255,.55); --glow-box:0 0 24px rgba(57,214,255,.12), inset 0 0 12px rgba(57,214,255,.05);
+  --font-display:"Chakra Petch","Rajdhani",sans-serif; --font-mono:"JetBrains Mono",ui-monospace,monospace; --font-body:"Rajdhani","Chakra Petch",sans-serif;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{background:var(--bg)}
+body{color:var(--text);font-family:var(--font-body);font-size:16px;min-height:100vh;
+  background:radial-gradient(ellipse at 50% 40%,var(--bg-0) 0%,var(--bg-1) 45%,#000 100%) fixed;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:14px 28px;position:relative;overflow-x:hidden}
+body::after{content:"";position:fixed;left:-20%;right:-20%;bottom:0;height:38vh;pointer-events:none;z-index:0;
+  background:repeating-linear-gradient(90deg,rgba(57,214,255,.07) 0 1px,transparent 1px 60px),repeating-linear-gradient(0deg,rgba(57,214,255,.07) 0 1px,transparent 1px 40px);
+  transform:perspective(500px) rotateX(62deg);transform-origin:bottom;-webkit-mask-image:linear-gradient(to top,#000,transparent);mask-image:linear-gradient(to top,#000,transparent)}
+.vpc{position:fixed;width:18px;height:18px;border-color:var(--tick);border-style:solid;border-width:0;z-index:5;pointer-events:none}
+.vpc.tl{top:calc(8px + env(safe-area-inset-top,0px));left:8px;border-top-width:1px;border-left-width:1px}
+.vpc.tr{top:calc(8px + env(safe-area-inset-top,0px));right:8px;border-top-width:1px;border-right-width:1px}
+.vpc.bl{bottom:calc(8px + env(safe-area-inset-bottom,0px));left:8px;border-bottom-width:1px;border-left-width:1px}
+.vpc.br{bottom:calc(8px + env(safe-area-inset-bottom,0px));right:8px;border-bottom-width:1px;border-right-width:1px}
+.wrap{position:relative;z-index:1;max-width:1440px;margin:0 auto}
+.mono{font-family:var(--font-mono);text-transform:uppercase;letter-spacing:2px}
+/* Top bar */
+.top{display:flex;flex-wrap:wrap;align-items:center;gap:12px 24px;padding:6px 4px 14px;border-bottom:1px solid var(--line-faint)}
+.brand{font-family:var(--font-display);font-weight:700;font-size:20px;letter-spacing:5px;text-shadow:var(--glow-text)}
+.brand small{font-family:var(--font-mono);font-size:10px;letter-spacing:3px;color:var(--text-mute);margin-left:10px;font-weight:400}
+.status{display:flex;gap:18px;flex-wrap:wrap;font-family:var(--font-mono);font-size:10px;letter-spacing:3px;color:var(--text-dim);text-transform:uppercase}
+.dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--cyan);box-shadow:0 0 8px var(--cyan);margin-right:7px;animation:pulse 1.7s infinite}
+@keyframes pulse{50%{opacity:.35}}
+.tabs{margin-left:auto;display:flex;gap:6px}
+.tab{font-family:var(--font-mono);font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--text-dim);background:transparent;border:1px solid var(--line);padding:8px 12px;cursor:pointer}
+.tab[aria-selected="true"]{color:var(--bg);background:var(--cyan);border-color:var(--cyan);box-shadow:0 0 14px rgba(57,214,255,.35)}
+.tab:focus-visible,.btn:focus-visible,.cmd:focus-visible{outline:1px solid var(--cyan-hot);outline-offset:2px}
+.clock{font-family:var(--font-display);font-size:18px;letter-spacing:2px;color:var(--cyan-hot);text-shadow:var(--glow-text);font-variant-numeric:tabular-nums}
+/* Panels */
+.panel{position:relative;background:var(--panel-bg);border:1px solid var(--line-faint);padding:16px;box-shadow:var(--glow-box);min-width:0}
+.panel::before,.panel::after{content:"";position:absolute;width:10px;height:10px;border-color:var(--tick);border-style:solid;border-width:0}
+.panel::before{top:-1px;left:-1px;border-top-width:1px;border-left-width:1px}
+.panel::after{bottom:-1px;right:-1px;border-bottom-width:1px;border-right-width:1px}
+.eyebrow{font-family:var(--font-mono);font-size:10px;letter-spacing:3px;color:var(--cyan);text-transform:uppercase;margin-bottom:10px;display:flex;justify-content:space-between;gap:8px}
+.eyebrow span:last-child{color:var(--text-mute)}
+h2{font-family:var(--font-display);font-weight:600;font-size:22px;letter-spacing:1px;margin:0 0 6px;text-wrap:balance}
+p{margin:0;line-height:1.45}
+.lead{color:var(--text-dim);font-size:16px;max-width:62ch}
+/* Replay grid */
+.grid{display:grid;gap:16px;margin-top:16px;grid-template-columns:290px minmax(0,1fr) 320px}
+@media (max-width:1150px){.grid{grid-template-columns:1fr 1fr}.center{grid-column:1/-1;order:-1}}
+@media (max-width:720px){.grid{grid-template-columns:1fr}}
+.rail{display:flex;flex-direction:column;gap:16px;min-width:0}
+.rec{display:grid;grid-template-columns:auto 1fr;gap:7px 12px;font-family:var(--font-mono);font-size:11px}
+.rec dt{color:var(--text-mute);letter-spacing:1.5px;text-transform:uppercase}
+.rec dd{margin:0;color:var(--text);text-align:right;overflow-wrap:anywhere;transition:color .4s}
+.rec dd.empty{color:var(--text-mute)}
+.rec dd.fresh{color:var(--cyan-hot);text-shadow:var(--glow-text)}
+.scen{display:flex;flex-direction:column;gap:6px}
+.scen label{display:flex;gap:10px;align-items:flex-start;padding:8px 10px;border:1px solid var(--line-faint);cursor:pointer;font-size:15px}
+.scen label:has(input:checked){border-color:var(--line-strong);background:rgba(57,214,255,.06)}
+.scen input{accent-color:var(--cyan);margin-top:4px}
+.scen small{display:block;color:var(--text-mute);font-family:var(--font-mono);font-size:10px;letter-spacing:1px;text-transform:uppercase}
+.ctrl{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.btn{font-family:var(--font-mono);font-size:11px;letter-spacing:2px;text-transform:uppercase;background:transparent;color:var(--cyan-hot);border:1px solid var(--line-strong);padding:9px 12px;cursor:pointer}
+.btn.primary{background:rgba(57,214,255,.14);border-color:var(--cyan)}
+.btn:hover{background:rgba(57,214,255,.1)}
+.btn:disabled{opacity:.4;cursor:default}
+/* Centre */
+.center{position:relative;display:flex;flex-direction:column;min-height:560px;padding:0}
+.stage{position:relative;flex:1;min-height:380px}
+canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+.tip{position:absolute;pointer-events:none;font-family:var(--font-mono);font-size:10px;letter-spacing:2px;text-transform:uppercase;background:rgba(0,0,0,.8);border:1px solid var(--line-strong);padding:4px 8px;color:var(--cyan-hot)}
+.callout{position:absolute;max-width:210px;border:1px solid var(--line);background:rgba(0,10,16,.72);padding:8px 10px;font-family:var(--font-mono);font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-dim)}
+.callout b{display:block;color:var(--cyan-hot);font-weight:500;font-size:11px;margin-bottom:3px}
+.callout.c1{top:16px;left:16px}.callout.c2{top:16px;right:16px;text-align:right}
+.callout.alert{border-color:var(--block);color:#FFD0D6}.callout.alert b{color:var(--block)}
+.callout.human{border-color:var(--human);color:#FFE9C2}.callout.human b{color:var(--human)}
+.hero{text-align:center;padding:4px 16px 20px;position:relative;z-index:2}
+.hero .eyebrow{justify-content:center}
+.big{font-family:var(--font-display);font-weight:700;font-size:clamp(56px,9vw,118px);line-height:.95;letter-spacing:2px;text-shadow:0 0 22px rgba(57,214,255,.45);font-variant-numeric:tabular-nums}
+.big.zero{color:var(--text-mute);text-shadow:none}
+.split{display:flex;justify-content:center;gap:18px;flex-wrap:wrap;font-family:var(--font-mono);font-size:11px;letter-spacing:1.5px;color:var(--text-dim);margin-top:8px;text-transform:uppercase}
+.bar{height:3px;background:var(--line-faint);max-width:360px;margin:12px auto 0;position:relative}
+.bar i{position:absolute;inset:0 auto 0 0;background:var(--cyan);box-shadow:0 0 8px var(--cyan);transition:width .5s var(--ease,ease)}
+/* Steps */
+.steps{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px}
+.steps li{display:grid;grid-template-columns:18px 1fr;gap:10px;padding:7px 4px;border-left:1px solid transparent;align-items:start}
+.steps .sd{width:9px;height:9px;border-radius:50%;border:1px solid var(--cyan-dim);margin-top:5px;margin-left:4px}
+.steps .nm{font-family:var(--font-mono);font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--text-mute)}
+.steps .ds{font-size:14px;color:var(--text-mute);line-height:1.3}
+.steps li.done .sd{background:var(--cyan);border-color:var(--cyan)}
+.steps li.done .nm{color:var(--text-dim)}.steps li.done .ds{color:var(--text-dim)}
+.steps li.active{border-left-color:var(--cyan);background:rgba(57,214,255,.06)}
+.steps li.active .sd{background:var(--cyan-hot);border-color:var(--cyan-hot);box-shadow:0 0 10px var(--cyan)}
+.steps li.active .nm{color:var(--cyan-hot)}.steps li.active .ds{color:var(--text)}
+.steps li.fail .sd{background:var(--block);border-color:var(--block)}.steps li.fail .nm{color:var(--block)}.steps li.fail .ds{color:#FFD0D6}
+.steps li.wait .sd{background:var(--human);border-color:var(--human)}.steps li.wait .nm{color:var(--human)}.steps li.wait .ds{color:#FFE9C2}
+.steps li.skip{opacity:.35}
+.steps li.rail .nm::after{content:" · not BSS";color:var(--text-mute)}
+.wire{font-family:var(--font-mono);font-size:11px;line-height:1.55;color:var(--text-dim);max-height:220px;overflow:auto;display:flex;flex-direction:column;gap:3px}
+.wire div::before{content:"▸ ";color:var(--cyan)}
+.wire .t{color:var(--text-mute)}
+.wire .bad{color:var(--block)}.wire .hum{color:var(--human)}
+.eq{display:flex;gap:3px;align-items:flex-end;height:22px;margin-top:10px}
+.eq i{flex:1;background:var(--cyan-dim);animation:eq 1.1s infinite ease-in-out}
+@keyframes eq{0%,100%{height:20%}50%{height:100%}}
+/* Console */
+.vitals{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px;margin-top:16px}
+@media (max-width:900px){.vitals{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.vital .lbl{font-family:var(--font-mono);font-size:10px;letter-spacing:2px;color:var(--text-mute);text-transform:uppercase}
+.vital .num{font-family:var(--font-display);font-weight:600;font-size:34px;letter-spacing:1px;margin-top:4px;text-shadow:var(--glow-text);font-variant-numeric:tabular-nums}
+.vital .sub{font-size:14px;color:var(--text-dim)}
+.cgrid{display:grid;gap:16px;margin-top:16px;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr)}
+@media (max-width:1000px){.cgrid{grid-template-columns:1fr}}
+.tscroll{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-family:var(--font-mono);font-size:11px}
+th{font-weight:400;color:var(--text-mute);letter-spacing:1.5px;text-transform:uppercase;text-align:left;padding:6px 8px;border-bottom:1px solid var(--line)}
+td{padding:9px 8px;border-bottom:1px solid var(--line-faint);vertical-align:middle;font-variant-numeric:tabular-nums}
+td.r,th.r{text-align:right}
+td .role{display:block;font-family:var(--font-body);font-size:14px;color:var(--text-dim);text-transform:none;letter-spacing:0}
+.meter{width:110px;height:4px;background:var(--line-faint);position:relative;margin-top:4px}
+.meter i{position:absolute;inset:0 auto 0 0;background:var(--cyan)}
+.meter.hot i{background:var(--human)}
+.pill{display:inline-block;font-size:9.5px;letter-spacing:1.5px;padding:3px 7px;border:1px solid var(--cyan-dim);color:var(--cyan);text-transform:uppercase;white-space:nowrap}
+.pill.hum{border-color:var(--human);color:var(--human)}.pill.bad{border-color:var(--block);color:var(--block)}.pill.hold{color:var(--text-mute);border-color:var(--line)}
+tfoot td{border-bottom:none;color:var(--text)}
+tfoot tr.total td{font-family:var(--font-display);font-size:20px;color:var(--cyan-hot);text-shadow:var(--glow-text);border-top:1px solid var(--line-strong)}
+.queue{display:flex;flex-direction:column;gap:10px}
+.qi{border:1px solid var(--line-faint);padding:10px 12px;display:grid;gap:6px}
+.qi .h{display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap}
+.qi .w{font-size:15px}
+.qi .acts{display:flex;gap:8px;flex-wrap:wrap}
+.qi.closed{opacity:.55}
+.sup{display:flex;flex-direction:column;gap:10px}
+.sup .row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 12px;font-family:var(--font-mono);font-size:11px}
+.sup .row .track{grid-column:1/-1;height:6px;background:var(--line-faint);position:relative}
+.sup .row .track i{position:absolute;inset:0 auto 0 0;background:linear-gradient(90deg,var(--cyan-dim),var(--cyan))}
+.note{margin-top:18px;font-family:var(--font-mono);font-size:10px;letter-spacing:1.5px;color:var(--text-mute);text-transform:uppercase;text-align:center}
+/* Overlay */
+.ov{position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:20;display:flex;align-items:center;justify-content:center;padding:max(16px,env(safe-area-inset-left,0px))}
+[hidden]{display:none!important}
+.ov .panel{width:min(520px,100%);background:#020a10;padding:22px}
+.ov .x{position:absolute;top:10px;right:10px}
+.ov dl{margin-top:14px}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+
+<div class="vpc tl"></div><div class="vpc tr"></div><div class="vpc bl"></div><div class="vpc br"></div>
+<div class="wrap">
+  <header class="top">
+    <div class="brand">B2A<small>AGENT-TO-CASH</small></div>
+    <div class="status"><span><i class="dot"></i>Kestrel Logistics</span><span><i class="dot"></i>Operator BSS online</span><span>Illustrative data</span></div>
+    <div class="tabs" role="tablist">
+      <button class="tab" role="tab" id="tab-replay" aria-selected="true" data-view="replay">03:07 Replay</button>
+      <button class="tab" role="tab" id="tab-console" aria-selected="false" data-view="console">Enterprise console</button>
+      <a class="tab" href="call-flow.html" style="text-decoration:none">Call flow diagram</a>
+    </div>
+    <div class="clock" id="clock">03:07:12</div>
+  </header>
+
+  <!-- REPLAY -->
+  <section id="view-replay">
+    <div class="grid">
+      <div class="rail">
+        <div class="panel">
+          <div class="eyebrow"><span>Scenario</span><span>pick one</span></div>
+          <div class="scen" id="scen">
+            <label><input type="radio" name="sc" id="sc-ok" value="ok" checked><span>Clean purchase<small>€0.05 weather forecast</small></span></label>
+            <label><input type="radio" name="sc" id="sc-dup" value="dup"><span>Agent retries the same request<small>duplicate event</small></span></label>
+            <label><input type="radio" name="sc" id="sc-big" value="big"><span>Agent buys a €120 dataset<small>above its mandate</small></span></label>
+          </div>
+          <div class="ctrl">
+            <button class="btn primary" id="play">Play</button>
+            <button class="btn" id="step">Step</button>
+            <button class="btn" id="reset">Reset</button>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="eyebrow"><span>Agent charging record</span><span id="recid">—</span></div>
+          <dl class="rec" id="rec"></dl>
+        </div>
+      </div>
+
+      <div class="panel center">
+        <div class="stage" id="stage">
+          <canvas id="cv" aria-label="Kestrel Logistics agent fleet, drawn as a sphere of points"></canvas>
+          <div class="tip" id="tip" hidden></div>
+          <div class="callout c1" id="co1"><b>pl-agent-07</b>Route planning · buyer</div>
+          <div class="callout c2" id="co2"><b>Waiting</b>Press play</div>
+        </div>
+        <div class="hero">
+          <div class="eyebrow"><span id="heroLbl">Operator earns on this purchase</span></div>
+          <div class="big zero" id="big">€0.000</div>
+          <div class="split" id="split"><span>Supplier —</span><span>Operator —</span><span>Network bytes carried 0</span></div>
+          <div class="bar"><i id="prog" style="width:0"></i></div>
+        </div>
+      </div>
+
+      <div class="rail">
+        <div class="panel">
+          <div class="eyebrow"><span>Agent-to-Cash</span><span id="stepn">0 / 8</span></div>
+          <ol class="steps" id="steps"></ol>
+        </div>
+        <div class="panel">
+          <div class="eyebrow"><span>Agent wire</span><span>live</span></div>
+          <div class="wire" id="wire" aria-live="polite"></div>
+          <div class="eq" aria-hidden="true"><i style="animation-delay:0s"></i><i style="animation-delay:.2s"></i><i style="animation-delay:.4s"></i><i style="animation-delay:.1s"></i><i style="animation-delay:.5s"></i><i style="animation-delay:.3s"></i><i style="animation-delay:.6s"></i><i style="animation-delay:.15s"></i></div>
+          <div class="ctrl"><button class="btn" id="toConsole">Open the CFO view</button></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CONSOLE -->
+  <section id="view-console" hidden>
+    <div class="panel" style="margin-top:16px">
+      <div class="eyebrow"><span>Enterprise console · Kestrel Logistics</span><span>November 2026 · month to date</span></div>
+      <h2>Every agent, every limit, one bill</h2>
+      <p class="lead">What the finance team sees when the operator runs its agents' purchases: who may spend what, where the money went, and what needs a human.</p>
+    </div>
+    <div class="vitals" id="vitals"></div>
+    <div class="cgrid">
+      <div class="panel">
+        <div class="eyebrow"><span>Agents and mandates</span><span>sample of fleet</span></div>
+        <div class="tscroll"><table id="agents"></table></div>
+      </div>
+      <div class="panel">
+        <div class="eyebrow"><span>Needs attention</span><span id="qcount"></span></div>
+        <div class="queue" id="queue"></div>
+      </div>
+    </div>
+    <div class="cgrid">
+      <div class="panel">
+        <div class="eyebrow"><span>Consolidated invoice</span><span>one bill, five suppliers</span></div>
+        <div class="tscroll"><table id="invoice"></table></div>
+      </div>
+      <div class="panel">
+        <div class="eyebrow"><span>Spend by supplier</span><span>€ month to date</span></div>
+        <div class="sup" id="sup"></div>
+      </div>
+    </div>
+  </section>
+
+  <p class="note">Concept demo · Kestrel Logistics and all suppliers are fictional · prices and volumes are examples, not market data</p>
+</div>
+
+<div class="ov" id="ov" hidden>
+  <div class="panel" role="dialog" aria-modal="true" aria-labelledby="ov-title">
+    <button class="btn x" id="ov-x" aria-label="Close">✕</button>
+    <div class="eyebrow"><span id="ov-eb">Agent</span></div>
+    <h2 id="ov-title">—</h2>
+    <p class="lead" id="ov-lead"></p>
+    <dl class="rec" id="ov-rec"></dl>
+  </div>
+</div>
+
+<script>
+(function(){
+const $ = id => document.getElementById(id);
+const eur = (v, d) => "€" + v.toLocaleString("en-IE", {minimumFractionDigits: d, maximumFractionDigits: d});
+
+/* ===== Fleet (shared by replay hotspots and console) ===== */
+const AGENTS = [
+  {id:"pl-agent-07", role:"Route planning", may:"Weather, maps, traffic data", limit:100, day:400, used:87.60, st:"ok"},
+  {id:"dt-agent-05", role:"Data enrichment", may:"Market and port datasets", limit:100, day:300, used:176.40, st:"hum"},
+  {id:"fx-agent-03", role:"Customs documents", may:"Document verification", limit:40, day:200, used:188.00, st:"warn"},
+  {id:"fl-agent-09", role:"Fleet telemetry", may:"Network APIs, telemetry", limit:20, day:150, used:41.25, st:"ok"},
+  {id:"cs-agent-11", role:"Customer updates", may:"Messaging, translation", limit:5, day:50, used:12.30, st:"ok"},
+  {id:"pr-agent-02", role:"Procurement quotes", may:"Compare quotes only", limit:0, day:0, used:0, st:"hold"}
+];
+
+/* ===== Replay scenarios ===== */
+const STEP_NAMES = [
+  ["Identify agent","Who is it, and for which company?"],
+  ["Check mandate","Is it allowed to spend this?"],
+  ["Quote and reserve","Agree the price, hold the money"],
+  ["Deliver and verify","Proof the forecast arrived"],
+  ["Rate and charge","Apply the contract"],
+  ["Bill and settle","Split supplier and operator"],
+  ["Assure","Duplicates and disputes"],
+  ["Payment rails","Cards, MPP or x402 move money"]
+];
+const BASE = [
+  {rec:{Agent:"pl-agent-07", Principal:"Kestrel Logistics"}, wire:"identity verified · pl-agent-07 → Kestrel Logistics", co:["Identity","Agent credential verified"]},
+  {rec:{Mandate:"Data ≤ €100 per purchase", "Left today":"€312.40"}, wire:"mandate ok · €0.05 within €100 limit", co:["Mandate","€312.40 left today"]},
+  {rec:{Supplier:"SkyCast Weather", Quote:"€0.050 accepted", Reserved:"€0.050"}, wire:"quote accepted · €0.050 reserved", co:["Reserved","€0.050 on hold"]},
+  {rec:{Delivery:"Forecast · 48 KB", Proof:"sig 9f3a…c21e"}, wire:"delivery proof received from SkyCast", co:["Delivered","Signed proof attached"]},
+  {rec:{Charge:"€0.050", "Event ID":"evt-7731"}, wire:"charge rated · evt-7731 · €0.050", co:["Charged","Contract applied"]},
+  {rec:{"To supplier":"€0.045", "To operator":"€0.005", Invoice:"Nov 2026 · line 534,681"}, wire:"split €0.045 / €0.005 · added to monthly invoice", co:["Settled","On one invoice"], earn:true},
+  {rec:{Assurance:"Unique event · no dispute"}, wire:"revenue assurance · pass", co:["Assured","No duplicates"]},
+  {rec:{Payout:"Batched to supplier"}, wire:"supplier payout batched to payment rail", co:["Paid out","Rail moves the money"], rail:true}
+];
+const SCEN = {
+  ok: {stop:null},
+  dup: {stop:4, kind:"fail", rec:{Charge:"Not charged", "Event ID":"evt-7731 (seen 03:07:12)"}, wire:"duplicate evt-7731 · already charged · blocked", co:["Blocked","Duplicate, not charged twice"], why:"The agent retried. The event ID matched one already charged, so nothing was billed twice."},
+  big: {stop:1, kind:"wait", rec:{Mandate:"Data ≤ €100 per purchase", Request:"€120 PortSignal dataset", Status:"Sent to finance approver"}, wire:"€120 > €100 mandate · paused for a human", co:["Approval needed","€120 is above the €100 limit"], why:"The purchase is above the agent's per-purchase limit, so it waits for a person in finance."}
+};
+
+let scen = "ok", idx = -1, timer = null, rec = {}, freshKeys = [];
+
+function renderSteps(){
+  const s = SCEN[scen];
+  $("steps").innerHTML = STEP_NAMES.map((n, i) => {
+    let c = "";
+    if (s.stop !== null && i === s.stop && idx >= i) c = s.kind;
+    else if (s.stop !== null && i > s.stop && idx >= s.stop) c = "skip";
+    else if (i < idx) c = "done";
+    else if (i === idx) c = (i === STEP_NAMES.length - 1 && idx === i) ? "done active" : "active";
+    if (i === 7) c += " rail";
+    return '<li class="' + c + '"><span class="sd"></span><span><span class="nm">' + n[0] + '</span><span class="ds"> ' + n[1] + '</span></span></li>';
+  }).join("");
+  const shown = Math.max(0, Math.min(idx + 1, 8));
+  $("stepn").textContent = shown + " / 8";
+  $("prog").style.width = (shown / 8 * 100) + "%";
+}
+function renderRec(){
+  const keys = Object.keys(rec);
+  const all = ["Agent","Principal","Mandate","Supplier","Charge","To operator"];
+  const show = keys.length ? keys : all;
+  $("rec").innerHTML = show.map(k => {
+    const v = rec[k];
+    const cls = v === undefined ? "empty" : (freshKeys.includes(k) ? "fresh" : "");
+    return "<dt>" + k + '</dt><dd class="' + cls + '">' + (v === undefined ? "—" : v) + "</dd>";
+  }).join("");
+  $("recid").textContent = rec["Event ID"] ? "evt-7731" : (keys.length ? "building" : "—");
+}
+function wire(txt, cls){
+  const s = (3 * 3600 + 7 * 60 + 12) + Math.max(0, idx) * 0.04;
+  const ts = "03:07:" + (12 + Math.max(0, idx) * 0.04).toFixed(2).padStart(5, "0");
+  const d = document.createElement("div");
+  if (cls) d.className = cls;
+  d.innerHTML = '<span class="t">' + ts + "</span> " + txt;
+  $("wire").appendChild(d); $("wire").scrollTop = 1e6;
+}
+function callout(t, b, cls){ const c = $("co2"); c.className = "callout c2 " + (cls || ""); c.innerHTML = "<b>" + t + "</b>" + b; }
+function setEarn(on){
+  const big = $("big");
+  if (on){ big.textContent = "€0.005"; big.classList.remove("zero");
+    $("split").innerHTML = "<span>Supplier €0.045</span><span>Operator €0.005</span><span>Network bytes carried 0</span>"; }
+  else { big.textContent = "€0.000"; big.classList.add("zero");
+    $("split").innerHTML = "<span>Supplier —</span><span>Operator —</span><span>Network bytes carried 0</span>"; }
+}
+function done(){ const s = SCEN[scen]; return idx >= 7 || (s.stop !== null && idx >= s.stop); }
+function advance(){
+  if (done()){ stop(); return; }
+  idx++;
+  const s = SCEN[scen];
+  let st = BASE[idx];
+  if (s.stop === idx){ st = {rec:s.rec, wire:s.wire, co:s.co}; }
+  freshKeys = Object.keys(st.rec);
+  Object.assign(rec, st.rec);
+  if (s.stop === idx){
+    wire(st.wire, s.kind === "fail" ? "bad" : "hum");
+    callout(st.co[0], st.co[1], s.kind === "fail" ? "alert" : "human");
+    $("heroLbl").textContent = s.kind === "fail" ? "Second charge prevented" : "Purchase paused";
+  } else {
+    wire(st.wire);
+    callout(st.co[0], st.co[1]);
+  }
+  if (st.earn) setEarn(true);
+  renderSteps(); renderRec(); pulseAt = performance.now();
+  if (done()){ stop(); if (s.stop !== null) wire(s.why, s.kind === "fail" ? "bad" : "hum"); }
+}
+function play(){ if (done()) reset(); stop(); $("play").textContent = "Pause"; advance(); timer = setInterval(advance, 1400); }
+function stop(){ clearInterval(timer); timer = null; $("play").textContent = done() ? "Replay" : "Play"; }
+function reset(){
+  stop(); idx = -1; rec = {}; freshKeys = [];
+  if (scen === "dup"){ /* a first charge already happened */ }
+  $("wire").innerHTML = "";
+  wire(scen === "dup" ? "evt-7731 charged once at 03:07:12 · agent retries" : (scen === "big" ? "dt-agent-05 requests €120 PortSignal dataset" : "pl-agent-07 requests SkyCast forecast · €0.05"));
+  callout("Waiting", "Press play");
+  $("heroLbl").textContent = "Operator earns on this purchase";
+  $("co1").innerHTML = scen === "big" ? "<b>dt-agent-05</b>Data enrichment · buyer" : "<b>pl-agent-07</b>Route planning · buyer";
+  setEarn(false); renderSteps(); renderRec(); $("play").textContent = "Play";
+}
+$("play").onclick = () => timer ? stop() : play();
+$("step").onclick = () => { stop(); if (done()) reset(); advance(); };
+$("reset").onclick = reset;
+document.querySelectorAll('input[name="sc"]').forEach(r => r.onchange = () => { scen = r.value; reset(); });
+
+/* ===== Sphere ===== */
+const cv = $("cv"), ctx = cv.getContext("2d"), ACCENT = "57,214,255", HOT = "168,240,255";
+let W = 0, H = 0, CX = 0, CY = 0, R = 0, rot = 0, pulseAt = -1e9, mouse = {x:-1e3, y:-1e3}, hover = null;
+const N = 560, shell = [], core = [];
+for (let i = 0; i < N; i++){ const y = 1 - (i / (N - 1)) * 2, r = Math.sqrt(1 - y * y), th = i * 2.399963; shell.push({x:Math.cos(th) * r, y, z:Math.sin(th) * r, ph:Math.random() * 6.28, sp:0.5 + Math.random()}); }
+for (let i = 0; i < 320; i++){ const r = Math.pow(Math.random(), 1.6) * 0.55, u = Math.random() * 2 - 1, th = Math.random() * 6.28, s = Math.sqrt(1 - u * u); core.push({x:r * s * Math.cos(th), y:r * u, z:r * s * Math.sin(th), ph:Math.random() * 6.28}); }
+const hot = AGENTS.map((a, i) => { const lat = [0.35, -0.2, 0.6, -0.55, 0.1, -0.05][i], lon = i * 1.05; return {a, x:Math.cos(lat) * Math.cos(lon), y:Math.sin(lat), z:Math.cos(lat) * Math.sin(lon)}; });
+function size(){ const b = $("stage").getBoundingClientRect(), d = Math.min(window.devicePixelRatio || 1, 2); W = b.width; H = b.height; cv.width = W * d; cv.height = H * d; ctx.setTransform(d, 0, 0, d, 0, 0); CX = W / 2; CY = H / 2 + 10; R = Math.min(W, H) * 0.34; }
+function proj(p){ const c = Math.cos(rot), s = Math.sin(rot), x = p.x * c + p.z * s, z = -p.x * s + p.z * c, ps = 1 / (1 + z * 0.35); return {sx:CX + x * R * ps, sy:CY + p.y * R * ps, z, depth:(z + 1) / 2}; }
+const still = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+function frame(t){
+  if (!still) rot += 0.0016;
+  ctx.clearRect(0, 0, W, H);
+  const since = (performance.now() - pulseAt) / 900, boost = since < 1 ? (1 - since) : 0;
+  const g = ctx.createRadialGradient(CX, CY, 0, CX, CY, R * 1.15);
+  g.addColorStop(0, "rgba(" + ACCENT + "," + (0.22 + boost * 0.25).toFixed(3) + ")"); g.addColorStop(1, "rgba(" + ACCENT + ",0)");
+  ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+  if (boost > 0){ ctx.strokeStyle = "rgba(" + ACCENT + "," + (boost * 0.6).toFixed(3) + ")"; ctx.beginPath(); ctx.arc(CX, CY, R * (1.05 + (1 - boost) * 0.25), 0, 6.283); ctx.stroke(); }
+  const P = shell.map(proj); ctx.lineWidth = 0.5;
+  for (let i = 0; i < N; i += 3) for (let k = 1; k <= 3; k++){ const a = P[i], b = P[(i + k * 13) % N], d = Math.hypot(a.sx - b.sx, a.sy - b.sy);
+    if (d < R * 0.12){ ctx.strokeStyle = "rgba(" + ACCENT + "," + (0.16 * Math.min(a.depth, b.depth) * (1 - d / (R * 0.12))).toFixed(3) + ")"; ctx.beginPath(); ctx.moveTo(a.sx, a.sy); ctx.lineTo(b.sx, b.sy); ctx.stroke(); } }
+  for (let i = 0; i < N; i++){ const p = shell[i], q = P[i], tw = 0.55 + 0.45 * Math.sin(p.ph + t * 0.001 * p.sp * 1.5); ctx.fillStyle = "rgba(" + ACCENT + "," + (q.depth * 0.8 * tw + 0.05).toFixed(3) + ")"; const sz = 0.5 + q.depth * 1.4; ctx.fillRect(q.sx - sz / 2, q.sy - sz / 2, sz, sz); }
+  for (const p of core){ const q = proj(p), tw = 0.6 + 0.4 * Math.sin(p.ph + t * 0.002); ctx.fillStyle = "rgba(" + HOT + "," + (0.25 + q.depth * 0.6 * tw).toFixed(3) + ")"; ctx.fillRect(q.sx, q.sy, 1.2, 1.2); }
+  hover = null;
+  for (const h of hot){ const q = proj(h); h.q = q; h.vis = q.z >= -0.15; if (!h.vis) continue;
+    const over = Math.hypot(mouse.x - q.sx, mouse.y - q.sy) < 14; if (over) hover = h;
+    ctx.fillStyle = "rgba(" + HOT + ",0.95)"; ctx.beginPath(); ctx.arc(q.sx, q.sy, over ? 4.5 : 3, 0, 6.283); ctx.fill();
+    ctx.strokeStyle = "rgba(" + ACCENT + "," + (over ? 0.9 : 0.4) + ")"; ctx.beginPath(); ctx.arc(q.sx, q.sy, over ? 11 : 7, 0, 6.283); ctx.stroke(); }
+  const tip = $("tip");
+  if (hover){ tip.hidden = false; tip.textContent = hover.a.id; tip.style.left = (hover.q.sx + 14) + "px"; tip.style.top = (hover.q.sy - 10) + "px"; cv.style.cursor = "pointer"; }
+  else { tip.hidden = true; cv.style.cursor = "default"; }
+  requestAnimationFrame(frame);
+}
+cv.addEventListener("mousemove", e => { const b = cv.getBoundingClientRect(); mouse = {x:e.clientX - b.left, y:e.clientY - b.top}; });
+cv.addEventListener("mouseleave", () => mouse = {x:-1e3, y:-1e3});
+cv.addEventListener("click", e => { const b = cv.getBoundingClientRect(), x = e.clientX - b.left, y = e.clientY - b.top;
+  const h = hot.find(h => h.vis && Math.hypot(x - h.q.sx, y - h.q.sy) < 16); if (h) openAgent(h.a); });
+window.addEventListener("resize", size);
+if (window.ResizeObserver) new ResizeObserver(size).observe($("stage"));
+
+/* ===== Overlay ===== */
+function openAgent(a){
+  $("ov-eb").textContent = "Agent · Kestrel Logistics";
+  $("ov-title").textContent = a.id;
+  $("ov-lead").textContent = a.role + ". " + (a.limit ? "May buy " + a.may.toLowerCase() + ", up to " + eur(a.limit, 0) + " per purchase." : "May compare quotes but cannot buy.");
+  $("ov-rec").innerHTML = "<dt>Daily budget</dt><dd>" + (a.day ? eur(a.day, 2) : "None") + "</dd><dt>Spent today</dt><dd>" + eur(a.used, 2) + "</dd><dt>Left today</dt><dd>" + (a.day ? eur(Math.max(0, a.day - a.used), 2) : "—") + "</dd><dt>Status</dt><dd>" + statusWord(a.st) + "</dd>";
+  $("ov").hidden = false; $("ov-x").focus();
+}
+function closeOv(){ $("ov").hidden = true; }
+$("ov-x").onclick = closeOv;
+$("ov").addEventListener("click", e => { if (e.target === $("ov")) closeOv(); });
+document.addEventListener("keydown", e => { if (e.key === "Escape") closeOv(); });
+
+/* ===== Console ===== */
+const SUP = [
+  {n:"SkyCast Weather", what:"Weather forecasts", q:412300, p:0.05},
+  {n:"RouteGraph Maps", what:"Route optimisation calls", q:96450, p:0.12},
+  {n:"VeriDoc", what:"Document verification", q:8120, p:0.80},
+  {n:"PortSignal", what:"Port congestion datasets", q:2210, p:2.50},
+  {n:"Operator network APIs", what:"SIM-swap and number checks", q:15600, p:0.04}
+];
+const FLEET = 4212, MGMT = 0.40, FEE = 0.10;
+let queue = [
+  {k:"hum", tag:"Approval", who:"dt-agent-05", w:"€120 PortSignal dataset. Limit is €100 per purchase.", open:true, acts:["Approve","Decline"]},
+  {k:"bad", tag:"Dispute", who:"SkyCast Weather", w:"14 forecasts charged without a delivery proof. €0.70 held from payout.", open:true, acts:["Refund","Ask supplier"]},
+  {k:"bad", tag:"Blocked", who:"pl-agent-07", w:"Duplicate event evt-7731. €0.05 not charged twice.", open:true, acts:["Dismiss"]},
+  {k:"hum", tag:"Limit", who:"fx-agent-03", w:"94% of today's €200 budget used by 15:40.", open:true, acts:["Raise to €300","Keep"]}
+];
+function statusWord(s){ return {ok:"Active", hum:"Waiting for approval", warn:"Near daily limit", hold:"Quote-only"}[s]; }
+function pill(s){ const m = {ok:["", "Active"], hum:["hum", "Approval"], warn:["hum", "Near limit"], hold:["hold", "Quote-only"]}[s]; return '<span class="pill ' + m[0] + '">' + m[1] + "</span>"; }
+function renderConsole(){
+  const lines = SUP.map(s => ({...s, amt:Math.round(s.q * s.p * 100) / 100}));
+  const supTotal = lines.reduce((a, l) => a + l.amt, 0), count = lines.reduce((a, l) => a + l.q, 0);
+  const mgmt = FLEET * MGMT, opFee = supTotal * FEE, total = supTotal + mgmt;
+  const open = queue.filter(q => q.open).length;
+  $("vitals").innerHTML = [
+    ["Agents under mandate", FLEET.toLocaleString("en-IE"), "Each with its own limits"],
+    ["Purchases this month", count.toLocaleString("en-IE"), "Rated, charged and settled"],
+    ["Month-to-date bill", eur(total, 2), "Five suppliers, one invoice"],
+    ["Needs a human", String(open), "Approvals, disputes, limits"]
+  ].map(v => '<div class="panel vital"><div class="lbl">' + v[0] + '</div><div class="num">' + v[1] + '</div><div class="sub">' + v[2] + "</div></div>").join("");
+  $("agents").innerHTML = '<thead><tr><th>Agent</th><th class="r">Per purchase</th><th>Today</th><th>Status</th></tr></thead><tbody>' +
+    AGENTS.map(a => { const pct = a.day ? Math.min(100, a.used / a.day * 100) : 0;
+      return '<tr><td>' + a.id + '<span class="role">' + a.role + '</span></td><td class="r">' + (a.limit ? "≤ " + eur(a.limit, 0) : "—") + '</td><td>' + (a.day ? eur(a.used, 2) + " / " + eur(a.day, 0) + '<div class="meter' + (pct > 85 ? " hot" : "") + '"><i style="width:' + pct.toFixed(0) + '%"></i></div>' : "No budget") + "</td><td>" + pill(a.st) + "</td></tr>"; }).join("") + "</tbody>";
+  $("invoice").innerHTML = '<thead><tr><th>Supplier</th><th class="r">Purchases</th><th class="r">Unit</th><th class="r">Amount</th></tr></thead><tbody>' +
+    lines.map(l => "<tr><td>" + l.n + '<span class="role">' + l.what + '</span></td><td class="r">' + l.q.toLocaleString("en-IE") + '</td><td class="r">' + eur(l.p, 2) + '</td><td class="r">' + eur(l.amt, 2) + "</td></tr>").join("") +
+    '<tr><td>Agent management<span class="role">' + FLEET.toLocaleString("en-IE") + ' agents × €0.40</span></td><td class="r">—</td><td class="r">€0.40</td><td class="r">' + eur(mgmt, 2) + "</td></tr></tbody>" +
+    '<tfoot><tr><td colspan="3">Operator platform fee inside supplier prices (10%)</td><td class="r">' + eur(opFee, 2) + '</td></tr><tr class="total"><td colspan="3">Total due</td><td class="r">' + eur(total, 2) + "</td></tr></tfoot>";
+  const max = Math.max(...lines.map(l => l.amt));
+  $("sup").innerHTML = lines.slice().sort((a, b) => b.amt - a.amt).map(l => '<div class="row"><span>' + l.n + "</span><span>" + eur(l.amt, 0) + '</span><div class="track"><i style="width:' + (l.amt / max * 100).toFixed(1) + '%"></i></div></div>').join("");
+  $("qcount").textContent = open + " open";
+  $("queue").innerHTML = queue.map((q, i) => '<div class="qi' + (q.open ? "" : " closed") + '"><div class="h"><span class="mono" style="font-size:11px">' + q.who + '</span><span class="pill ' + q.k + '">' + (q.open ? q.tag : q.done) + '</span></div><div class="w">' + q.w + "</div>" +
+    (q.open ? '<div class="acts">' + q.acts.map((a, j) => '<button class="btn" data-q="' + i + '" data-a="' + j + '">' + a + "</button>").join("") + "</div>" : "") + "</div>").join("");
+}
+$("queue").addEventListener("click", e => { const b = e.target.closest("button[data-q]"); if (!b) return; const q = queue[+b.dataset.q]; q.open = false; q.done = q.acts[+b.dataset.a]; renderConsole(); });
+
+/* ===== Views ===== */
+function show(v){
+  const c = v === "console";
+  $("view-console").hidden = !c; $("view-replay").hidden = c;
+  $("tab-console").setAttribute("aria-selected", c); $("tab-replay").setAttribute("aria-selected", !c);
+  if (!c) requestAnimationFrame(size);
+}
+document.querySelectorAll(".tab").forEach(t => t.onclick = () => { location.hash = t.dataset.view; show(t.dataset.view); });
+$("toConsole").onclick = () => { location.hash = "console"; show("console"); window.scrollTo(0, 0); };
+window.addEventListener("hashchange", () => show(location.hash.slice(1)));
+
+/* Clock: a fixed night, ticking from 03:07:12 */
+const t0 = Date.now();
+setInterval(() => { const s = 3 * 3600 + 7 * 60 + 12 + Math.floor((Date.now() - t0) / 1000); $("clock").textContent = [Math.floor(s / 3600) % 24, Math.floor(s / 60) % 60, s % 60].map(n => String(n).padStart(2, "0")).join(":"); }, 1000);
+
+renderConsole(); reset(); show(location.hash.slice(1) === "console" ? "console" : "replay"); size(); requestAnimationFrame(frame);
+})();
+</script>
+
+</body></html>

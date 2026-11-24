@@ -192,5 +192,20 @@
     "status": "Live",
     "path": "ufiniti/",
     "color": "#087C70"
+  },
+  {
+    "id": "b2a-agent-to-cash",
+    "title": "B2A: Business to Agent",
+    "subtitle": "Agent-to-Cash Prototype",
+    "description": "An interactive prototype of enterprise agent mandates, verified charging, consolidated billing, supplier settlement and payment rails. Fictional actors and illustrative figures.",
+    "tags": [
+      "B2A",
+      "Agentic AI",
+      "BSS",
+      "Monetisation"
+    ],
+    "status": "Concept",
+    "path": "b2a-agent-to-cash/",
+    "color": "#00FF41"
   }
 ]
